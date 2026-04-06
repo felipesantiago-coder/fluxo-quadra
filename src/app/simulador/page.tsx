@@ -234,9 +234,15 @@ function SimulatorContent() {
   // PDF generation
   const generatePDF = useCallback(async () => {
     const { jsPDF } = await import("jspdf");
-    await import("jspdf-autotable");
+    const autoTableModule = await import("jspdf-autotable");
+    const autoTable = autoTableModule.default || autoTableModule;
 
     const doc = new jsPDF("p", "mm", "a4") as any;
+    autoTable(doc, {
+      startY: -9999,
+      head: [["", ""]],
+      body: [],
+    });
     const margin = 15;
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -265,7 +271,7 @@ function SimulatorContent() {
     doc.setFont("helvetica", "bold");
     doc.text("Informações da Proposta", margin, yPos);
     yPos += 10;
-    doc.autoTable({
+    autoTable(doc,{
       startY: yPos,
       head: [["Descrição", "Informação"]],
       body: [
@@ -287,7 +293,7 @@ function SimulatorContent() {
     doc.setFont("helvetica", "bold");
     doc.text("Resumo Financeiro", margin, yPos);
     yPos += 10;
-    doc.autoTable({
+    autoTable(doc,{
       startY: yPos,
       head: [["Etapa", "Valor", "%"]],
       body: [
@@ -312,7 +318,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "bold");
       doc.text("Cronograma: Sinal", margin, yPos);
       yPos += 10;
-      doc.autoTable({
+      autoTable(doc,{
         startY: yPos,
         head: [["Parcela", "Data", "Valor"]],
         body: result.sinalRows.map((r) => [r.parcela, r.data, r.valor]),
@@ -330,7 +336,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "bold");
       doc.text("Cronograma: Mensais", margin, yPos);
       yPos += 10;
-      doc.autoTable({
+      autoTable(doc,{
         startY: yPos,
         head: [["Parcela", "Data", "Valor"]],
         body: result.monthlyRows.map((r) => [r.parcela, r.data, r.valor]),
@@ -349,7 +355,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "bold");
       doc.text("Cronograma: Semestrais", margin, yPos);
       yPos += 10;
-      doc.autoTable({
+      autoTable(doc,{
         startY: yPos,
         head: [["Parcela", "Data", "Valor"]],
         body: result.semesterRows.map((r) => [r.parcela, r.data, r.valor]),
@@ -366,7 +372,7 @@ function SimulatorContent() {
     doc.setFont("helvetica", "bold");
     doc.text("Detalhes do Habite-se", margin, yPos);
     yPos += 10;
-    doc.autoTable({
+    autoTable(doc,{
       startY: yPos,
       head: [["Descrição", "Valor"]],
       body: [
