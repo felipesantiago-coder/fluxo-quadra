@@ -9,6 +9,7 @@ export interface Unit {
   valorFormatado: string;
   tipoArea: "66m²" | "67m²" | "69m²" | "100m²";
   status: "disponivel" | "reservado" | "vendido" | "consultar";
+  posicaoSolar: "Nascente" | "Poente";
 }
 
 function parseValor(raw: string): { valor: number | null; str: string; formatado: string } {
@@ -61,6 +62,10 @@ function getAreaType(areaStr: string): Unit["tipoArea"] {
 function getStatus(valor: number | null, unidade: number): Unit["status"] {
   if (valor === null) return "consultar";
   return "disponivel";
+}
+
+function getPosicaoSolar(unidade: number): Unit["posicaoSolar"] {
+  return unidade % 2 === 0 ? "Nascente" : "Poente";
 }
 
 // Raw data from CSV
@@ -153,6 +158,7 @@ export const units: Unit[] = rawData.map(([andar, unidade, vagas, areaStr, valor
     valorFormatado: parsed.formatado,
     tipoArea: getAreaType(areaStr),
     status: getStatus(parsed.valor, unidade),
+    posicaoSolar: getPosicaoSolar(unidade),
   };
 });
 

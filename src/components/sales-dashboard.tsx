@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { units, floors, areaTypes, formatCurrency, type Unit } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -114,6 +114,12 @@ function UnitCard({
           </div>
         </div>
 
+        {/* Solar position */}
+        <div className="flex items-center gap-1.5">
+          <Sun className={`w-3.5 h-3.5 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+          <span className="text-sm font-medium text-gray-600">{unit.posicaoSolar}</span>
+        </div>
+
         {/* Price */}
         <div className="pt-1">
           <p className={`text-lg font-bold ${unit.valorVenda ? "text-gray-900" : "text-gray-400 italic"}`}>
@@ -126,11 +132,14 @@ function UnitCard({
           )}
         </div>
 
-        {/* Area type badge */}
-        <div className="flex justify-end">
+        {/* Bottom badges */}
+        <div className="flex items-center justify-between">
           <Badge variant="secondary" className={`text-[10px] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
             {unit.tipoArea}
           </Badge>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-orange-50 text-orange-600 border border-orange-200"}`}>
+            {unit.posicaoSolar === "Nascente" ? "\u{1F305} Nascente" : "\u{1F307} Poente"}
+          </span>
         </div>
       </div>
     </motion.div>
@@ -205,7 +214,7 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
           </span>
 
           {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
               <Maximize2 className="w-5 h-5 mx-auto mb-2 text-gray-400" />
               <p className="text-xl font-bold text-gray-900">{unit.areaStr}</p>
@@ -220,6 +229,11 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
               <Layers className="w-5 h-5 mx-auto mb-2 text-gray-400" />
               <p className="text-xl font-bold text-gray-900">{unit.andar}º</p>
               <p className="text-[11px] text-gray-400 font-medium mt-1">Andar</p>
+            </div>
+            <div className={`text-center p-4 rounded-xl border ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 border-amber-200" : "bg-orange-50 border-orange-200"}`}>
+              <Sun className={`w-5 h-5 mx-auto mb-2 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+              <p className={`text-xl font-bold ${unit.posicaoSolar === "Nascente" ? "text-amber-700" : "text-orange-700"}`}>{unit.posicaoSolar}</p>
+              <p className={`text-[11px] font-medium mt-1 ${unit.posicaoSolar === "Nascente" ? "text-amber-400" : "text-orange-400"}`}>Posição Solar</p>
             </div>
           </div>
 
