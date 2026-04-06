@@ -192,8 +192,8 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
 
           {/* Header */}
           <div className="flex items-start gap-4">
-            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0`}>
-              {unit.unidade}
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
+              <Building2 className="w-8 h-8 text-white" />
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
