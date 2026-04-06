@@ -391,19 +391,19 @@ function Legend() {
 export default function SalesDashboard() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
-  const [filterArea, setFilterArea] = useState<Unit["tipoArea"] | "all">("all");
+  const [filterQuartos, setFilterQuartos] = useState<number | "all">("all");
   const [filterFloor, setFilterFloor] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
 
   const filteredUnits = useMemo(() => {
     let result = [...units];
-    if (filterArea !== "all") result = result.filter((u) => u.tipoArea === filterArea);
+    if (filterQuartos !== "all") result = result.filter((u) => u.quartos === filterQuartos);
     if (filterFloor !== "all") result = result.filter((u) => u.andar === filterFloor);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [filterArea, filterFloor, filterVagas, filterStatus]);
+  }, [filterQuartos, filterFloor, filterVagas, filterStatus]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
@@ -454,12 +454,12 @@ export default function SalesDashboard() {
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filtros</span>
-            {(filterArea !== "all" || filterFloor !== "all" || filterVagas !== "all" || filterStatus !== "all") && (
+            {(filterQuartos !== "all" || filterFloor !== "all" || filterVagas !== "all" || filterStatus !== "all") && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setFilterArea("all"); setFilterFloor("all"); setFilterVagas("all"); setFilterStatus("all"); }}
+                onClick={() => { setFilterQuartos("all"); setFilterFloor("all"); setFilterVagas("all"); setFilterStatus("all"); }}
               >
                 Limpar filtros
               </Button>
@@ -481,18 +481,17 @@ export default function SalesDashboard() {
               </select>
             </div>
 
-            {/* Area filter */}
+            {/* Quartos filter */}
             <div>
-              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Área</label>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Quartos</label>
               <select
-                value={filterArea}
-                onChange={(e) => setFilterArea(e.target.value as Unit["tipoArea"] | "all")}
+                value={filterQuartos}
+                onChange={(e) => setFilterQuartos(e.target.value === "all" ? "all" : Number(e.target.value))}
                 className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
               >
-                <option value="all">Todas</option>
-                {areaTypes.map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
+                <option value="all">Todos</option>
+                <option value="2">2 quartos</option>
+                <option value="3">3 quartos</option>
               </select>
             </div>
 
