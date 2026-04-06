@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { units, floors, areaTypes, statusTypes, formatCurrency, type Unit } from "@/lib/units-data";
+import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
 import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
 // ─── Color palette for unit types ───
@@ -402,12 +403,72 @@ function Legend() {
 
 // ─── Main Dashboard ───
 export default function SalesDashboard() {
+  const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
   const [filterQuartos, setFilterQuartos] = useState<number | "all">("all");
   const [filterFloor, setFilterFloor] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
+
+  // Buscar dados do Supabase via API + Realtime
+  useEffect(() => {
+    let supabaseChannel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+
+    async function loadData() {
+      try {
+        const res = await fetch("/api/units");
+        const data = await res.json();
+
+        const mapped: Unit[] = (Array.isArray(data) ? data : []).map((row: Record<string, unknown>) => ({
+          andar: row.andar as number,
+          unidade: row.unidade as number,
+          vagas: row.vagas as number,
+          area: Number(row.area),
+          areaStr: row.area_str as string,
+          valorVenda: row.valor_venda as number | null,
+          valorStr: row.valor_venda ? Number(row.valor_venda).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Consulte",
+          valorFormatado: row.valor_venda ? formatCurrency(Number(row.valor_venda)) : "Consulte o valor",
+          tipoArea: row.tipo_area as Unit["tipoArea"],
+          status: row.status as Unit["status"],
+          posicaoSolar: row.posicao_solar as Unit["posicaoSolar"],
+          quartos: row.quartos as 2 | 3,
+        }));
+
+        setUnits(mapped);
+
+        // Realtime: escutar mudanças de status
+        const supabase = createClient();
+        supabaseChannel = supabase
+          .channel("dashboard-realtime")
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "units" },
+            (payload) => {
+              const updated = payload.new as Record<string, unknown>;
+              setUnits((prev) =>
+                prev.map((u) =>
+                  u.unidade === updated.unidade
+                    ? { ...u, status: updated.status as Unit["status"] }
+                    : u
+                )
+              );
+            }
+          )
+          .subscribe();
+      } catch {
+        console.error("Erro ao carregar dados do Supabase, usando dados estáticos.");
+      }
+    }
+
+    loadData();
+
+    return () => {
+      if (supabaseChannel) {
+        createClient().removeChannel(supabaseChannel);
+      }
+    };
+  }, []);
 
   const filteredUnits = useMemo(() => {
     let result = [...units];
