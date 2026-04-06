@@ -10,6 +10,7 @@ export interface Unit {
   tipoArea: "66m²" | "67m²" | "69m²" | "100m²";
   status: "disponivel" | "reservado" | "vendido" | "consultar";
   posicaoSolar: "Nascente" | "Poente";
+  quartos: 2 | 3;
 }
 
 function parseValor(raw: string): { valor: number | null; str: string; formatado: string } {
@@ -159,11 +160,13 @@ export const units: Unit[] = rawData.map(([andar, unidade, vagas, areaStr, valor
     tipoArea: getAreaType(areaStr),
     status: getStatus(parsed.valor, unidade),
     posicaoSolar: getPosicaoSolar(unidade),
+    quartos: area >= 100 ? 3 : 2,
   };
 });
 
 export const floors = [1, 2, 3, 4, 5, 6] as const;
 export const areaTypes: Unit["tipoArea"][] = ["66m²", "67m²", "69m²", "100m²"];
+export const statusTypes: Unit["status"][] = ["disponivel", "reservado", "vendido", "consultar"];
 
 export function getUnitsByFloor(floor: number): Unit[] {
   return units.filter((u) => u.andar === floor);

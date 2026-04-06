@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { units, floors, areaTypes, formatCurrency, type Unit } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun } from "lucide-react";
+import { units, floors, areaTypes, statusTypes, formatCurrency, type Unit } from "@/lib/units-data";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -103,7 +103,7 @@ function UnitCard({
         </div>
 
         {/* Info items */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <div className="flex items-center gap-1.5 text-gray-500">
             <Maximize2 className="w-3.5 h-3.5" />
             <span className="text-sm font-medium">{unit.areaStr}</span>
@@ -111,6 +111,10 @@ function UnitCard({
           <div className="flex items-center gap-1.5 text-gray-500">
             <Car className="w-3.5 h-3.5" />
             <span className="text-sm font-medium">{unit.vagas} vag{unit.vagas === 1 ? "a" : "as"}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <BedDouble className="w-3.5 h-3.5" />
+            <span className="text-sm font-medium">{unit.quartos} quartos</span>
           </div>
         </div>
 
@@ -220,6 +224,15 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                <BedDouble className="w-5 h-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">{unit.quartos} quarto{unit.quartos > 1 ? "s" : ""}</p>
+                <p className="text-[11px] text-gray-400 font-medium">Dormitórios</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
                 <Maximize2 className="w-5 h-5 text-gray-500" />
               </div>
               <div>
@@ -237,15 +250,6 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
               </div>
             </div>
             <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
-              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-                <Layers className="w-5 h-5 text-gray-500" />
-              </div>
-              <div>
-                <p className="text-lg font-bold text-gray-900">{unit.andar}º andar</p>
-                <p className="text-[11px] text-gray-400 font-medium">Pavimento</p>
-              </div>
-            </div>
-            <div className={`flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100`}>
               <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
                 <Sun className="w-5 h-5 text-gray-500" />
               </div>
@@ -390,14 +394,16 @@ export default function SalesDashboard() {
   const [filterArea, setFilterArea] = useState<Unit["tipoArea"] | "all">("all");
   const [filterFloor, setFilterFloor] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
 
   const filteredUnits = useMemo(() => {
     let result = [...units];
     if (filterArea !== "all") result = result.filter((u) => u.tipoArea === filterArea);
     if (filterFloor !== "all") result = result.filter((u) => u.andar === filterFloor);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
+    if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [filterArea, filterFloor, filterVagas]);
+  }, [filterArea, filterFloor, filterVagas, filterStatus]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
@@ -448,18 +454,18 @@ export default function SalesDashboard() {
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filtros</span>
-            {(filterArea !== "all" || filterFloor !== "all" || filterVagas !== "all") && (
+            {(filterArea !== "all" || filterFloor !== "all" || filterVagas !== "all" || filterStatus !== "all") && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setFilterArea("all"); setFilterFloor("all"); setFilterVagas("all"); }}
+                onClick={() => { setFilterArea("all"); setFilterFloor("all"); setFilterVagas("all"); setFilterStatus("all"); }}
               >
                 Limpar filtros
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {/* Floor filter */}
             <div>
               <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Andar</label>
@@ -501,6 +507,23 @@ export default function SalesDashboard() {
                 <option value="all">Todas</option>
                 <option value="1">1 vaga</option>
                 <option value="2">2 vagas</option>
+              </select>
+            </div>
+
+            {/* Status filter */}
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as Unit["status"] | "all")}
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+              >
+                <option value="all">Todos</option>
+                {statusTypes.map((s) => (
+                  <option key={s} value={s}>
+                    {s === "disponivel" ? "Disponível" : s === "reservado" ? "Reservada" : s === "vendido" ? "Vendida" : "Consultar"}
+                  </option>
+                ))}
               </select>
             </div>
 
