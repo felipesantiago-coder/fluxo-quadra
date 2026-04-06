@@ -259,7 +259,7 @@ function SimulatorContent() {
     doc.text("Quattre - Torre Istambul", margin, 20);
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text("Proposta Comercial - Fluxo de Pagamento", margin, 30);
+    doc.text("Simulação Comercial - Fluxo de Pagamento", margin, 30);
     const today = new Date().toLocaleDateString("pt-BR");
     doc.setFontSize(10);
     doc.text(`Gerado em: ${today}`, pageWidth - margin - 30, 30, { align: "right" });
@@ -399,9 +399,9 @@ function SimulatorContent() {
     doc.setTextColor(60, 60, 60);
     const notes = [
       "As parcelas não pagas durante as obras serão incluídas no habite-se.",
-      "O habite-se pode ser quitado ou financiado com o banco de preferência.",
+      "O saldo devedor pod ser quitado ou financiado com o banco de preferência até o habite-se.",
       "Importante: Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção).",
-      "A captação durante as obras deve ser de no mínimo 25% do valor do imóvel.",
+      "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
       const lines = doc.splitTextToSize(note, pageWidth - margin * 2);
