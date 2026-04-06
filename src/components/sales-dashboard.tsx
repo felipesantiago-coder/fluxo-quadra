@@ -181,7 +181,7 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
         {/* Top gradient bar */}
         <div className={`h-2 bg-gradient-to-r ${colors.gradient}`} />
 
-        <div className="p-6 sm:p-8 space-y-6">
+        <div className="p-6 sm:p-8 space-y-5">
           {/* Close button */}
           <button
             onClick={onClose}
@@ -191,51 +191,82 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-4">
             <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0`}>
               {unit.unidade}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
                 Unidade {unit.unidade}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5">
                 {unit.andar}º Andar — Quattre Istambul
               </p>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <span
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${status.color}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+                  {status.label}
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-orange-50 text-orange-700 border-orange-200"}`}
+                >
+                  <Sun className={`w-3 h-3 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+                  {unit.posicaoSolar}
+                </span>
+                <Badge variant="outline" className={`text-[11px] font-semibold border ${colors.border} ${colors.text}`}>
+                  {unit.tipoArea}
+                </Badge>
+              </div>
             </div>
           </div>
 
-          {/* Status badge */}
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full border ${status.color}`}
-          >
-            <span className={`w-2 h-2 rounded-full ${status.dotColor}`} />
-            {status.label}
-          </span>
+          {/* Separator */}
+          <div className="border-t border-gray-100" />
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <Maximize2 className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-              <p className="text-xl font-bold text-gray-900">{unit.areaStr}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Área Privativa</p>
+          {/* Stats grid 2x2 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                <Maximize2 className="w-5 h-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">{unit.areaStr}</p>
+                <p className="text-[11px] text-gray-400 font-medium">Área Privativa</p>
+              </div>
             </div>
-            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <Car className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-              <p className="text-xl font-bold text-gray-900">{unit.vagas}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Vaga{unit.vagas > 1 ? "s" : ""}</p>
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                <Car className="w-5 h-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">{unit.vagas} vaga{unit.vagas > 1 ? "s" : ""}</p>
+                <p className="text-[11px] text-gray-400 font-medium">Garagem</p>
+              </div>
             </div>
-            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <Layers className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-              <p className="text-xl font-bold text-gray-900">{unit.andar}º</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-1">Andar</p>
+            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                <Layers className="w-5 h-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">{unit.andar}º andar</p>
+                <p className="text-[11px] text-gray-400 font-medium">Pavimento</p>
+              </div>
             </div>
-            <div className={`text-center p-4 rounded-xl border ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 border-amber-200" : "bg-orange-50 border-orange-200"}`}>
-              <Sun className={`w-5 h-5 mx-auto mb-2 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
-              <p className={`text-xl font-bold ${unit.posicaoSolar === "Nascente" ? "text-amber-700" : "text-orange-700"}`}>{unit.posicaoSolar}</p>
-              <p className={`text-[11px] font-medium mt-1 ${unit.posicaoSolar === "Nascente" ? "text-amber-400" : "text-orange-400"}`}>Posição Solar</p>
+            <div className={`flex items-center gap-3 p-3.5 rounded-xl border ${unit.posicaoSolar === "Nascente" ? "bg-amber-50/60 border-amber-200" : "bg-orange-50/60 border-orange-200"}`}>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${unit.posicaoSolar === "Nascente" ? "bg-amber-100" : "bg-orange-100"}`}>
+                <Sun className={`w-5 h-5 ${unit.posicaoSolar === "Nascente" ? "text-amber-600" : "text-orange-600"}`} />
+              </div>
+              <div>
+                <p className={`text-lg font-bold ${unit.posicaoSolar === "Nascente" ? "text-amber-800" : "text-orange-800"}`}>{unit.posicaoSolar}</p>
+                <p className={`text-[11px] font-medium ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`}>Posição Solar</p>
+              </div>
             </div>
           </div>
+
+          {/* Separator */}
+          <div className="border-t border-gray-100" />
 
           {/* Price */}
           <div className="space-y-3">
@@ -251,9 +282,6 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs border-gray-200">
                     R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
-                  </Badge>
-                  <Badge variant="outline" className={`text-xs border ${colors.border} ${colors.text}`}>
-                    {unit.tipoArea}
                   </Badge>
                 </div>
               </div>
