@@ -202,22 +202,13 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
               <p className="text-sm text-gray-500 mt-0.5">
                 {unit.andar}º Andar — Quattre Istambul
               </p>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
+              <div className="mt-3">
                 <span
                   className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${status.color}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
                   {status.label}
                 </span>
-                <span
-                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-orange-50 text-orange-700 border-orange-200"}`}
-                >
-                  <Sun className={`w-3 h-3 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
-                  {unit.posicaoSolar}
-                </span>
-                <Badge variant="outline" className={`text-[11px] font-semibold border ${colors.border} ${colors.text}`}>
-                  {unit.tipoArea}
-                </Badge>
               </div>
             </div>
           </div>
