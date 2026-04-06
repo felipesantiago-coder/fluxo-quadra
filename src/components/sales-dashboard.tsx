@@ -114,7 +114,7 @@ function UnitCard({
           </div>
           <div className="flex items-center gap-1.5 text-gray-500">
             <BedDouble className="w-3.5 h-3.5" />
-            <span className="text-sm font-medium">{unit.quartos} quartos</span>
+            <span className="text-sm font-medium">{unit.quartos} qts</span>
           </div>
         </div>
 
