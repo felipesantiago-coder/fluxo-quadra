@@ -43,7 +43,6 @@ const statusLabels: Record<Unit["status"], { label: string; color: string; dotCo
   disponivel: { label: "Disponível", color: "bg-emerald-100 text-emerald-800 border-emerald-200", dotColor: "bg-emerald-500" },
   reservado: { label: "Reservado", color: "bg-amber-100 text-amber-800 border-amber-200", dotColor: "bg-amber-500" },
   vendido: { label: "Vendido", color: "bg-red-100 text-red-800 border-red-200", dotColor: "bg-red-500" },
-  consultar: { label: "Consultar", color: "bg-gray-100 text-gray-600 border-gray-200", dotColor: "bg-gray-400" },
 };
 
 // ─── Unit Card (compact grid card) ───

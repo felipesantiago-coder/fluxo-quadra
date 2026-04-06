@@ -8,7 +8,7 @@ export interface Unit {
   valorStr: string;
   valorFormatado: string;
   tipoArea: "66m²" | "67m²" | "69m²" | "100m²";
-  status: "disponivel" | "reservado" | "vendido" | "consultar";
+  status: "disponivel" | "reservado" | "vendido";
   posicaoSolar: "Nascente" | "Poente";
   quartos: 2 | 3;
 }
@@ -61,7 +61,7 @@ function getAreaType(areaStr: string): Unit["tipoArea"] {
 }
 
 function getStatus(valor: number | null, unidade: number): Unit["status"] {
-  if (valor === null) return "consultar";
+  if (valor === null) return "disponivel";
   return "disponivel";
 }
 
@@ -166,7 +166,7 @@ export const units: Unit[] = rawData.map(([andar, unidade, vagas, areaStr, valor
 
 export const floors = [1, 2, 3, 4, 5, 6] as const;
 export const areaTypes: Unit["tipoArea"][] = ["66m²", "67m²", "69m²", "100m²"];
-export const statusTypes: Unit["status"][] = ["disponivel", "reservado", "vendido", "consultar"];
+export const statusTypes: Unit["status"][] = ["disponivel", "reservado", "vendido"];
 
 export function getUnitsByFloor(floor: number): Unit[] {
   return units.filter((u) => u.andar === floor);
