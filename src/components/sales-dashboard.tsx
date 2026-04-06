@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { units, floors, areaTypes, getUnitsByFloor, getStats, formatCurrency, formatCompactCurrency, type Unit } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, TrendingUp, Hash, X, ChevronDown, ChevronUp, MapPin, Phone, Filter, Layers, ArrowUpDown, Info } from "lucide-react";
+import { units, floors, areaTypes, formatCurrency, type Unit } from "@/lib/units-data";
+import { Building2, Car, Maximize2, DollarSign, TrendingUp, X, ChevronUp, MapPin, Phone, Filter, Layers, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -359,26 +359,6 @@ function FloorSection({
   );
 }
 
-// ─── Stats Card ───
-function StatsCard({ icon: Icon, label, value, subValue, color }: { icon: React.ElementType; label: string; value: string; subValue?: string; color: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 p-4 rounded-xl bg-white shadow-md border border-gray-100"
-    >
-      <div className={`w-10 h-10 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-5 h-5 text-white" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">{label}</p>
-        <p className="text-lg font-bold text-gray-900 truncate">{value}</p>
-        {subValue && <p className="text-[11px] text-gray-400 truncate">{subValue}</p>}
-      </div>
-    </motion.div>
-  );
-}
-
 // ─── Legend ───
 function Legend() {
   return (
@@ -402,10 +382,7 @@ export default function SalesDashboard() {
   const [filterArea, setFilterArea] = useState<Unit["tipoArea"] | "all">("all");
   const [filterFloor, setFilterFloor] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
-  const [sortBy, setSortBy] = useState<"andar" | "valor" | "area">("andar");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const stats = useMemo(() => getStats(), []);
 
   const filteredUnits = useMemo(() => {
     let result = [...units];
@@ -448,15 +425,6 @@ export default function SalesDashboard() {
     });
   }, []);
 
-  const handleSort = useCallback((field: "andar" | "valor" | "area") => {
-    if (sortBy === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortBy(field);
-      setSortDir("asc");
-    }
-  }, [sortBy]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
       {/* Header */}
@@ -475,51 +443,13 @@ export default function SalesDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="hidden sm:inline-flex text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-                {stats.disponiveis} disponíveis
-              </Badge>
-              <Badge variant="secondary" className="text-xs font-semibold bg-gray-100 text-gray-600 border-gray-200">
-                {stats.totalUnits} unidades
-              </Badge>
+
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Hero stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatsCard
-            icon={Hash}
-            label="Total de Unidades"
-            value={`${stats.totalUnits}`}
-            subValue="6 andares"
-            color="bg-gray-800"
-          />
-          <StatsCard
-            icon={DollarSign}
-            label="Faixa de Preço"
-            value={`${formatCompactCurrency(stats.menorPreco)}`}
-            subValue={`até ${formatCompactCurrency(stats.maiorPreco)}`}
-            color="bg-emerald-600"
-          />
-          <StatsCard
-            icon={TrendingUp}
-            label="VGV Total"
-            value={formatCompactCurrency(stats.totalVGV)}
-            subValue="Valor Geral de Vendas"
-            color="bg-amber-500"
-          />
-          <StatsCard
-            icon={Maximize2}
-            label="Tipologias"
-            value={stats.areasDisponiveis.join(", ")}
-            subValue={`${stats.disponiveis} disponíveis`}
-            color="bg-violet-500"
-          />
-        </div>
-
         {/* Filters */}
         <div className="p-4 rounded-xl bg-white shadow-md border border-gray-100">
           <div className="flex items-center gap-2 mb-3">

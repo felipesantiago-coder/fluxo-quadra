@@ -21,12 +21,20 @@ function parseValor(raw: string): { valor: number | null; str: string; formatado
   // Check if it's a properly formatted R$ value (e.g., "R$ 812899.00")
   const fullMatch = raw.match(/R\$\s*([\d.,]+)/);
   if (fullMatch) {
-    const numStr = fullMatch[1].replace(/\./g, "").replace(",", ".");
+    let numStr = fullMatch[1];
+    // Brazilian format: 1.234.567,89 → remove dots, replace comma with dot
+    if (numStr.includes(",") && numStr.includes(".")) {
+      numStr = numStr.replace(/\./g, "").replace(",", ".");
+    } else if (numStr.includes(",")) {
+      // Only comma as decimal separator
+      numStr = numStr.replace(",", ".");
+    }
+    // Otherwise keep as-is (US decimal format: "812899.00")
     const valor = parseFloat(numStr);
     return {
       valor,
-      str: `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      formatado: `R$ ${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+      str: valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      formatado: new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor),
     };
   }
 
@@ -37,8 +45,8 @@ function parseValor(raw: string): { valor: number | null; str: string; formatado
     const valor = Math.round(num * 1000);
     return {
       valor,
-      str: `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      formatado: `R$ ${valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+      str: valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      formatado: new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor),
     };
   }
 
