@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { units, floors, areaTypes, statusTypes, formatCurrency, type Unit } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -286,6 +286,20 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
               </div>
             )}
           </div>
+
+          {/* Simular button */}
+          <a
+            href={`/simulador?valor=${unit.valorVenda || 0}&unidade=${unit.unidade}&area=${unit.areaStr}&andar=${unit.andar}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (!unit.valorVenda) { e.preventDefault(); return; }
+            }}
+            className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valorVenda ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+          >
+            <Calculator className="w-4 h-4" />
+            Simular Financiamento
+          </a>
         </div>
       </motion.div>
     </motion.div>
