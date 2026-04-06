@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { units, floors, areaTypes, type Unit } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers } from "lucide-react";
+import { units, floors, areaTypes, formatCurrency, type Unit } from "@/lib/units-data";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -46,15 +46,13 @@ const statusLabels: Record<Unit["status"], { label: string; color: string; dotCo
   consultar: { label: "Consultar", color: "bg-gray-100 text-gray-600 border-gray-200", dotColor: "bg-gray-400" },
 };
 
-// ─── Unit Card Component ───
+// ─── Unit Card (compact grid card) ───
 function UnitCard({
   unit,
-  isSelected,
   onSelect,
   isBackground,
 }: {
   unit: Unit;
-  isSelected: boolean;
   onSelect: (unit: Unit) => void;
   isBackground: boolean;
 }) {
@@ -66,30 +64,25 @@ function UnitCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{
-        opacity: isBackground ? 0.3 : 1,
+        opacity: isBackground ? 0.25 : 1,
         y: 0,
-        scale: isSelected ? 1.08 : 1,
-        zIndex: isSelected ? 50 : 1,
       }}
       exit={{ opacity: 0, y: -20 }}
       transition={{
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
-        scale: { type: "spring", stiffness: 400, damping: 25 },
       }}
-      whileHover={!isBackground ? { y: -6, scale: 1.02 } : {}}
+      whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
       onClick={() => onSelect(unit)}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-hidden
-        bg-white transition-all duration-300 ease-out
-        ${isSelected
-          ? `shadow-2xl border-transparent ring-2 ring-offset-2 ring-offset-slate-100 ${colors.accent}/60`
-          : "shadow-md hover:shadow-xl border-gray-100"
-        }
-        ${isBackground ? "pointer-events-none grayscale-[30%]" : ""}
+        bg-white shadow-md hover:shadow-xl
+        transition-all duration-300 ease-out
+        border-gray-100
+        ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
-        filter: isBackground ? "blur(1px)" : "none",
+        filter: isBackground ? "blur(2px)" : "none",
       }}
     >
       {/* Top colored bar */}
@@ -98,16 +91,9 @@ function UnitCard({
       <div className="p-4 space-y-3">
         {/* Header: Unit number + Status */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isSelected && (
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-white font-bold text-sm shadow-md`}>
-                {unit.unidade}
-              </div>
-            )}
-            <span className={`${isSelected ? "text-xl" : "text-xl"} font-bold tracking-tight text-gray-900`}>
-              {isSelected ? `Unidade ${unit.unidade}` : unit.unidade}
-            </span>
-          </div>
+          <span className="text-xl font-bold tracking-tight text-gray-900">
+            {unit.unidade}
+          </span>
           <span
             className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color}`}
           >
@@ -128,50 +114,16 @@ function UnitCard({
           </div>
         </div>
 
-        {/* Expanded details when selected */}
-        <AnimatePresence>
-          {isSelected && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25 }}
-              className="overflow-hidden"
-            >
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
-                <div className="text-center">
-                  <Layers className="w-4 h-4 mx-auto mb-1 text-gray-400" />
-                  <p className="text-sm font-bold text-gray-900">{unit.andar}º</p>
-                  <p className="text-[9px] text-gray-400 font-medium">Andar</p>
-                </div>
-                {unit.valorVenda && (
-                  <div className="text-center">
-                    <DollarSign className="w-4 h-4 mx-auto mb-1 text-gray-400" />
-                    <p className="text-[11px] font-bold text-gray-900">
-                      R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                    </p>
-                    <p className="text-[9px] text-gray-400 font-medium">por m²</p>
-                  </div>
-                )}
-                <div className="text-center">
-                  <Maximize2 className="w-4 h-4 mx-auto mb-1 text-gray-400" />
-                  <p className="text-sm font-bold text-gray-900">{unit.area}</p>
-                  <p className="text-[9px] text-gray-400 font-medium">m² total</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Price */}
         <div className="pt-1">
-          <div className="flex items-center gap-1 text-gray-400 mb-0.5">
-            <DollarSign className="w-3 h-3" />
-            <span className="text-[10px] font-medium uppercase tracking-wider">Valor</span>
-          </div>
           <p className={`text-lg font-bold ${unit.valorVenda ? "text-gray-900" : "text-gray-400 italic"}`}>
             {unit.valorFormatado}
           </p>
+          {unit.valorVenda && (
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
+            </p>
+          )}
         </div>
 
         {/* Area type badge */}
@@ -181,6 +133,125 @@ function UnitCard({
           </Badge>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+// ─── Expanded Centered Card ───
+function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
+  const colors = typeColors[unit.tipoArea];
+  const status = statusLabels[unit.status];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
+        className="absolute inset-0 bg-black/50 backdrop-blur-md"
+      />
+
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85, y: 40 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.85, y: 40 }}
+        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Top gradient bar */}
+        <div className={`h-2 bg-gradient-to-r ${colors.gradient}`} />
+
+        <div className="p-6 sm:p-8 space-y-6">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-20"
+          >
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-white font-bold text-2xl shadow-lg flex-shrink-0`}>
+              {unit.unidade}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                Unidade {unit.unidade}
+              </h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {unit.andar}º Andar — Quattre Istambul
+              </p>
+            </div>
+          </div>
+
+          {/* Status badge */}
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full border ${status.color}`}
+          >
+            <span className={`w-2 h-2 rounded-full ${status.dotColor}`} />
+            {status.label}
+          </span>
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <Maximize2 className="w-5 h-5 mx-auto mb-2 text-gray-400" />
+              <p className="text-xl font-bold text-gray-900">{unit.areaStr}</p>
+              <p className="text-[11px] text-gray-400 font-medium mt-1">Área Privativa</p>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <Car className="w-5 h-5 mx-auto mb-2 text-gray-400" />
+              <p className="text-xl font-bold text-gray-900">{unit.vagas}</p>
+              <p className="text-[11px] text-gray-400 font-medium mt-1">Vaga{unit.vagas > 1 ? "s" : ""}</p>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
+              <Layers className="w-5 h-5 mx-auto mb-2 text-gray-400" />
+              <p className="text-xl font-bold text-gray-900">{unit.andar}º</p>
+              <p className="text-[11px] text-gray-400 font-medium mt-1">Andar</p>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-gray-400" />
+              <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Valor de Venda</span>
+            </div>
+            {unit.valorVenda ? (
+              <div className="space-y-2">
+                <p className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(unit.valorVenda)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs border-gray-200">
+                    R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
+                  </Badge>
+                  <Badge variant="outline" className={`text-xs border ${colors.border} ${colors.text}`}>
+                    {unit.tipoArea}
+                  </Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+                <p className="text-lg font-semibold text-gray-400">Consulte o valor</p>
+                <p className="text-sm text-gray-400 mt-1">Entre em contato para saber o valor desta unidade</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -252,7 +323,6 @@ function FloorSection({
                 <UnitCard
                   key={unit.unidade}
                   unit={unit}
-                  isSelected={selectedUnit?.unidade === unit.unidade}
                   onSelect={onSelectUnit}
                   isBackground={selectedUnit !== null && selectedUnit?.unidade !== unit.unidade}
                 />
@@ -302,12 +372,12 @@ export default function SalesDashboard() {
   }, [filteredUnits]);
 
   const handleSelectUnit = useCallback((unit: Unit) => {
-    if (selectedUnit?.unidade === unit.unidade) {
-      setSelectedUnit(null);
-    } else {
-      setSelectedUnit(unit);
-    }
-  }, [selectedUnit]);
+    setSelectedUnit(unit);
+  }, []);
+
+  const handleCloseExpanded = useCallback(() => {
+    setSelectedUnit(null);
+  }, []);
 
   const toggleFloor = useCallback((floor: number) => {
     setCollapsedFloors((prev) => {
@@ -460,6 +530,13 @@ export default function SalesDashboard() {
           </div>
         </div>
       </footer>
+
+      {/* Expanded centered card overlay */}
+      <AnimatePresence>
+        {selectedUnit && (
+          <ExpandedCard unit={selectedUnit} onClose={handleCloseExpanded} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
