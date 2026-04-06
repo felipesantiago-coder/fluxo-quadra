@@ -398,9 +398,9 @@ function SimulatorContent() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60, 60, 60);
     const notes = [
-      "As parcelas não pagas durante as obras serão incluídas no habite-se.",
-      "O saldo devedor pod ser quitado ou financiado com o banco de preferência até o habite-se.",
-      "Importante: Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção).",
+      "As parcelas não pagas durante as obras serão incluídas ao saldo devedor para o habite-se.",
+      "O saldo devedor deverá ser quitado até o habite-se ou financiado com o banco de preferência após emissão do habite-se.",
+      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
