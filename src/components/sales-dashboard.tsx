@@ -243,12 +243,6 @@ function UnitCard({
           </div>
         </div>
 
-        {/* Solar position */}
-        <div className="flex items-center gap-1.5">
-          <Sun className={`w-3.5 h-3.5 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
-          <span className="text-sm font-medium text-gray-600">{unit.posicaoSolar}</span>
-        </div>
-
         {/* Price */}
         <div className="pt-1">
           <p className={`text-lg font-bold ${unit.valorVenda ? "text-gray-900" : "text-gray-400 italic"}`}>
@@ -259,16 +253,6 @@ function UnitCard({
               R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
             </p>
           )}
-        </div>
-
-        {/* Bottom badges */}
-        <div className="flex items-center justify-between">
-          <Badge variant="secondary" className={`text-[10px] font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
-            {unit.tipoArea}
-          </Badge>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${unit.posicaoSolar === "Nascente" ? "bg-amber-50 text-amber-600 border border-amber-200" : "bg-orange-50 text-orange-600 border border-orange-200"}`}>
-            {unit.posicaoSolar === "Nascente" ? "\u{1F305} Nascente" : "\u{1F307} Poente"}
-          </span>
         </div>
       </div>
     </motion.div>
@@ -608,7 +592,7 @@ export default function SalesDashboard({ isAdmin = false }: { isAdmin?: boolean 
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     return result;
-  }, [filterQuartos, filterFloor, filterVagas, filterStatus]);
+  }, [units, filterQuartos, filterFloor, filterVagas, filterStatus]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
