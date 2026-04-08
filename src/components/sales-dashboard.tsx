@@ -70,6 +70,22 @@ function UnitCard({
   const status = statusLabels[unit.status];
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+
+  // Fechar o menu ao clicar fora
+  useEffect(() => {
+    if (!showStatusMenu) return;
+    const handleClickOutside = () => setShowStatusMenu(false);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showStatusMenu]);
+
+  // Limpar feedback após 3 segundos
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), 3000);
+    return () => clearTimeout(timer);
+  }, [feedback]);
 
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,17 +98,25 @@ function UnitCard({
     if (!onStatusChange || newStatus === unit.status) return;
 
     setSaving(true);
+    setFeedback(null);
     try {
       const res = await fetch("/api/units", {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unidade: unit.unidade, status: newStatus }),
       });
+      const data = await res.json();
       if (res.ok) {
         onStatusChange(unit.unidade, newStatus);
+        setFeedback("success");
+      } else {
+        console.error("Erro ao atualizar status:", data.error);
+        setFeedback("error");
       }
-    } catch {
-      console.error("Erro ao atualizar status");
+    } catch (err) {
+      console.error("Erro ao atualizar status:", err);
+      setFeedback("error");
     } finally {
       setSaving(false);
     }
@@ -179,6 +203,29 @@ function UnitCard({
             </AnimatePresence>
           </div>
         </div>
+
+        {/* Feedback visual de sucesso/erro */}
+        <AnimatePresence>
+          {feedback && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg ${
+                feedback === "success"
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {feedback === "success" ? (
+                <Check className="w-3 h-3 flex-shrink-0" />
+              ) : (
+                <X className="w-3 h-3 flex-shrink-0" />
+              )}
+              {feedback === "success" ? "Status atualizado!" : "Erro ao atualizar. Verifique o console."}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Info items */}
         <div className="grid grid-cols-3 gap-2">
