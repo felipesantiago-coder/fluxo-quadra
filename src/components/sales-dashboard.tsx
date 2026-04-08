@@ -138,7 +138,7 @@ function UnitCard({
       whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
       onClick={() => onSelect(unit)}
       className={`
-        relative cursor-pointer rounded-xl border-2 overflow-hidden
+        relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
         border-gray-100
@@ -151,7 +151,7 @@ function UnitCard({
       {/* Top colored bar */}
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
 
-      <div className="p-4 space-y-3">
+      <div className="p-5 space-y-3">
         {/* Header: Unit number + Status */}
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold tracking-tight text-gray-900">
@@ -480,9 +480,9 @@ function FloorSection({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="overflow-hidden"
+            className="overflow-visible"
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {floorUnits.map((unit) => (
                 <UnitCard
                   key={unit.unidade}
