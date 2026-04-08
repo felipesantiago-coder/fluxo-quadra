@@ -274,7 +274,7 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+      className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-8"
       onClick={onClose}
     >
       {/* Backdrop */}
