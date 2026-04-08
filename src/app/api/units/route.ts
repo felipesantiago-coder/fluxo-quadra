@@ -2,13 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 // E-mails autorizados como admin
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase());
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter((e) => e.length > 0);
 
 async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return false;
+  if (error || !user) {
+    console.error("[isAdmin] Erro ao obter usuário:", error?.message);
+    return false;
+  }
   if (ADMIN_EMAILS.length === 0) return true; // Sem restrição se não configurado
-  return ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
+  const isAuthorized = ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
+  if (!isAuthorized) {
+    console.warn(`[isAdmin] E-mail não autorizado: ${user.email}`);
+  }
+  return isAuthorized;
 }
 
 export async function GET() {
