@@ -11,13 +11,13 @@ export default function AdminDashboardClient() {
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data: { user } }) => {
-      if (!user) router.push("/admin/login");
+      if (!user) router.push("/");
     });
   }, [router]);
 
   const handleLogout = async () => {
     await createClient().auth.signOut();
-    router.push("/admin/login");
+    router.push("/");
     router.refresh();
   };
 
@@ -43,7 +43,7 @@ export default function AdminDashboardClient() {
 
         {/* Ações */}
         <div className="flex items-center gap-3">
-          <a href="/" className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+          <a href="/espelho" className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             Ver espelho público
           </a>
