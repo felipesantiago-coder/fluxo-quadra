@@ -525,6 +525,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
   const [filterFloor, setFilterFloor] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
+  const [sortBy, setSortBy] = useState<"floor" | "price-asc" | "price-desc">("floor");
 
   // Buscar dados do Supabase via API + Realtime
   useEffect(() => {
@@ -591,8 +592,10 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
     if (filterFloor !== "all") result = result.filter((u) => u.andar === filterFloor);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
+    if (sortBy === "price-asc") result.sort((a, b) => (a.valorVenda ?? Infinity) - (b.valorVenda ?? Infinity));
+    if (sortBy === "price-desc") result.sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0));
     return result;
-  }, [units, filterQuartos, filterFloor, filterVagas, filterStatus]);
+  }, [units, filterQuartos, filterFloor, filterVagas, filterStatus, sortBy]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
@@ -668,7 +671,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {/* Floor filter */}
             <div>
               <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Andar</label>
@@ -729,6 +732,20 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
               </select>
             </div>
 
+            {/* Ordenação */}
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Ordenar</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+              >
+                <option value="floor">Andar</option>
+                <option value="price-asc">Menor preço</option>
+                <option value="price-desc">Maior preço</option>
+              </select>
+            </div>
+
             {/* Results count */}
             <div className="flex items-end">
               <div className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center">
@@ -743,30 +760,57 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
         {/* Legend */}
         <Legend />
 
-        {/* Floor sections */}
-        <div className="space-y-6">
-          {activeFloors.map((floor) => {
-            const floorUnits = filteredUnits
-              .filter((u) => u.andar === floor)
-              .sort((a, b) => a.unidade - b.unidade);
-            return (
-              <FloorSection
-                key={floor}
-                floor={floor}
-                floorUnits={floorUnits}
-                selectedUnit={selectedUnit}
-                onSelectUnit={handleSelectUnit}
-                isCollapsed={collapsedFloors.has(floor)}
-                onToggle={() => toggleFloor(floor)}
-                isAdmin={isAdmin}
-                onStatusChange={handleLocalStatusChange}
-              />
-            );
-          })}
-        </div>
+        {/* Units display — floor sections or flat sorted list */}
+        {sortBy === "floor" ? (
+          <div className="space-y-6">
+            {activeFloors.map((floor) => {
+              const floorUnits = filteredUnits
+                .filter((u) => u.andar === floor)
+                .sort((a, b) => a.unidade - b.unidade);
+              return (
+                <FloorSection
+                  key={floor}
+                  floor={floor}
+                  floorUnits={floorUnits}
+                  selectedUnit={selectedUnit}
+                  onSelectUnit={handleSelectUnit}
+                  isCollapsed={collapsedFloors.has(floor)}
+                  onToggle={() => toggleFloor(floor)}
+                  isAdmin={isAdmin}
+                  onStatusChange={handleLocalStatusChange}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <motion.div
+            key={sortBy}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+              <DollarSign className="w-4 h-4" />
+              Ordenado por {sortBy === "price-asc" ? "menor preço" : "maior preço"}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+              {filteredUnits.map((unit) => (
+                <UnitCard
+                  key={unit.unidade}
+                  unit={unit}
+                  onSelect={handleSelectUnit}
+                  isBackground={false}
+                  isAdmin={isAdmin}
+                  onStatusChange={handleLocalStatusChange}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Empty state */}
-        {activeFloors.length === 0 && (
+        {filteredUnits.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
