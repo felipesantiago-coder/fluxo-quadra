@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble, Calculator } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble, Calculator, Shield, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -42,22 +42,61 @@ const typeColors: Record<Unit["tipoArea"], { bg: string; border: string; text: s
 
 const statusLabels: Record<Unit["status"], { label: string; color: string; dotColor: string }> = {
   disponivel: { label: "Disponível", color: "bg-emerald-100 text-emerald-800 border-emerald-200", dotColor: "bg-emerald-500" },
-  reservado: { label: "Reservado", color: "bg-amber-100 text-amber-800 border-amber-200", dotColor: "bg-amber-500" },
-  vendido: { label: "Vendido", color: "bg-red-100 text-red-800 border-red-200", dotColor: "bg-red-500" },
+  reservado: { label: "Reservada", color: "bg-amber-100 text-amber-800 border-amber-200", dotColor: "bg-amber-500" },
+  vendido: { label: "Vendida", color: "bg-red-100 text-red-800 border-red-200", dotColor: "bg-red-500" },
 };
+
+const allStatuses: { value: Unit["status"]; label: string; dotColor: string }[] = [
+  { value: "disponivel", label: "Disponível", dotColor: "bg-emerald-500" },
+  { value: "reservado", label: "Reservada", dotColor: "bg-amber-500" },
+  { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
+];
 
 // ─── Unit Card (compact grid card) ───
 function UnitCard({
   unit,
   onSelect,
   isBackground,
+  isAdmin,
+  onStatusChange,
 }: {
   unit: Unit;
   onSelect: (unit: Unit) => void;
   isBackground: boolean;
+  isAdmin?: boolean;
+  onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
 }) {
   const colors = typeColors[unit.tipoArea];
   const status = statusLabels[unit.status];
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+  };
+
+  const handleStatusSelect = async (e: React.MouseEvent, newStatus: Unit["status"]) => {
+    e.stopPropagation();
+    setShowStatusMenu(false);
+    if (!onStatusChange || newStatus === unit.status) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/units", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unidade: unit.unidade, status: newStatus }),
+      });
+      if (res.ok) {
+        onStatusChange(unit.unidade, newStatus);
+      }
+    } catch {
+      console.error("Erro ao atualizar status");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <motion.div
@@ -94,12 +133,51 @@ function UnitCard({
           <span className="text-xl font-bold tracking-tight text-gray-900">
             {unit.unidade}
           </span>
-          <span
-            className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
-            {status.label}
-          </span>
+          <div className="relative">
+            <button
+              onClick={handleStatusClick}
+              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color} ${isAdmin ? "cursor-pointer hover:opacity-80 ring-1 ring-offset-1 ring-gray-200 hover:ring-gray-400" : "cursor-default"}`}
+            >
+              {saving ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
+              ) : (
+                <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+              )}
+              {status.label}
+              {isAdmin && !showStatusMenu && <span className="ml-0.5 opacity-50">▾</span>}
+            </button>
+
+            {/* Dropdown de status */}
+            <AnimatePresence>
+              {showStatusMenu && isAdmin && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[140px] overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">Alterar status</p>
+                  {allStatuses.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={(e) => handleStatusSelect(e, s.value)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
+                        s.value === unit.status
+                          ? "bg-gray-50 text-gray-400"
+                          : "hover:bg-gray-50 text-gray-700"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${s.dotColor}`} />
+                      {s.label}
+                      {s.value === unit.status && <Check className="w-3 h-3 ml-auto" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Info items */}
@@ -315,6 +393,8 @@ function FloorSection({
   onSelectUnit,
   isCollapsed,
   onToggle,
+  isAdmin,
+  onStatusChange,
 }: {
   floor: number;
   floorUnits: Unit[];
@@ -322,6 +402,8 @@ function FloorSection({
   onSelectUnit: (unit: Unit) => void;
   isCollapsed: boolean;
   onToggle: () => void;
+  isAdmin?: boolean;
+  onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
 }) {
   return (
     <motion.div layout className="space-y-4">
@@ -376,6 +458,8 @@ function FloorSection({
                   unit={unit}
                   onSelect={onSelectUnit}
                   isBackground={selectedUnit !== null && selectedUnit?.unidade !== unit.unidade}
+                  isAdmin={isAdmin}
+                  onStatusChange={onStatusChange}
                 />
               ))}
             </div>
@@ -402,7 +486,7 @@ function Legend() {
 }
 
 // ─── Main Dashboard ───
-export default function SalesDashboard() {
+export default function SalesDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
   const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
@@ -488,6 +572,12 @@ export default function SalesDashboard() {
     setSelectedUnit(unit);
   }, []);
 
+  const handleLocalStatusChange = useCallback((unidade: number, newStatus: Unit["status"]) => {
+    setUnits((prev) => prev.map((u) => u.unidade === unidade ? { ...u, status: newStatus } : u));
+    // Também atualizar selectedUnit se for a mesma unidade
+    setSelectedUnit((prev) => prev && prev.unidade === unidade ? { ...prev, status: newStatus } : prev);
+  }, []);
+
   const handleCloseExpanded = useCallback(() => {
     setSelectedUnit(null);
   }, []);
@@ -516,6 +606,11 @@ export default function SalesDashboard() {
                   Quattre <span className="text-gray-400 font-normal">Istambul</span>
                 </h1>
                 <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Espelho de Vendas</p>
+                {isAdmin && (
+                  <span className="hidden sm:inline-flex items-center gap-1 ml-2 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    <Shield className="w-3 h-3" /> Admin
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -629,6 +724,8 @@ export default function SalesDashboard() {
                 onSelectUnit={handleSelectUnit}
                 isCollapsed={collapsedFloors.has(floor)}
                 onToggle={() => toggleFloor(floor)}
+                isAdmin={isAdmin}
+                onStatusChange={handleLocalStatusChange}
               />
             );
           })}
