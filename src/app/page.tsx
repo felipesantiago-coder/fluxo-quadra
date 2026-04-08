@@ -14,35 +14,6 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [redirecting, setRedirecting] = useState(true);
-
-  const ADMIN_EMAILS = (() => {
-    if (typeof window === "undefined") return [];
-    return (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "").split(",").map((e) => e.trim().toLowerCase()).filter((e) => e.length > 0);
-  })();
-
-  // Verificar se já está logado e redirecionar
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        const { data: { user } } = await createClient().auth.getUser();
-        if (user) {
-          const isAdmin = ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
-          if (isAdmin) {
-            router.replace("/admin");
-          } else {
-            router.replace("/espelho");
-          }
-          return;
-        }
-      } catch {
-        // Não logado, mostrar formulário
-      }
-      setRedirecting(false);
-    }
-
-    checkSession();
-  }, [router, ADMIN_EMAILS]);
 
   // Verificar motivo do redirecionamento
   useEffect(() => {
@@ -75,7 +46,14 @@ function LoginForm() {
       }
 
       if (data.user) {
-        const isAdmin = ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes(data.user.email?.toLowerCase() || "");
+        // Verificar se é admin via variável de ambiente pública
+        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+          .split(",")
+          .map((e) => e.trim().toLowerCase())
+          .filter((e) => e.length > 0);
+
+        const isAdmin = adminEmails.length === 0 || adminEmails.includes(data.user.email?.toLowerCase() || "");
+
         if (isAdmin) {
           router.push("/admin");
         } else {
@@ -88,17 +66,6 @@ function LoginForm() {
       setLoading(false);
     }
   };
-
-  if (redirecting) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center">
-        <div className="flex items-center gap-3">
-          <Building2 className="w-6 h-6 text-gray-400 animate-pulse" />
-          <span className="text-sm font-medium text-gray-400">Carregando...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
