@@ -228,7 +228,7 @@ function UnitCard({
         </AnimatePresence>
 
         {/* Info items */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center gap-1.5 text-gray-500">
             <Maximize2 className="w-3.5 h-3.5" />
             <span className="text-sm font-medium">{unit.areaStr}</span>
@@ -240,6 +240,10 @@ function UnitCard({
           <div className="flex items-center gap-1.5 text-gray-500">
             <BedDouble className="w-3.5 h-3.5" />
             <span className="text-sm font-medium">{unit.quartos} qts</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <Sun className={`w-3.5 h-3.5 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+            <span className="text-sm font-medium">{unit.posicaoSolar}</span>
           </div>
         </div>
 
@@ -522,7 +526,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
   const [filterQuartos, setFilterQuartos] = useState<number | "all">("all");
-  const [filterFloor, setFilterFloor] = useState<number | "all">("all");
+  const [filterSolar, setFilterSolar] = useState<Unit["posicaoSolar"] | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<"floor" | "price-asc" | "price-desc">("floor");
@@ -589,13 +593,13 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
   const filteredUnits = useMemo(() => {
     let result = [...units];
     if (filterQuartos !== "all") result = result.filter((u) => u.quartos === filterQuartos);
-    if (filterFloor !== "all") result = result.filter((u) => u.andar === filterFloor);
+    if (filterSolar !== "all") result = result.filter((u) => u.posicaoSolar === filterSolar);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     if (sortBy === "price-asc") result.sort((a, b) => (a.valorVenda ?? Infinity) - (b.valorVenda ?? Infinity));
     if (sortBy === "price-desc") result.sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0));
     return result;
-  }, [units, filterQuartos, filterFloor, filterVagas, filterStatus, sortBy]);
+  }, [units, filterQuartos, filterSolar, filterVagas, filterStatus, sortBy]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
@@ -660,30 +664,29 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filtros</span>
-            {(filterQuartos !== "all" || filterFloor !== "all" || filterVagas !== "all" || filterStatus !== "all") && (
+            {(filterQuartos !== "all" || filterSolar !== "all" || filterVagas !== "all" || filterStatus !== "all" || sortBy !== "floor") && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setFilterQuartos("all"); setFilterFloor("all"); setFilterVagas("all"); setFilterStatus("all"); }}
+                onClick={() => { setFilterQuartos("all"); setFilterSolar("all"); setFilterVagas("all"); setFilterStatus("all"); setSortBy("floor"); }}
               >
                 Limpar filtros
               </Button>
             )}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {/* Floor filter */}
+            {/* Posição solar filter */}
             <div>
-              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Andar</label>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Posição Solar</label>
               <select
-                value={filterFloor}
-                onChange={(e) => setFilterFloor(e.target.value === "all" ? "all" : Number(e.target.value))}
+                value={filterSolar}
+                onChange={(e) => setFilterSolar(e.target.value as Unit["posicaoSolar"] | "all")}
                 className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
               >
-                <option value="all">Todos</option>
-                {floors.map((f) => (
-                  <option key={f} value={f}>{f}º Andar</option>
-                ))}
+                <option value="all">Todas</option>
+                <option value="Nascente">Nascente</option>
+                <option value="Poente">Poente</option>
               </select>
             </div>
 
