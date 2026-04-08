@@ -634,7 +634,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
       {/* Header — oculto quando renderizado dentro do admin (usa o banner admin no lugar) */}
       {!hideHeader && (
         <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
-          <div className="mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
+          <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
@@ -658,7 +658,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
         </header>
       )}
 
-      <main className="mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 py-6 space-y-6 flex-1">
+      <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
         {/* Filters */}
         <div className="p-4 rounded-xl bg-white shadow-md border border-gray-100">
           <div className="flex items-center gap-2 mb-3">
@@ -828,7 +828,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24 py-6">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
             <span className="font-semibold text-gray-600">Quattre Istambul</span>
