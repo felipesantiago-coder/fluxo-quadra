@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, Layers, X, Sun, BedDouble, Calculator, Shield, Check } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -517,7 +517,7 @@ function Legend() {
 }
 
 // ─── Main Dashboard ───
-export default function SalesDashboard({ isAdmin = false }: { isAdmin?: boolean }) {
+export default function SalesDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
   const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
@@ -624,29 +624,32 @@ export default function SalesDashboard({ isAdmin = false }: { isAdmin?: boolean 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center shadow-md">
-                <Building2 className="w-5 h-5 text-white" />
+      {/* Header — oculto quando renderizado dentro do admin (usa o banner admin no lugar) */}
+      {!hideHeader && (
+        <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight">
+                    Quattre <span className="text-gray-400 font-normal">Istambul</span>
+                  </h1>
+                  <p className="text-[11px] text-gray-400 font-medium">Espelho de Vendas</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                  Quattre <span className="text-gray-400 font-normal">Istambul</span>
-                </h1>
-                <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Espelho de Vendas</p>
-                {isAdmin && (
-                  <span className="hidden sm:inline-flex items-center gap-1 ml-2 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                    <Shield className="w-3 h-3" /> Admin
-                  </span>
-                )}
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Atualização em tempo real
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
         {/* Filters */}
