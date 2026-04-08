@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import AdminClient from "./AdminClient";
+import AdminDashboardClient from "./AdminDashboardClient";
 
 export default function AdminPage() {
-  return <AdminClient />;
+  return <AdminDashboardClient />;
 }
