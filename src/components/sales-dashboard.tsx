@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -522,6 +523,7 @@ function Legend() {
 
 // ─── Main Dashboard ───
 export default function SalesDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
+  const router = useRouter();
   const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
@@ -629,6 +631,12 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
     });
   }, []);
 
+  const handleLogout = useCallback(async () => {
+    await createClient().auth.signOut();
+    router.push("/");
+    router.refresh();
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header — oculto quando renderizado dentro do admin (usa o banner admin no lugar) */}
@@ -652,6 +660,13 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real
                 </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Sair
+                </button>
               </div>
             </div>
           </div>
