@@ -12,7 +12,7 @@ import {
   type VillaBiancoBloco,
   villaBiancoUnits as staticUnits,
 } from "@/lib/villa-bianco-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -453,6 +453,19 @@ function ExpandedCard({ unit, onClose }: { unit: VillaBiancoUnit; onClose: () =>
                 <p className="text-sm text-gray-400 mt-1">Entre em contato para saber o valor desta unidade</p>
               </div>
             )}
+          {/* Simular button */}
+          <a
+            href={`/simulador-villa-bianco?valor=${unit.valorVenda || 0}&unidade=${unit.bloco} ${unit.unidade}&area=${unit.areaStr}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (!unit.valorVenda) { e.preventDefault(); return; }
+            }}
+            className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valorVenda ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+          >
+            <Calculator className="w-4 h-4" />
+            Simular Financiamento
+          </a>
           </div>
         </div>
       </motion.div>
