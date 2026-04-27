@@ -101,8 +101,8 @@ function getPosicaoSolar(unit: VillaBiancoUnit): string {
     return "Faces N e S";
   }
   // Torres A e D
-  if (lastDigit === 2 || lastDigit === 3 || lastDigit === 4) return "Nascentes";
-  return "Poentes";
+  if (lastDigit === 2 || lastDigit === 3 || lastDigit === 4) return "Nascente";
+  return "Poente";
 }
 
 // ─── Unit Card ───
@@ -430,11 +430,11 @@ function ExpandedCard({ unit, onClose }: { unit: VillaBiancoUnit; onClose: () =>
             </div>
             <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-5 h-5 text-gray-500" />
+                <Sun className="w-5 h-5 text-gray-500" />
               </div>
               <div>
-                <p className="text-lg font-bold text-gray-900">{villaBiancoPavimentos[unit.andar] || `${unit.andar}º pav.`}</p>
-                <p className="text-[11px] text-gray-400 font-medium">Pavimento</p>
+                <p className="text-lg font-bold text-gray-900">{getPosicaoSolar(unit)}</p>
+                <p className="text-[11px] text-gray-400 font-medium">Posição Solar</p>
               </div>
             </div>
           </div>
