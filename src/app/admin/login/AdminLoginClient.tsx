@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Building2, Mail, Lock, Eye, EyeOff, ShieldAlert } from "lucide-react";
@@ -12,17 +12,12 @@ export default function AdminLoginClient() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  // Verificar motivo do redirecionamento
-  useEffect(() => {
+  const [error, setError] = useState(() => {
     const reason = searchParams.get("reason");
-    if (reason === "unauthorized") {
-      setError("Este e-mail não tem permissão de administrador.");
-    } else if (reason === "unauthenticated") {
-      setError("Faça login para acessar o painel administrativo.");
-    }
-  }, [searchParams]);
+    if (reason === "unauthorized") return "Este e-mail não tem permissão de administrador.";
+    if (reason === "unauthenticated") return "Faça login para acessar o painel administrativo.";
+    return "";
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,9 +2,9 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import AdminDashboardClient from "./AdminDashboardClient";
+import AdminVillaBiancoClient from "./AdminVillaBiancoClient";
 
-export default async function AdminPage() {
+export default async function AdminVillaBiancoPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -22,5 +22,5 @@ export default async function AdminPage() {
     redirect("/projetos");
   }
 
-  return <AdminDashboardClient />;
+  return <AdminVillaBiancoClient />;
 }

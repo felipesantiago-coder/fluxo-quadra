@@ -30,3 +30,73 @@ Stage Summary:
   - /home/z/my-project/src/components/sales-dashboard.tsx (dashboard principal)
   - /home/z/my-project/src/app/page.tsx (página atualizada)
   - /home/z/my-project/src/app/layout.tsx (metadata atualizado)
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Adicionar segundo espelho de vendas (Villa Bianco) e página de seleção de projetos
+
+Work Log:
+- Leu worklog e arquivos existentes para entender a arquitetura completa
+- Copiou imagens de preview para public/ (quattre-istambul-preview.png, villa-bianco-preview.png)
+- Criou schema SQL para Villa Bianco (supabase/schema-villa-bianco.sql):
+  - Tabela villa_bianco_units com campos: bloco, andar, unidade, vagas, area, tipologia, status, quartos, is_cobertura, is_garden
+  - Índices por bloco, andar, status, tipologia e bloco+unidade (UNIQUE)
+  - RLS com leitura pública e atualização autenticada
+  - Trigger para updated_at automático
+  - Realtime habilitado
+- Criou seed SQL com 123 unidades (supabase/seed-villa-bianco.sql):
+  - Todas as unidades dos 4 blocos (A, B, C, D)
+  - ON CONFLICT DO UPDATE preserva status existentes
+- Criou API route /api/villa-bianco-units (GET, PATCH, POST):
+  - GET com fallback para dados estáticos
+  - PATCH identifica unidade por bloco + unidade (diferente do Quattre que usa só unidade)
+  - POST para atualização em lote
+  - Proteção admin igual ao Quattre
+- Criou componente villa-bianco-dashboard.tsx adaptado do sales-dashboard.tsx:
+  - Paleta de cores por tipologia (8 cores: emerald, sky, violet, amber, rose, lime, teal, cyan)
+  - Filtros: bloco, tipologia, quartos, vagas, status, ordenação
+  - Agrupamento por bloco (em vez de andar)
+  - Seção de bloco com badge de tipologias e contagem
+  - Unit card mostra: Bloco badge, tipologia, quartos, vagas, área, preço, pavimento
+  - Expanded card com detalhes completos (sem botão Simular Financiamento)
+  - Header "Villa Bianco" com link "Projetos" e botão "Sair"
+  - Legenda com 8 tipologias
+  - Realtime subscription para villa_bianco_units
+  - Suporte isAdmin/hideHeader
+- Criou página /villa-bianco com autenticação
+- Criou página /admin/villa-bianco com banner admin "Villa Bianco + Admin"
+- Criou página /projetos com seleção de 2 projetos:
+  - Cards com preview images, nome, localização, descrição
+  - Hover effects com scale e shadow
+  - Responsivo: 1 coluna mobile, 2 colunas desktop
+  - Animações com framer-motion
+- Atualizou login redirect: /espelho → /projetos para usuários não-admin
+- Atualizou middleware matcher: adicionou /projetos e /villa-bianco
+- Atualizou AdminDashboardClient: link "Ver espelho público" → "Projetos" aponta para /projetos
+- Atualizou admin page redirect: /espelho → /projetos para não-admin
+- Corrigiu lint errors preexistentes (setState in effect → useState initializer)
+- Lint passou sem erros
+- Dev server compilando sem erros
+
+Stage Summary:
+- Villa Bianco espelho de vendas totalmente funcional com 123 unidades
+- Página de seleção de projetos como hub central pós-login
+- Arquivos criados:
+  - /home/z/my-project/supabase/schema-villa-bianco.sql
+  - /home/z/my-project/supabase/seed-villa-bianco.sql
+  - /home/z/my-project/src/app/api/villa-bianco-units/route.ts
+  - /home/z/my-project/src/components/villa-bianco-dashboard.tsx
+  - /home/z/my-project/src/app/villa-bianco/page.tsx
+  - /home/z/my-project/src/app/admin/villa-bianco/page.tsx
+  - /home/z/my-project/src/app/admin/villa-bianco/AdminVillaBiancoClient.tsx
+  - /home/z/my-project/src/app/projetos/page.tsx
+  - /home/z/my-project/src/app/projetos/ProjetosClient.tsx
+- Arquivos modificados:
+  - /home/z/my-project/src/app/page.tsx (redirect → /projetos, lint fix)
+  - /home/z/my-project/src/middleware.ts (novos routes protegidos)
+  - /home/z/my-project/src/app/admin/AdminDashboardClient.tsx (link → /projetos)
+  - /home/z/my-project/src/app/admin/page.tsx (redirect → /projetos)
+  - /home/z/my-project/src/app/admin/login/AdminLoginClient.tsx (lint fix)
+  - /home/z/my-project/public/quattre-istambul-preview.png (copiado)
+  - /home/z/my-project/public/villa-bianco-preview.png (copiado)

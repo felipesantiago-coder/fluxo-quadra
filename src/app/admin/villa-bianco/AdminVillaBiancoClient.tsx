@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut } from "lucide-react";
-import SalesDashboard from "@/components/sales-dashboard";
+import VillaBiancoDashboard from "@/components/villa-bianco-dashboard";
 
-export default function AdminDashboardClient() {
+export default function AdminVillaBiancoClient() {
   const router = useRouter();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function AdminDashboardClient() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Banner fixo admin no topo — indicador claro de área administrativa */}
+      {/* Banner fixo admin no topo */}
       <div className="fixed top-0 left-0 right-0 z-[200] flex items-center justify-between px-6 py-3 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-2xl">
         {/* Logo + identificação */}
         <div className="flex items-center gap-3">
@@ -32,7 +32,7 @@ export default function AdminDashboardClient() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Quattre Istambul</span>
+              <span className="text-sm font-bold tracking-tight">Villa Bianco</span>
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 Admin
               </span>
@@ -44,7 +44,7 @@ export default function AdminDashboardClient() {
         {/* Ações */}
         <div className="flex items-center gap-3">
           <a href="/projetos" className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Projetos
           </a>
           <div className="w-px h-5 bg-gray-700 hidden sm:block" />
@@ -58,9 +58,9 @@ export default function AdminDashboardClient() {
         </div>
       </div>
 
-      {/* Dashboard com isAdmin=true, padding-top para não sobrepor o banner */}
+      {/* Dashboard com isAdmin=true */}
       <div className="pt-16">
-        <SalesDashboard isAdmin={true} hideHeader={true} />
+        <VillaBiancoDashboard isAdmin={true} hideHeader={true} />
       </div>
     </div>
   );

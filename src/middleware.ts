@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Rotas protegidas: /admin e /espelho
-  const isProtectedRoute = pathname.startsWith("/admin") || pathname === "/espelho";
+  // Rotas protegidas: /admin, /espelho, /villa-bianco, /projetos
+  const isProtectedRoute = pathname.startsWith("/admin") || pathname === "/espelho" || pathname === "/villa-bianco" || pathname === "/projetos";
 
   if (!isProtectedRoute) {
     return NextResponse.next({ request });
@@ -46,5 +46,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/espelho"],
+  matcher: ["/admin/:path*", "/espelho", "/villa-bianco", "/projetos"],
 };
