@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Villa Bianco - Fluxo de Pagamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a3a5f;
+            --secondary-color: #d4af37;
+            --accent-color: #2c5282;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--secondary-color) !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            border-color: var(--warning-color);
+            color: #000;
+        }
+        
+        .table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .highlight {
+            background-color: rgba(212, 175, 55, 0.1);
+            border-left: 4px solid var(--secondary-color);
+            padding: 10px 15px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+        }
+        
+        .summary-card .card-body {
+            padding: 20px;
+        }
+        
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 20px 0;
+            margin-top: 30px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e9ecef;
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .step.active .step-circle {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .step.completed .step-circle {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .step-label {
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .excess-payment-options {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid var(--warning-color);
+        }
+        
+        .low-captation-warning {
+            display: none;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 4px solid var(--danger-color);
+            color: var(--danger-color);
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .low-captation-warning i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .step-label {
+                font-size: 0.7rem;
+            }
+        }
+        
+        .currency-input {
+            text-align: right;
+        }
+        
+        .auto-calculation-indicator {
+            background-color: rgba(40, 167, 69, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--success-color);
+        }
+        
+        .info-box {
+            background-color: rgba(26, 58, 95, 0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .highlight-change {
+            animation: highlightChange 1s ease-in-out;
+        }
+        
+        @keyframes highlightChange {
+            0% { background-color: rgba(255, 193, 7, 0.3); }
+            100% { background-color: transparent; }
+        }
+        
+        .calculated-total {
+            background-color: rgba(26, 58, 95, 0.05);
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+        
+        .date-warning {
+            background-color: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid var(--warning-color);
+            color: #856404;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar Simplificada -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: var(--primary-color);">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building me-2"></i>Villa Bianco
+            </a>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-12 text-center mb-4">
+                <h1 class="display-5 fw-bold">Simulador de Fluxo de Pagamento</h1>
+                <p class="lead">Calcule o financiamento do seu apartamento no Villa Bianco</p>
+            </div>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step completed">
+                <div class="step-circle">1</div>
+                <div class="step-label">Dados Básicos</div>
+            </div>
+            <div class="step active">
+                <div class="step-circle">2</div>
+                <div class="step-label">Sinal</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">3</div>
+                <div class="step-label">Mensais</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">4</div>
+                <div class="step-label">Semestrais</div>
+            </div>
+            <div class="step">
+                <div class="step-circle">5</div>
+                <div class="step-label">Resultado</div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Formulário de Entrada -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-calculator me-2"></i>Informações do Imóvel
+                    </div>
+                    <div class="card-body">
+                        <div class="auto-calculation-indicator">
+                            <i class="fas fa-sync-alt me-2"></i>Cálculo automático em tempo real
+                        </div>
+                        
+                        <div class="info-box">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Entrega Prevista:</strong> Outubro de 2027
+                        </div>
+                        
+                        <form id="paymentForm">
+                            <div class="mb-3">
+                                <label for="propertyValue" class="form-label">Valor do Imóvel (R$)</label>
+                                <input type="text" class="form-control currency-input" id="propertyValue" required placeholder="Ex: 500000,00">
+                                <div class="form-text">Digite o valor em centavos (ex: 500000,00 para R$ 5.000,00)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="discountPercent" class="form-label">Percentual de Desconto (%)</label>
+                                <input type="number" class="form-control" id="discountPercent" min="0" max="100" step="0.01" placeholder="Ex: 5">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="unit" class="form-label">Unidade Escolhida</label>
+                                <input type="text" class="form-control" id="unit" placeholder="Ex: Apartamento 1201">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="downPaymentValue" class="form-label">Valor do Sinal Ato (R$)</label>
+                                <input type="text" class="form-control currency-input" id="downPaymentValue" placeholder="Ex: 50000,00">
+                                <div class="form-text">Deixe em branco para usar o valor padrão de 10% do valor final do imóvel. Pagamento à vista.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="downPaymentDate" class="form-label">Data do Pagamento do Sinal Ato</label>
+                                <input type="date" class="form-control" id="downPaymentDate" required>
+                                <div class="form-text">Por padrão, utiliza a data atual. Não é permitido selecionar datas anteriores.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="monthlyInstallmentValue" class="form-label">Valor de Cada Parcela Mensal (R$)</label>
+                                <input type="text" class="form-control currency-input" id="monthlyInstallmentValue" placeholder="Ex: 1500,00">
+                                <div class="form-text">Valor de cada parcela mensal - o total será calculado automaticamente com base nos meses restantes</div>
+                                <div id="monthlyTotalCalc" class="calculated-total" style="display: none;">
+                                    <i class="fas fa-calculator me-2"></i>
+                                    <span>Total mensal: </span><span id="monthlyTotalValue">R$ 0,00</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="semesterInstallmentValue" class="form-label">Valor de Cada Parcela Semestral (R$)</label>
+                                <input type="text" class="form-control currency-input" id="semesterInstallmentValue" placeholder="Ex: 10000,00">
+                                <div class="form-text">Valor de cada parcela semestral - o total será calculado automaticamente com base nos meses restantes</div>
+                                <div id="semesterTotalCalc" class="calculated-total" style="display: none;">
+                                    <i class="fas fa-calculator me-2"></i>
+                                    <span>Total semestral: </span><span id="semesterTotalValue">R$ 0,00</span>
+                                </div>
+                            </div>
+
+                            <!-- Informação Fixa da Taxa de Decoração -->
+                            <div class="mb-3">
+                                <div id="decorationTotalCalc" class="calculated-total">
+                                    <i class="fas fa-paint-roller me-2"></i>
+                                    <span>Taxa de Decoração (R$ 10.000,00): </span><span id="decorationInstallmentValue">-</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Aviso de captação baixa -->
+                            <div id="lowCaptationWarning" class="low-captation-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Atenção: Captação durante as obras abaixo de 15% não é permitida!</span>
+                            </div>
+                            
+                            <!-- Opções para abatimento do sinal excedente -->
+                            <div id="excessPaymentOptions" class="excess-payment-options">
+                                <h6 class="mb-3">Opções para abatimento do sinal excedente:</h6>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="excessPaymentOption" id="excessAll" value="all" checked>
+                                    <label class="form-check-label" for="excessAll">
+                                        Abater proporcionalmente em todos os pagamentos
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="excessPaymentOption" id="excessMonthly" value="monthly">
+                                    <label class="form-check-label" for="excessMonthly">
+                                        Abater apenas nas parcelas mensais
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="excessPaymentOption" id="excessSemester" value="semester">
+                                    <label class="form-check-label" for="excessSemester">
+                                        Abater apenas nas parcelas semestrais
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="excessPaymentOption" id="excessHabitese" value="habitese">
+                                    <label class="form-check-label" for="excessHabitese">
+                                        Abater apenas no habite-se
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-warning" id="clearBtn">
+                                    <i class="fas fa-broom me-2"></i>Limpar Todos os Campos
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Card de Resumo -->
+                <div class="card summary-card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Resumo do Financiamento</h5>
+                        <div class="row mt-4">
+                            <div class="col-6">
+                                <p class="mb-1">Valor do Imóvel</p>
+                                <h5 class="summary-value" id="summaryPropertyValue">R$ 0,00</h5>
+                            </div>
+                            <div class="col-6">
+                                <p class="mb-1">Valor com Desconto</p>
+                                <h5 class="summary-value" id="summaryFinalValue">R$ 0,00</h5>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="progress mb-2">
+                                    <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <p class="mb-0 text-center">Captação durante obras: <span id="captationPercentage">0%</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resultados -->
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-list-alt me-2"></i>Detalhamento do Fluxo de Pagamento
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Valor (R$)</th>
+                                        <th>Percentual</th>
+                                        <th>Observação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Sinal Ato</td>
+                                        <td id="downPaymentValueResult">R$ 0,00</td>
+                                        <td id="downPaymentPercent">10%</td>
+                                        <td><small>Pagamento à vista</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Parcelas Mensais</td>
+                                        <td id="monthlyPaidValue">R$ 0,00</td>
+                                        <td id="monthlyPaidPercent">0%</td>
+                                        <td><small id="monthlyInstallmentsInfo">0 parcelas durante a obra</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Parcelas Semestrais</td>
+                                        <td id="semesterPaidValue">R$ 0,00</td>
+                                        <td id="semesterPaidPercent">0%</td>
+                                        <td><small id="semesterInstallmentsInfo">0 parcelas durante a obra</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Taxa de Decoração</td>
+                                        <td id="decorationPaidValue">R$ 0,00</td>
+                                        <td id="decorationPaidPercent">-</td>
+                                        <td><small id="decorationInstallmentsInfo">0 parcelas durante a obra</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Habite-se</td>
+                                        <td id="habiteseValue">R$ 0,00</td>
+                                        <td id="habitesePercent">0%</td>
+                                        <td><small>Saldo devedor restante</small></td>
+                                    </tr>
+                                    <tr class="table-success fw-bold">
+                                        <td>Valor Total</td>
+                                        <td id="totalValue">R$ 0,00</td>
+                                        <td>100%</td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Tabela de Parcelas -->
+                        <div id="installmentsTable" class="mt-4" style="display: none;">
+                            <h5 class="mb-3">Cronograma de Pagamento</h5>
+                            <ul class="nav nav-tabs" id="paymentTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="downpayment-tab" data-bs-toggle="tab" data-bs-target="#downpayment" type="button" role="tab">Sinal</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly" type="button" role="tab">Mensais</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="semester-tab" data-bs-toggle="tab" data-bs-target="#semester" type="button" role="tab">Semestrais</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="decoration-tab" data-bs-toggle="tab" data-bs-target="#decoration" type="button" role="tab">Decoração</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="habitese-tab" data-bs-toggle="tab" data-bs-target="#habitese" type="button" role="tab">Habite-se</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content p-3 border border-top-0" id="paymentTabsContent">
+                                <div class="tab-pane fade show active" id="downpayment" role="tabpanel">
+                                    <table class="table table-sm" id="downpaymentTableDom">
+                                        <thead>
+                                            <tr>
+                                                <th>Parcela</th>
+                                                <th>Data</th>
+                                                <th>Valor (R$)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="downpaymentTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="monthly" role="tabpanel">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Parcela</th>
+                                                <th>Data</th>
+                                                <th>Valor (R$)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="monthlyTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="semester" role="tabpanel">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Parcela</th>
+                                                <th>Data</th>
+                                                <th>Valor (R$)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="semesterTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="decoration" role="tabpanel">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Parcela</th>
+                                                <th>Data</th>
+                                                <th>Valor (R$)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="decorationTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="habitese" role="tabpanel">
+                                    <div class="alert alert-warning">
+                                        <strong>Valor do Habite-se:</strong> <span id="habiteseTotalValue">R$ 0,00</span>
+                                        <br><small>O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="button" class="btn btn-success" id="generatePdfBtn" style="display: none;">
+                                <i class="fas fa-file-pdf me-2"></i>Gerar PDF da Proposta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Informações Adicionais -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-info-circle me-2"></i>Informações Importantes
+                    </div>
+                    <div class="card-body">
+                        <div class="highlight">
+                            <p><strong>Observações:</strong></p>
+                            <ul>
+                                <li>O sinal é pago à vista</li>
+                                <li>As parcelas mensais começam no mês seguinte ao sinal</li>
+                                <li>A primeira parcela semestral é 6 meses após o sinal</li>
+                                <li>O número de parcelas pagas durante as obras é calculado automaticamente com base na data do sinal e na entrega prevista para outubro de 2027</li>
+                                <li>O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência</li>
+                                <li><strong>Importante:</strong> Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção)</li>
+                                <li><strong>Captação mínima:</strong> A captação durante as obras deve ser de no mínimo 15% do valor do imóvel</li>
+                                <li>A Taxa de Decoração de R$ 10.000,00 é dividida em parcelas mensais equivalentes aos meses restantes até a entrega</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé com ano atualizado -->
+    <footer class="text-center">
+        <div class="container">
+            <p>Villa Bianco &copy; 2025 - Todos os direitos reservados</p>
+            <p class="mb-0">Este é um simulador de fluxo de pagamento. Valores sujeitos a alteração sem aviso prévio.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const generatePdfBtn = document.getElementById('generatePdfBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const installmentsTable = document.getElementById('installmentsTable');
+            const excessPaymentOptions = document.getElementById('excessPaymentOptions');
+            const downPaymentValueInput = document.getElementById('downPaymentValue');
+            const propertyValueInput = document.getElementById('propertyValue');
+            const monthlyInstallmentValueInput = document.getElementById('monthlyInstallmentValue');
+            const semesterInstallmentValueInput = document.getElementById('semesterInstallmentValue');
+            const lowCaptationWarning = document.getElementById('lowCaptationWarning');
+            
+            // Elementos para exibir cálculos
+            const monthlyTotalCalc = document.getElementById('monthlyTotalCalc');
+            const monthlyTotalValue = document.getElementById('monthlyTotalValue');
+            const semesterTotalCalc = document.getElementById('semesterTotalCalc');
+            const semesterTotalValue = document.getElementById('semesterTotalValue');
+            const decorationInstallmentValueSpan = document.getElementById('decorationInstallmentValue');
+            
+            // Valor fixo da taxa de decoração
+            const DECORATION_FEE = 10000.00;
+            
+            // Elementos de resumo
+            const summaryPropertyValue = document.getElementById('summaryPropertyValue');
+            const summaryFinalValue = document.getElementById('summaryFinalValue');
+            const progressBar = document.getElementById('progressBar');
+            const captationPercentage = document.getElementById('captationPercentage');
+            
+            // Elementos da tabela de valores
+            const downPaymentValueResult = document.getElementById('downPaymentValueResult');
+            const downPaymentPercent = document.getElementById('downPaymentPercent');
+            const monthlyPaidValue = document.getElementById('monthlyPaidValue');
+            const monthlyPaidPercent = document.getElementById('monthlyPaidPercent');
+            const monthlyInstallmentsInfo = document.getElementById('monthlyInstallmentsInfo');
+            const semesterPaidValue = document.getElementById('semesterPaidValue');
+            const semesterPaidPercent = document.getElementById('semesterPaidPercent');
+            const semesterInstallmentsInfo = document.getElementById('semesterInstallmentsInfo');
+            const decorationPaidValue = document.getElementById('decorationPaidValue');
+            const decorationInstallmentsInfo = document.getElementById('decorationInstallmentsInfo');
+            const habiteseValue = document.getElementById('habiteseValue');
+            const habitesePercent = document.getElementById('habitesePercent');
+            const totalValue = document.getElementById('totalValue');
+            
+            // Elementos do habite-se
+            const habiteseTotalValue = document.getElementById('habiteseTotalValue');
+            
+            // Corpos das tabelas de parcelas
+            const downpaymentTableBody = document.getElementById('downpaymentTableBody');
+            const monthlyTableBody = document.getElementById('monthlyTableBody');
+            const semesterTableBody = document.getElementById('semesterTableBody');
+            const decorationTableBody = document.getElementById('decorationTableBody');
+            
+            // Data de entrega prevista: Outubro de 2027
+            const DELIVERY_DATE = new Date(Date.UTC(2027, 9, 1)); // Mês 9 = Outubro (0-indexed)
+            
+            // Função para formatar valores monetários
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(value);
+            }
+            
+            // Função para formatar valor digitado pelo usuário em tempo real
+            function formatCurrencyInput(input) {
+                const cursorPosition = input.selectionStart;
+                let value = input.value.replace(/\D/g, '');
+                let numericValue = parseInt(value) || 0;
+                let formattedValue = new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                    minimumFractionDigits: 2
+                }).format(numericValue / 100);
+                input.value = formattedValue;
+                return numericValue / 100;
+            }
+            
+            // Função para converter valor formatado para número
+            function parseCurrencyValue(formattedValue) {
+                if(!formattedValue) return 0;
+                const numericValue = formattedValue.replace(/[R$\s.]/g, '').replace(',', '.');
+                return parseFloat(numericValue) || 0;
+            }
+            
+            // Função para corrigir o problema de fuso horário nas datas
+            function parseDateWithoutTimezone(dateString) {
+                if (!dateString) return new Date();
+                const parts = dateString.split('-');
+                return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+            }
+            
+            // Função para formatar data para exibição
+            function formatDate(date) {
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const year = date.getUTCFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Função para calcular datas futuras
+            function addMonths(date, months) {
+                const result = new Date(date);
+                result.setUTCMonth(result.getUTCMonth() + months);
+                return result;
+            }
+            
+            // Função para calcular o número de meses entre duas datas
+            function monthsBetweenDates(startDate, endDate) {
+                const yearDiff = endDate.getUTCFullYear() - startDate.getUTCFullYear();
+                const monthDiff = endDate.getUTCMonth() - startDate.getUTCMonth();
+                return yearDiff * 12 + monthDiff;
+            }
+            
+            // Função para atualizar cálculos dos totais
+            function updateTotalsCalculation() {
+                const downPaymentDate = parseDateWithoutTimezone(document.getElementById('downPaymentDate').value);
+                
+                let totalMonths = monthsBetweenDates(downPaymentDate, DELIVERY_DATE) - 1;
+                totalMonths = Math.max(0, totalMonths);
+                
+                const maxMonthly = totalMonths;
+                const maxSemester = Math.floor(totalMonths / 6);
+                
+                const monthlyInstallment = parseCurrencyValue(monthlyInstallmentValueInput.value);
+                const semesterInstallment = parseCurrencyValue(semesterInstallmentValueInput.value);
+                
+                const monthlyTotal = monthlyInstallment * maxMonthly;
+                const semesterTotal = semesterInstallment * maxSemester;
+                const decorationInstallment = totalMonths > 0 ? DECORATION_FEE / totalMonths : 0;
+                
+                if (monthlyTotal > 0) {
+                    monthlyTotalCalc.style.display = 'block';
+                    monthlyTotalValue.textContent = formatCurrency(monthlyTotal);
+                } else {
+                    monthlyTotalCalc.style.display = 'none';
+                }
+                
+                if (semesterTotal > 0) {
+                    semesterTotalCalc.style.display = 'block';
+                    semesterTotalValue.textContent = formatCurrency(semesterTotal);
+                } else {
+                    semesterTotalCalc.style.display = 'none';
+                }
+                
+                if (totalMonths > 0) {
+                    decorationInstallmentValueSpan.textContent = `${totalMonths}x de ${formatCurrency(decorationInstallment)}`;
+                } else {
+                    decorationInstallmentValueSpan.textContent = "A pagar à vista no habite-se";
+                }
+            }
+            
+            // Função principal de cálculo do fluxo de pagamento
+            function calculatePaymentFlow() {
+                const propertyValue = parseCurrencyValue(propertyValueInput.value);
+                const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+                const finalPropertyValue = propertyValue * (1 - discountPercent / 100);
+                const downPaymentValue = parseCurrencyValue(downPaymentValueInput.value) || (finalPropertyValue * 0.10);
+                const downPaymentDate = parseDateWithoutTimezone(document.getElementById('downPaymentDate').value);
+                
+                const monthlyInstallmentValue = parseCurrencyValue(monthlyInstallmentValueInput.value) || 0;
+                const semesterInstallmentValue = parseCurrencyValue(semesterInstallmentValueInput.value) || 0;
+                
+                updateTotalsCalculation();
+                
+                let totalMonths = monthsBetweenDates(downPaymentDate, DELIVERY_DATE) - 1;
+                totalMonths = Math.max(0, totalMonths);
+                
+                const maxMonthlyInstallments = totalMonths;
+                const maxSemesterInstallments = Math.floor(totalMonths / 6);
+                
+                const monthlyPaidDuringConstruction = monthlyInstallmentValue * maxMonthlyInstallments;
+                const semesterPaidDuringConstruction = semesterInstallmentValue * maxSemesterInstallments;
+                
+                const decorationInstallments = totalMonths;
+                const decorationInstallmentValue = decorationInstallments > 0 ? DECORATION_FEE / decorationInstallments : 0;
+                const decorationPaidDuringConstruction = decorationInstallmentValue * decorationInstallments;
+                
+                const totalCaptation = downPaymentValue + monthlyPaidDuringConstruction + semesterPaidDuringConstruction;
+                const captationPercent = (totalCaptation / finalPropertyValue) * 100;
+                
+                // Alterado o limite de 25% para 15%
+                if (captationPercent < 15 && captationPercent > 0) {
+                    lowCaptationWarning.style.display = 'block';
+                    progressBar.classList.remove('bg-success', 'bg-warning');
+                    progressBar.classList.add('bg-danger');
+                } else {
+                    lowCaptationWarning.style.display = 'none';
+                    progressBar.classList.remove('bg-danger');
+                    if (captationPercent >= 50) {
+                        progressBar.classList.add('bg-success');
+                    } else {
+                        progressBar.classList.add('bg-warning');
+                    }
+                }
+                
+                const habiteseAmount = finalPropertyValue - totalCaptation;
+                
+                summaryPropertyValue.textContent = formatCurrency(propertyValue);
+                summaryFinalValue.textContent = formatCurrency(finalPropertyValue);
+                
+                downPaymentValueResult.textContent = formatCurrency(downPaymentValue);
+                downPaymentPercent.textContent = `${((downPaymentValue / finalPropertyValue) * 100).toFixed(2)}%`;
+                
+                monthlyPaidValue.textContent = formatCurrency(monthlyPaidDuringConstruction);
+                monthlyPaidPercent.textContent = `${((monthlyPaidDuringConstruction / finalPropertyValue) * 100).toFixed(2)}%`;
+                monthlyInstallmentsInfo.textContent = `${maxMonthlyInstallments} parcelas durante a obra`;
+                
+                semesterPaidValue.textContent = formatCurrency(semesterPaidDuringConstruction);
+                semesterPaidPercent.textContent = `${((semesterPaidDuringConstruction / finalPropertyValue) * 100).toFixed(2)}%`;
+                semesterInstallmentsInfo.textContent = `${maxSemesterInstallments} parcelas durante a obra`;
+                
+                decorationPaidValue.textContent = formatCurrency(decorationPaidDuringConstruction);
+                decorationInstallmentsInfo.textContent = `${decorationInstallments} parcelas de ${formatCurrency(decorationInstallmentValue)}`;
+                
+                habiteseValue.textContent = formatCurrency(habiteseAmount);
+                habitesePercent.textContent = `${((habiteseAmount / finalPropertyValue) * 100).toFixed(2)}%`;
+                
+                totalValue.textContent = formatCurrency(finalPropertyValue);
+                
+                progressBar.style.width = `${captationPercent}%`;
+                captationPercentage.textContent = `${captationPercent.toFixed(2)}%`;
+                
+                habiteseTotalValue.textContent = formatCurrency(habiteseAmount);
+                
+                generateInstallmentTables(
+                    downPaymentDate, 
+                    downPaymentValue,
+                    maxMonthlyInstallments, 
+                    monthlyInstallmentValue,
+                    maxSemesterInstallments, 
+                    semesterInstallmentValue,
+                    decorationInstallments,
+                    decorationInstallmentValue
+                );
+                
+                installmentsTable.style.display = 'block';
+                generatePdfBtn.style.display = 'block';
+            }
+            
+            // Função para gerar as tabelas de parcelas
+            function generateInstallmentTables(
+                downPaymentDate, 
+                downPaymentValue,
+                monthlyInstallments, 
+                monthlyInstallmentValue,
+                semesterInstallments, 
+                semesterInstallmentValue,
+                decorationInstallments,
+                decorationInstallmentValue
+            ) {
+                downpaymentTableBody.innerHTML = '';
+                monthlyTableBody.innerHTML = '';
+                semesterTableBody.innerHTML = '';
+                decorationTableBody.innerHTML = '';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>1/1</td>
+                    <td>${formatDate(downPaymentDate)}</td>
+                    <td>${formatCurrency(downPaymentValue)}</td>
+                `;
+                downpaymentTableBody.appendChild(row);
+                
+                for (let i = 1; i <= monthlyInstallments; i++) {
+                    const row = document.createElement('tr');
+                    const installmentDate = addMonths(downPaymentDate, i);
+                    row.innerHTML = `
+                        <td>${i}/${monthlyInstallments}</td>
+                        <td>${formatDate(installmentDate)}</td>
+                        <td>${formatCurrency(monthlyInstallmentValue)}</td>
+                    `;
+                    monthlyTableBody.appendChild(row);
+                }
+                
+                for (let i = 1; i <= semesterInstallments; i++) {
+                    const row = document.createElement('tr');
+                    const installmentDate = addMonths(downPaymentDate, i * 6);
+                    row.innerHTML = `
+                        <td>${i}/${semesterInstallments}</td>
+                        <td>${formatDate(installmentDate)}</td>
+                        <td>${formatCurrency(semesterInstallmentValue)}</td>
+                    `;
+                    semesterTableBody.appendChild(row);
+                }
+
+                for (let i = 1; i <= decorationInstallments; i++) {
+                    const row = document.createElement('tr');
+                    const installmentDate = addMonths(downPaymentDate, i);
+                    row.innerHTML = `
+                        <td>${i}/${decorationInstallments}</td>
+                        <td>${formatDate(installmentDate)}</td>
+                        <td>${formatCurrency(decorationInstallmentValue)}</td>
+                    `;
+                    decorationTableBody.appendChild(row);
+                }
+            }
+            
+            // Função para limpar todos os campos
+            function clearAllFields() {
+                document.getElementById('paymentForm').reset();
+                propertyValueInput.value = 'R$ 0,00';
+                downPaymentValueInput.value = 'R$ 0,00';
+                monthlyInstallmentValueInput.value = 'R$ 0,00';
+                semesterInstallmentValueInput.value = 'R$ 0,00';
+                excessPaymentOptions.style.display = 'none';
+                lowCaptationWarning.style.display = 'none';
+                monthlyTotalCalc.style.display = 'none';
+                semesterTotalCalc.style.display = 'none';
+                decorationInstallmentValueSpan.textContent = "-";
+                installmentsTable.style.display = 'none';
+                generatePdfBtn.style.display = 'none';
+                
+                downPaymentValueResult.textContent = 'R$ 0,00';
+                downPaymentPercent.textContent = '10%';
+                monthlyPaidValue.textContent = 'R$ 0,00';
+                monthlyPaidPercent.textContent = '0%';
+                monthlyInstallmentsInfo.textContent = '0 parcelas durante a obra';
+                semesterPaidValue.textContent = 'R$ 0,00';
+                semesterPaidPercent.textContent = '0%';
+                semesterInstallmentsInfo.textContent = '0 parcelas durante a obra';
+                decorationPaidValue.textContent = 'R$ 0,00';
+                decorationInstallmentsInfo.textContent = '0 parcelas durante a obra';
+                habiteseValue.textContent = 'R$ 0,00';
+                habitesePercent.textContent = '0%';
+                totalValue.textContent = 'R$ 0,00';
+                
+                summaryPropertyValue.textContent = 'R$ 0,00';
+                summaryFinalValue.textContent = 'R$ 0,00';
+                progressBar.style.width = '0%';
+                captationPercentage.textContent = '0%';
+                
+                habiteseTotalValue.textContent = 'R$ 0,00';
+                
+                setDefaultDate();
+            }
+            
+            propertyValueInput.addEventListener('input', function() {
+                formatCurrencyInput(this);
+                calculatePaymentFlow();
+            });
+            
+            downPaymentValueInput.addEventListener('input', function() {
+                formatCurrencyInput(this);
+                calculatePaymentFlow();
+            });
+            
+            monthlyInstallmentValueInput.addEventListener('input', function() {
+                formatCurrencyInput(this);
+                calculatePaymentFlow();
+            });
+            
+            semesterInstallmentValueInput.addEventListener('input', function() {
+                formatCurrencyInput(this);
+                calculatePaymentFlow();
+            });
+            
+            document.getElementById('discountPercent').addEventListener('input', calculatePaymentFlow);
+            
+            const downPaymentDateInput = document.getElementById('downPaymentDate');
+            
+            function setDefaultDate() {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayString = `${year}-${month}-${day}`;
+                
+                downPaymentDateInput.value = todayString;
+                downPaymentDateInput.min = todayString;
+            }
+
+            setDefaultDate();
+            
+            downPaymentDateInput.addEventListener('change', function() {
+                const parts = this.value.split('-');
+                const selectedDate = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+                
+                const currentUtcDate = new Date();
+                currentUtcDate.setUTCHours(0, 0, 0, 0); 
+                
+                if (selectedDate < currentUtcDate) {
+                    setDefaultDate();
+                    
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning mt-2';
+                    alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Não é permitido selecionar uma data anterior ao dia atual.';
+                    
+                    const existingAlert = this.parentNode.querySelector('.alert');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    this.parentNode.appendChild(alertDiv);
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 3000);
+                    
+                    calculatePaymentFlow();
+                } else {
+                    const existingAlert = this.parentNode.querySelector('.alert');
+                    if (existingAlert) existingAlert.remove();
+                    
+                    calculatePaymentFlow();
+                }
+            });
+            
+            document.querySelectorAll('input[name="excessPaymentOption"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    calculatePaymentFlow();
+                });
+            });
+            
+            clearBtn.addEventListener('click', clearAllFields);
+            generatePdfBtn.addEventListener('click', generatePDF);
+            
+            formatCurrencyInput(propertyValueInput);
+            formatCurrencyInput(downPaymentValueInput);
+            formatCurrencyInput(monthlyInstallmentValueInput);
+            formatCurrencyInput(semesterInstallmentValueInput);
+            
+            calculatePaymentFlow();
+        });
+        
+        // Função para gerar PDF
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            const margin = 15;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const primaryColor = [26, 58, 95];
+            const secondaryColor = [212, 175, 55];
+            
+            let yPos = 0;
+
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont("helvetica", "bold");
+            doc.text("Villa Bianco", margin, 20);
+            
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Proposta Comercial - Fluxo de Pagamento", margin, 30);
+            
+            const today = new Date().toLocaleDateString('pt-BR');
+            doc.setFontSize(10);
+            doc.text(`Gerado em: ${today}`, pageWidth - margin - 30, 30, { align: 'right' });
+            
+            yPos = 50;
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Informações da Proposta", margin, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            
+            const unit = document.getElementById('unit').value || "Não informado";
+            const propertyValue = document.getElementById('summaryPropertyValue').textContent;
+            const finalValue = document.getElementById('summaryFinalValue').textContent;
+            
+            const clientInfoData = [
+                ["Unidade", unit],
+                ["Valor do Imóvel", propertyValue],
+                ["Valor com Desconto", finalValue],
+            ];
+            
+            doc.autoTable({
+                startY: yPos,
+                head: [['Descrição', 'Informação']],
+                body: clientInfoData,
+                theme: 'grid',
+                headStyles: { fillColor: primaryColor, textColor: 255 },
+                margin: { top: 10, left: margin, right: margin },
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 50 },
+                    1: { cellWidth: 'auto' }
+                }
+            });
+            
+            yPos = doc.lastAutoTable.finalY + 15;
+
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text("Resumo Financeiro", margin, yPos);
+            yPos += 10;
+            
+            const summaryData = [
+                ["Sinal Ato", document.getElementById('downPaymentValueResult').textContent, document.getElementById('downPaymentPercent').textContent],
+                ["Mensais (Obra)", document.getElementById('monthlyPaidValue').textContent, document.getElementById('monthlyPaidPercent').textContent],
+                ["Semestrais (Obra)", document.getElementById('semesterPaidValue').textContent, document.getElementById('semesterPaidPercent').textContent],
+                ["Taxa de Decoração", document.getElementById('decorationPaidValue').textContent, "-"],
+                ["Habite-se", document.getElementById('habiteseValue').textContent, document.getElementById('habitesePercent').textContent],
+                ["Total", document.getElementById('totalValue').textContent, "100%"]
+            ];
+            
+            doc.autoTable({
+                startY: yPos,
+                head: [['Etapa', 'Valor', '%']],
+                body: summaryData,
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor, textColor: 255 },
+                margin: { top: 10, left: margin, right: margin },
+                foot: [['', 'Total Geral:', document.getElementById('totalValue').textContent]],
+                footStyles: { fillColor: secondaryColor, textColor: 0, fontStyle: 'bold' }
+            });
+            
+            yPos = doc.lastAutoTable.finalY + 15;
+            
+            function getTableData(tbodyId) {
+                const table = document.getElementById(tbodyId);
+                const data = [];
+                if (table) {
+                    const rows = table.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        const rowData = [];
+                        cells.forEach(cell => rowData.push(cell.innerText));
+                        data.push(rowData);
+                    });
+                }
+                return data;
+            }
+            
+            const sinalData = getTableData('downpaymentTableBody');
+            if (sinalData.length > 0) {
+                if (yPos > 230) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                doc.text("Cronograma: Pagamento do Sinal", margin, yPos); yPos += 10;
+                doc.autoTable({
+                    startY: yPos, head: [['Parcela', 'Data', 'Valor']], body: sinalData,
+                    theme: 'grid', headStyles: { fillColor: primaryColor, textColor: 255 }, margin: { top: 10, left: margin, right: margin }
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+            }
+            
+            const monthlyData = getTableData('monthlyTableBody');
+            if (monthlyData.length > 0) {
+                if (yPos > 220) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                doc.text("Cronograma: Parcelas Mensais", margin, yPos); yPos += 10;
+                doc.autoTable({
+                    startY: yPos, head: [['Parcela', 'Data', 'Valor']], body: monthlyData,
+                    theme: 'grid', headStyles: { fillColor: primaryColor, textColor: 255 }, margin: { top: 10, left: margin, right: margin }, pageBreak: 'auto'
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+            }
+            
+            const semesterData = getTableData('semesterTableBody');
+            if (semesterData.length > 0) {
+                if (yPos > 220) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                doc.text("Cronograma: Parcelas Semestrais", margin, yPos); yPos += 10;
+                doc.autoTable({
+                    startY: yPos, head: [['Parcela', 'Data', 'Valor']], body: semesterData,
+                    theme: 'grid', headStyles: { fillColor: primaryColor, textColor: 255 }, margin: { top: 10, left: margin, right: margin }
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            const decorationData = getTableData('decorationTableBody');
+            if (decorationData.length > 0) {
+                if (yPos > 220) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(14); doc.setFont("helvetica", "bold");
+                doc.text("Cronograma: Taxa de Decoração (R$ 10.000,00)", margin, yPos); yPos += 10;
+                doc.autoTable({
+                    startY: yPos, head: [['Parcela', 'Data', 'Valor']], body: decorationData,
+                    theme: 'grid', headStyles: { fillColor: primaryColor, textColor: 255 }, margin: { top: 10, left: margin, right: margin }, pageBreak: 'auto'
+                });
+                yPos = doc.lastAutoTable.finalY + 15;
+            }
+
+            const habiteseTotal = document.getElementById('habiteseTotalValue').textContent;
+            
+            if (yPos > 200) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(14); doc.setFont("helvetica", "bold");
+            doc.text("Detalhes do Habite-se", margin, yPos); yPos += 10;
+            
+            const habiteseData = [
+                ["Saldo Devedor para Quitação / Financiamento", habiteseTotal]
+            ];
+            
+            doc.autoTable({
+                startY: yPos, head: [['Descrição', 'Valor']], body: habiteseData,
+                theme: 'striped', headStyles: { fillColor: secondaryColor, textColor: 0 }, margin: { top: 10, left: margin, right: margin }
+            });
+
+            yPos = doc.lastAutoTable.finalY + 15;
+
+            if (yPos > 210) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0);
+            doc.text("Observações Importantes", margin, yPos); yPos += 8;
+
+            doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(60, 60, 60);
+
+            const warnings = [
+                "O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência.",
+                "Importante: Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção).",
+                "A Taxa de Decoração de R$ 10.000,00 é paga em parcelas mensais junto com as parcelas da obra.",
+                "Captação mínima: A captação durante as obras deve ser de no mínimo 15% do valor do imóvel."
+            ];
+
+            warnings.forEach(warning => {
+                const splitWarning = doc.splitTextToSize(warning, pageWidth - (margin * 2));
+                doc.text(splitWarning, margin, yPos);
+                yPos += (splitWarning.length * 4) + 4;
+            });
+            
+            yPos += 10;
+
+            // --- AVISO DESTACADO NO PDF ---
+            if (yPos > 240) { doc.addPage(); yPos = 20; }
+            
+            doc.setDrawColor(220, 53, 69); // Vermelho para a borda
+            doc.setFillColor(255, 243, 244); // Fundo vermelho claro
+            doc.roundedRect(margin, yPos, pageWidth - margin * 2, 16, 3, 3, 'FD'); // Retângulo com bordas arredondadas
+            
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(100, 20, 20); // Texto vermelho escuro
+            const disclaimerText = "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.";
+            doc.text(disclaimerText, pageWidth / 2, yPos + 9.5, { align: 'center' });
+            
+            yPos += 25;
+
+            // --- Rodapé Numerado ---
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Página ${i} de ${totalPages} - Villa Bianco`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            }
+            
+            const fileName = `Proposta_Villa_Bianco_${document.getElementById('unit').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+            doc.save(fileName);
+        }
+    </script>
+</body>
+</html>

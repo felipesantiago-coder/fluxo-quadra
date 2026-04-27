@@ -121,3 +121,28 @@ Work Log:
 Stage Summary:
 - Branding genérico aplicado em todos os 6 arquivos: login, projetos, quattre dashboard, villa bianco dashboard, admin quattre, admin villa bianco
 - Seta de voltar já existia nos dois dashboards de forma idêntica - nenhuma alteração necessária para isso
+
+---
+Task ID: 3
+Agent: Main Agent + full-stack-developer subagent
+Task: Criar simulador de fluxo de pagamento do Villa Bianco e adicionar botão nos cards
+
+Work Log:
+- Lido e analisado o arquivo HTML do simulador Villa Bianco (1261 linhas)
+- Lido e analisado o simulador existente do Quattre para seguir o mesmo padrão visual
+- Subagent criou /src/app/simulador-villa-bianco/page.tsx (980 linhas) com:
+  - Mesmo estilo visual do simulador Quattre (Tailwind, gray-900 gradients)
+  - Lógica específica: entrega Outubro 2027, Taxa Decoração R$ 10.000, captação mínima 15%
+  - Sinal à vista (sem parcelas), sem seletor de max mensal/semestral (auto-cálculo)
+  - Aba extra "Decoração" no cronograma
+  - Geração de PDF com jsPDF (header "Villa Bianco", cronograma decoração, rodapé numerado)
+  - Link de volta para /villa-bianco
+- Adicionado import de Calculator no villa-bianco-dashboard.tsx
+- Adicionado botão "Simular Financiamento" no ExpandedCard do Villa Bianco (link para /simulador-villa-bianco)
+- Corrigido erro de JSX (missing closing div)
+- Build verificado com sucesso
+
+Stage Summary:
+- Novo arquivo: src/app/simulador-villa-bianco/page.tsx
+- Modificado: src/components/villa-bianco-dashboard.tsx (import Calculator + botão no ExpandedCard)
+- Middleware não necessita alteração (simuladores são páginas públicas)
