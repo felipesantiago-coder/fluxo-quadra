@@ -12,7 +12,7 @@ import {
   type VillaBiancoBloco,
   villaBiancoUnits as staticUnits,
 } from "@/lib/villa-bianco-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Calculator } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Calculator, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +92,18 @@ const allStatuses: { value: VillaBiancoUnit["status"]; label: string; dotColor: 
 ];
 
 const statusTypes = ["disponivel", "reservado", "vendido"] as const;
+
+// ─── Posição Solar ───
+function getPosicaoSolar(unit: VillaBiancoUnit): string {
+  const lastDigit = unit.unidade % 10;
+  if (unit.bloco === "B" || unit.bloco === "C") {
+    if (unit.isGarden) return "Face Sul";
+    return "Faces N e S";
+  }
+  // Torres A e D
+  if (lastDigit === 2 || lastDigit === 3 || lastDigit === 4) return "Nascentes";
+  return "Poentes";
+}
 
 // ─── Unit Card ───
 function UnitCard({
@@ -293,8 +305,8 @@ function UnitCard({
             <span className="text-sm font-medium">{unit.quartos} qts</span>
           </div>
           <div className="flex items-center gap-1.5 text-gray-500">
-            <Building2 className="w-3.5 h-3.5" />
-            <span className="text-sm font-medium">{villaBiancoPavimentos[unit.andar] || `${unit.andar}º pav.`}</span>
+            <Sun className="w-3.5 h-3.5" />
+            <span className="text-sm font-medium">{getPosicaoSolar(unit)}</span>
           </div>
         </div>
 
