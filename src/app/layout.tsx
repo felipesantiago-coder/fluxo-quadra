@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "unidades",
   ],
   icons: {
-    icon: "/logo.svg",
+    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
     title: "Quattre Istambul — Espelho de Vendas",
