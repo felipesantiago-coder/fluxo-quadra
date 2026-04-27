@@ -32,12 +32,12 @@ export default function AdminDashboardClient() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Quattre Istambul</span>
+              <span className="text-sm font-bold tracking-tight">Espelho de Vendas</span>
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 Admin
               </span>
             </div>
-            <p className="text-[11px] text-gray-400 font-medium">Painel Administrativo • Clique no status para alterar</p>
+            <p className="text-[11px] text-gray-400 font-medium">Painel Administrativo • Quattre Istambul</p>
           </div>
         </div>
 
