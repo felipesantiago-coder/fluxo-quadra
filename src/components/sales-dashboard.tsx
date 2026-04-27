@@ -656,6 +656,13 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <a
+                  href="/projetos"
+                  className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                  Projetos
+                </a>
                 <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real

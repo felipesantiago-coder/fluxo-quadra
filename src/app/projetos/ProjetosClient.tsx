@@ -51,7 +51,7 @@ export default function ProjetosClient() {
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-tight">
-                  Quattre
+                  Espelho de <span className="text-gray-400 font-normal">Vendas</span>
                 </h1>
                 <p className="text-[11px] text-gray-400 font-medium">Empreendimentos</p>
               </div>
@@ -154,7 +154,7 @@ export default function ProjetosClient() {
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Quattre</span>
+            <span className="font-semibold text-gray-600">Espelho de Vendas</span>
             <span>•</span>
             <span>Empreendimentos</span>
           </div>
