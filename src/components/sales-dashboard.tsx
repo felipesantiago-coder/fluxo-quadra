@@ -854,8 +854,6 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
             <span className="font-semibold text-gray-600">Espelho de Vendas</span>
-            <span>•</span>
-            <span>Quattre Istambul</span>
           </div>
         </div>
       </footer>
