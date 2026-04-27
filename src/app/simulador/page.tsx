@@ -435,7 +435,7 @@ function SimulatorContent() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                  Quattre <span className="text-gray-400 font-normal">Istambul</span>
+                  Espelho de <span className="text-gray-400 font-normal">Vendas</span>
                 </h1>
                 <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Simulador de Fluxo de Pagamento</p>
               </div>
@@ -454,7 +454,7 @@ function SimulatorContent() {
         {/* Title */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
-          <p className="text-gray-500 mt-2">Calcule o financiamento do seu apartamento no Quattre - Torre Istambul</p>
+          <p className="text-gray-500 mt-2">Calcule o financiamento do seu apartamento</p>
         </div>
 
         {/* Step Indicator */}
@@ -934,7 +934,7 @@ function SimulatorContent() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              <span className="font-semibold text-gray-600">Quattre Istambul</span>
+              <span className="font-semibold text-gray-600">Espelho de Vendas</span>
             </div>
             <span className="hidden sm:inline">•</span>
             <span>Simulador de Fluxo de Pagamento</span>

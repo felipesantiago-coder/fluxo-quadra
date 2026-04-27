@@ -73,9 +73,9 @@ function LoginForm() {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight">
-                Quattre <span className="text-gray-400 font-normal">Istambul</span>
+                Espelho de <span className="text-gray-400 font-normal">Vendas</span>
               </h1>
-              <p className="text-[11px] text-gray-400 font-medium">Espelho de Vendas</p>
+              <p className="text-[11px] text-gray-400 font-medium">Login</p>
             </div>
           </div>
         </div>

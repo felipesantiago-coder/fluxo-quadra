@@ -58,9 +58,9 @@ export default function AdminLoginClient() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                Quattre <span className="text-gray-400 font-normal">Istambul</span>
+                Espelho de <span className="text-gray-400 font-normal">Vendas</span>
               </h1>
-              <p className="text-[11px] text-gray-400 font-medium">Painel Administrativo</p>
+              <p className="text-[11px] text-gray-400 font-medium">Login Administrativo</p>
             </div>
           </div>
         </div>

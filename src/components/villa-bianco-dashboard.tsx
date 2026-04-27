@@ -703,9 +703,9 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                 </div>
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Villa <span className="text-gray-400 font-normal">Bianco</span>
+                    Espelho de <span className="text-gray-400 font-normal">Vendas</span>
                   </h1>
-                  <p className="text-[11px] text-gray-400 font-medium">Espelho de Vendas</p>
+                  <p className="text-[11px] text-gray-400 font-medium">Villa Bianco</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -924,9 +924,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Villa Bianco</span>
-            <span>•</span>
-            <span>Espelho de Vendas</span>
+            <span className="font-semibold text-gray-600">Espelho de Vendas</span>
           </div>
         </div>
       </footer>
