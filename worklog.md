@@ -100,3 +100,24 @@ Stage Summary:
   - /home/z/my-project/src/app/admin/login/AdminLoginClient.tsx (lint fix)
   - /home/z/my-project/public/quattre-istambul-preview.png (copiado)
   - /home/z/my-project/public/villa-bianco-preview.png (copiado)
+
+---
+Task ID: 1-2
+Agent: Main Agent
+Task: Remover branding "Quattre" da barra superior do app e garantir seta de voltar no Quattre
+
+Work Log:
+- Lido e analisado: page.tsx (login), sales-dashboard.tsx, villa-bianco-dashboard.tsx, ProjetosClient.tsx, AdminDashboardClient.tsx, AdminVillaBiancoClient.tsx
+- Login page já usava "Espelho de Vendas" genericamente (sem mudança necessária)
+- Projetos page já usava "Espelho de Vendas" genericamente (sem mudança necessária)
+- Alterado header do sales-dashboard.tsx: título principal de "Quattre Istambul" para "Espelho de Vendas", subtítulo agora mostra "Quattre Istambul"
+- Alterado footer do sales-dashboard.tsx: ordem invertida para "Espelho de Vendas • Quattre Istambul"
+- Alterado header do villa-bianco-dashboard.tsx: título principal de "Villa Bianco" para "Espelho de Vendas", subtítulo agora mostra "Villa Bianco"
+- Alterado footer do villa-bianco-dashboard.tsx: ordem invertida para "Espelho de Vendas • Villa Bianco"
+- Alterado banner admin do AdminDashboardClient.tsx: título de "Quattre Istambul" para "Espelho de Vendas", subtítulo agora "Painel Administrativo • Quattre Istambul"
+- Alterado banner admin do AdminVillaBiancoClient.tsx: título de "Villa Bianco" para "Espelho de Vendas", subtítulo agora "Painel Administrativo • Villa Bianco"
+- Verificado que ambos os dashboards (Quattre e Villa Bianco) já possuem seta de voltar idêntica no header (link "Projetos" com ícone de seta esquerda, hidden sm:flex)
+
+Stage Summary:
+- Branding genérico aplicado em todos os 6 arquivos: login, projetos, quattre dashboard, villa bianco dashboard, admin quattre, admin villa bianco
+- Seta de voltar já existia nos dois dashboards de forma idêntica - nenhuma alteração necessária para isso
