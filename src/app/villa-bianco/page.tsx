@@ -12,5 +12,12 @@ export default async function VillaBiancoPage() {
     redirect("/");
   }
 
-  return <VillaBiancoDashboard />;
+  // Verificar se é admin
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e.length > 0);
+  const isAdmin = adminEmails.length === 0 || adminEmails.includes(user.email?.toLowerCase() || "");
+
+  return <VillaBiancoDashboard isAdmin={isAdmin} />;
 }

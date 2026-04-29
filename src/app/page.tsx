@@ -49,11 +49,7 @@ function LoginForm() {
 
         const isAdmin = adminEmails.length === 0 || adminEmails.includes(data.user.email?.toLowerCase() || "");
 
-        if (isAdmin) {
-          router.push("/admin");
-        } else {
-          router.push("/projetos");
-        }
+        router.push("/projetos");
         router.refresh();
       }
     } catch {
