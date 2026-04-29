@@ -14,7 +14,7 @@ import {
 
 // ─── Constants ───
 const DELIVERY_YEAR = 2027;
-const DELIVERY_MONTH = 10; // October (0-indexed for Date internally)
+const DELIVERY_MONTH = 9; // October (0-indexed: Jan=0, Feb=1, ..., Oct=9)
 const DECORATION_FEE = 10000.00;
 
 // ─── Utility Functions ───
