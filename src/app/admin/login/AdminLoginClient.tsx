@@ -39,7 +39,7 @@ export default function AdminLoginClient() {
         return;
       }
 
-      router.push("/admin");
+      router.push("/projetos");
       router.refresh();
     } catch {
       setError("Erro ao conectar com o servidor");
