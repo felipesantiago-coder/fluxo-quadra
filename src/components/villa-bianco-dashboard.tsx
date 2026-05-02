@@ -96,13 +96,10 @@ const statusTypes = ["disponivel", "reservado", "vendido"] as const;
 // ─── Posição Solar ───
 function getPosicaoSolar(unit: VillaBiancoUnit): string {
   const lastDigit = unit.unidade % 10;
-  if (unit.bloco === "B" || unit.bloco === "C") {
-    if (unit.isGarden) return "Face Sul";
-    return "Faces N e S";
-  }
-  // Torres A e D
-  if (lastDigit === 2 || lastDigit === 3 || lastDigit === 4) return "Nascente";
-  return "Poente";
+  if (unit.bloco === "B" || unit.bloco === "C") return "Nascente";
+  // Blocos A e D
+  if (lastDigit === 2 || lastDigit === 3 || lastDigit === 4) return "Face Norte";
+  return "Face Sul";
 }
 
 // ─── Unit Card ───
