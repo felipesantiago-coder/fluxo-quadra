@@ -20,21 +20,21 @@ import { Badge } from "@/components/ui/badge";
 type TipologiaKey = MomentUnit["tipologia"];
 
 const typeColors: Record<TipologiaKey, { bg: string; border: string; text: string; gradient: string; accent: string }> = {
-  "3 Quartos": {
+  "1 Suíte": {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     text: "text-emerald-700",
     gradient: "from-emerald-500 to-emerald-600",
     accent: "bg-emerald-500",
   },
-  "3 Quartos 3 Suítes": {
+  "3 Suítes": {
     bg: "bg-sky-50",
     border: "border-sky-200",
     text: "text-sky-700",
     gradient: "from-sky-500 to-sky-600",
     accent: "bg-sky-500",
   },
-  "3 Quartos Semissuítes": {
+  "1 Suíte + 2 Semissuítes": {
     bg: "bg-violet-50",
     border: "border-violet-200",
     text: "text-violet-700",
@@ -573,7 +573,7 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
           status: row.status as MomentUnit["status"],
           quartos: row.quartos as number,
           isCobertura: row.is_cobertura as boolean,
-          sol: row.sol as string,
+          sol: row.posicao_solar as string,
         }));
 
         setUnits(mapped);
