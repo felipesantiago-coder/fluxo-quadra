@@ -26,7 +26,7 @@ export const momentPavimentos: Record<number, string> = {
   3: "3\u00ba Pavimento",
   4: "4\u00ba Pavimento",
   5: "5\u00ba Pavimento",
-  6: "Coberturas",
+  6: "6\u00ba Pavimento",
 };
 
 export const momentTipologias = ["1 Su\u00edte", "3 Su\u00edtes", "1 Su\u00edte + 2 Semissu\u00edtes", "Cobertura"] as const;
