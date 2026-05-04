@@ -20,3 +20,22 @@ Stage Summary:
 - Seed SQL preserva status existente ao atualizar preços
 - Build verificado com sucesso
 - Pendente: usuário deve executar schema-moment.sql e seed-moment.sql no Supabase SQL Editor
+---
+Task ID: 1
+Agent: main
+Task: Corrigir erro "Cannot read properties of undefined (reading 'gradient')" na página Moment
+
+Work Log:
+- Identifiquei que o erro era causado por incompatibilidade de nomes de tipologias entre dados estáticos e Supabase
+- Dados estáticos (moment-data.ts) usavam: "3 Quartos", "3 Quartos 3 Suítes", "3 Quartos Semissuítes", "Cobertura"
+- Banco Supabase (seed-moment.sql) usava: "1 Suíte", "3 Suítes", "1 Suíte + 2 Semissuítes", "Cobertura"
+- Quando a API retornava dados do Supabase, typeColors[unit.tipologia] retornava undefined → crash ao acessar .gradient
+- Corrigi moment-data.ts: atualizadas todas as 72 tipologias nos dados estáticos e o array momentTipologias
+- Corrigi moment-dashboard.tsx: atualizadas as chaves do typeColors para os nomes corretos
+- Corrigi também mapeamento row.sol → row.posicao_solar (nome da coluna no Supabase)
+- Build passou com sucesso
+
+Stage Summary:
+- Arquivos modificados: src/lib/moment-data.ts, src/components/moment-dashboard.tsx
+- Causa raiz: nomes de tipologias inconsistentes entre frontend e banco de dados
+- Build OK após correções
