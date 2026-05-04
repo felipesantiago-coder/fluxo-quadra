@@ -778,8 +778,8 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
                 className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
               >
                 <option value="all">Todos</option>
-                <option value="Frente Norte">Face Norte</option>
-                <option value="Frente Sul">Face Sul</option>
+                <option value="Face Norte">Face Norte</option>
+                <option value="Face Sul">Face Sul</option>
               </select>
             </div>
 
