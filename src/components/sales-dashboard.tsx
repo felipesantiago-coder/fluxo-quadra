@@ -487,7 +487,7 @@ function FloorSection({
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-visible"
           >
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {floorUnits.map((unit) => (
                 <UnitCard
                   key={unit.unidade}
@@ -819,7 +819,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
               <DollarSign className="w-4 h-4" />
               Ordenado por {sortBy === "price-asc" ? "menor preço" : "maior preço"}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {filteredUnits.map((unit) => (
                 <UnitCard
                   key={unit.unidade}
