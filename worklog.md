@@ -146,3 +146,24 @@ Stage Summary:
 - Novo arquivo: src/app/simulador-villa-bianco/page.tsx
 - Modificado: src/components/villa-bianco-dashboard.tsx (import Calculator + botão no ExpandedCard)
 - Middleware não necessita alteração (simuladores são páginas públicas)
+
+---
+Task ID: 1
+Agent: main
+Task: Create Moment real estate project - data file, dashboard, page, API, projetos integration
+
+Work Log:
+- Read Excel file (Moment Atualizado.xlsx) to extract unit data: 72 units, 6 floors, 4 tipologias
+- Created /src/lib/moment-data.ts with correct data from Excel (4 units without price: 109, 302, 401, 402)
+- Created /src/components/moment-dashboard.tsx matching Villa Bianco visual style
+- Created /src/app/moment/page.tsx with admin detection
+- Created /src/app/api/moment-units/route.ts with GET and PATCH endpoints
+- Added Moment to /src/app/projetos/ProjetosClient.tsx (region: Noroeste)
+- Updated /src/middleware.ts to protect /moment route
+- Generated preview image: /public/moment-preview.png
+- Dashboard features: floor-based sections, filters (andar/tipologia/vagas/sol/status/sort), admin status change, realtime updates, mobile 1-col layout, price/m² only when price exists
+
+Stage Summary:
+- New project Moment fully integrated with 72 units, 4 tipologias (3 Quartos, 3 Quartos 3 Suítes, 3 Quartos Semissuítes, Cobertura)
+- Located in Noroeste, DF
+- All builds passing

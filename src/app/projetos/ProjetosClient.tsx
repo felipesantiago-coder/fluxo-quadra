@@ -32,6 +32,17 @@ const projects = [
     gradient: "from-gray-900 to-gray-800",
     badgeColor: "bg-white/15 text-white border-white/20",
   },
+  {
+    name: "Moment",
+    subtitle: "Espelho de Vendas",
+    description: "72 unidades • 6 andares • 4 tipologias",
+    location: "Noroeste, DF",
+    region: "Noroeste",
+    href: "/moment",
+    image: "/moment-preview.png",
+    gradient: "from-gray-900 to-gray-800",
+    badgeColor: "bg-white/15 text-white border-white/20",
+  },
 ];
 
 // Extrai as regiões únicas dos projetos (ordem de aparição)
