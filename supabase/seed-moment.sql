@@ -17,8 +17,7 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (1, 109, 2, 89.28, '89,28 m²', NULL, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
 (1, 110, 2, 89.39, '89,39 m²', 1643309.45, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
 (1, 111, 2, 88.28, '88,28 m²', 1622902.73, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
-(1, 112, 3, 112.27, '112,27 m²', 2191534.36, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE)
-
+(1, 112, 3, 112.27, '112,27 m²', 2191534.36, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 -- 2º Andar
 (2, 201, 3, 112.30, '112,3 m²', 2307020.44, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 (2, 202, 2, 89.34, '89,34 m²', 1749995.05, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
@@ -31,8 +30,7 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (2, 209, 2, 89.28, '89,28 m²', 1665542.15, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
 (2, 210, 2, 89.39, '89,39 m²', 1692607.70, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
 (2, 211, 2, 88.28, '88,28 m²', 1671590.14, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
-(2, 212, 3, 112.27, '112,27 m²', 2256269.21, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE)
-
+(2, 212, 3, 112.27, '112,27 m²', 2256269.21, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 -- 3º Andar
 (3, 301, 3, 112.30, '112,3 m²', 2329751.04, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 (3, 302, 2, 89.34, '89,34 m²', NULL, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
@@ -45,8 +43,7 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (3, 309, 2, 89.28, '89,28 m²', 1682197.83, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
 (3, 310, 2, 89.39, '89,39 m²', 1709534.39, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
 (3, 311, 2, 88.28, '88,28 m²', 1688306.10, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
-(3, 312, 3, 112.27, '112,27 m²', 2278494.88, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE)
-
+(3, 312, 3, 112.27, '112,27 m²', 2278494.88, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 -- 4º Andar
 (4, 401, 3, 112.30, '112,3 m²', NULL, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 (4, 402, 2, 89.34, '89,34 m²', NULL, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
@@ -59,8 +56,7 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (4, 409, 2, 89.28, '89,28 m²', 1699019.17, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
 (4, 410, 2, 89.39, '89,39 m²', 1726629.96, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
 (4, 411, 2, 88.28, '88,28 m²', 1705188.74, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
-(4, 412, 3, 112.27, '112,27 m²', 2300943.47, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE)
-
+(4, 412, 3, 112.27, '112,27 m²', 2300943.47, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 -- 5º Andar
 (5, 501, 3, 112.30, '112,3 m²', 2375896.22, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 (5, 502, 2, 89.34, '89,34 m²', 1820001.05, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
@@ -73,8 +69,7 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (5, 509, 2, 89.28, '89,28 m²', 1716009.34, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
 (5, 510, 2, 89.39, '89,39 m²', 1743895.40, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
 (5, 511, 2, 88.28, '88,28 m²', 1722241.27, '1 Suíte', 'disponivel', 'Frente Sul', 3, FALSE),
-(5, 512, 3, 112.27, '112,27 m²', 2323616.04, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE)
-
+(5, 512, 3, 112.27, '112,27 m²', 2323616.04, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 -- 6º Andar (Coberturas)
 (6, 601, 3, 112.31, '112,31 m²', 2375896.22, '1 Suíte + 2 Semissuítes', 'disponivel', 'Frente Norte', 3, FALSE),
 (6, 602, 3, 89.31, '89,31 m²', 1836980.47, '1 Suíte', 'disponivel', 'Frente Norte', 3, FALSE),
