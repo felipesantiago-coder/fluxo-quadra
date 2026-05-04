@@ -578,7 +578,7 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
 
         setUnits(mapped);
 
-        // Realtime: escutar mudanças de status
+        // Realtime: escutar mudanças de status e preço
         const supabase = createClient();
         supabaseChannel = supabase
           .channel("moment-realtime")
@@ -588,11 +588,17 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
             (payload) => {
               const updated = payload.new as Record<string, unknown>;
               setUnits((prev) =>
-                prev.map((u) =>
-                  u.unidade === updated.unidade
-                    ? { ...u, status: updated.status as MomentUnit["status"] }
-                    : u
-                )
+                prev.map((u) => {
+                  if (u.unidade !== updated.unidade) return u;
+                  const newValorVenda = updated.valor_venda as number | null;
+                  return {
+                    ...u,
+                    status: updated.status as MomentUnit["status"],
+                    valorVenda: newValorVenda,
+                    valorStr: newValorVenda ? newValorVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Consulte",
+                    valorFormatado: newValorVenda ? formatMomentCurrency(newValorVenda) : "Consulte o valor",
+                  };
+                })
               );
             }
           )
