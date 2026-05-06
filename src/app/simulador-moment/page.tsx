@@ -125,8 +125,9 @@ function SimulatorContent() {
     const totalCaptation = downPaymentValue + monthlyPaid + semesterPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
     const habitese = finalPropertyValue - totalCaptation;
-    const decorationInstallments = totalMonths;
-    const decorationInstallmentValue = decorationInstallments > 0 ? DECORATION_FEE / decorationInstallments : 0;
+    const DECORATION_INSTALLMENTS = 10;
+    const decorationInstallmentValue = DECORATION_FEE / DECORATION_INSTALLMENTS;
+    const decorationStartDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH - DECORATION_INSTALLMENTS, 1));
 
     const sinalRows: InstallmentRow[] = [{ parcela: "1/1", data: formatDateBR(dpDate), valor: formatBRL(downPaymentValue) }];
     const monthlyRows: InstallmentRow[] = [];
@@ -138,8 +139,8 @@ function SimulatorContent() {
       semesterRows.push({ parcela: `${i}/${maxSemesterInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, i * 6)), valor: formatBRL(semesterVal) });
     }
     const decorationRows: InstallmentRow[] = [];
-    for (let i = 1; i <= decorationInstallments; i++) {
-      decorationRows.push({ parcela: `${i}/${decorationInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, i)), valor: formatBRL(decorationInstallmentValue) });
+    for (let i = 0; i < DECORATION_INSTALLMENTS; i++) {
+      decorationRows.push({ parcela: `${i + 1}/${DECORATION_INSTALLMENTS}`, data: formatDateBR(addMonthsToDate(decorationStartDate, i)), valor: formatBRL(decorationInstallmentValue) });
     }
 
     return {
@@ -148,7 +149,7 @@ function SimulatorContent() {
       totalMonths, maxMonthlyInstallments, maxSemesterInstallments,
       monthlyPaid, monthlyPaidPercent: finalPropertyValue > 0 ? (monthlyPaid / finalPropertyValue) * 100 : 0,
       semesterPaid, semesterPaidPercent: finalPropertyValue > 0 ? (semesterPaid / finalPropertyValue) * 100 : 0,
-      decorationInstallmentValue, decorationInstallments,
+      decorationInstallmentValue, decorationInstallments: DECORATION_INSTALLMENTS,
       habiteseAmount: habitese, habitesePercent: finalPropertyValue > 0 ? (habitese / finalPropertyValue) * 100 : 0,
       captationPercent: captPct,
       sinalRows, monthlyRows, semesterRows, decorationRows,
@@ -309,7 +310,7 @@ function SimulatorContent() {
       "O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
       "Captação mínima: A captação durante as obras deve ser de no mínimo 30% do valor do imóvel.",
-      "A Taxa de Decoração de R$ 19.505,00 é dividida em parcelas mensais equivalentes aos meses restantes até a entrega.",
+      "A Taxa de Decoração de R$ 19.505,00 é dividida em 10 parcelas fixas de R$ 1.950,50, pagas de abril de 2027 a janeiro de 2028 (10 meses antes da entrega).",
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
@@ -447,7 +448,7 @@ function SimulatorContent() {
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-gray-900">Taxa de Decoração (R$ 19.505,00):</span>
                     <span className="font-semibold text-gray-900">
-                      {result.totalMonths > 0 ? `${result.totalMonths}x de ${formatBRL(result.decorationInstallmentValue)}` : "A pagar à vista no habite-se"}
+                      {`10x de ${formatBRL(result.decorationInstallmentValue)} (abr/2027 a jan/2028)`}
                     </span>
                   </div>
                 </div>
@@ -505,7 +506,7 @@ function SimulatorContent() {
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Sinal Ato</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Pagamento à vista</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Parcelas Mensais</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaid)}</td><td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.maxMonthlyInstallments} parcelas durante a obra</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Parcelas Semestrais</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaid)}</td><td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.maxSemesterInstallments} parcelas durante a obra</td></tr>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Taxa de Decoração</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(DECORATION_FEE)}</td><td className="py-3 px-4 text-right text-gray-500">—</td><td className="py-3 px-4 text-gray-400 text-xs">{result.decorationInstallments} parcelas durante a obra</td></tr>
+                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Taxa de Decoração</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(DECORATION_FEE)}</td><td className="py-3 px-4 text-right text-gray-500">—</td><td className="py-3 px-4 text-gray-400 text-xs">{result.decorationInstallments}x de abr/2027 a jan/2028</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Habite-se</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor restante</td></tr>
                       <tr className="bg-emerald-50"><td className="py-3 px-4 font-bold text-emerald-900">Valor Total</td><td className="py-3 px-4 text-right font-bold text-emerald-900">{formatBRL(result.finalPropertyValue)}</td><td className="py-3 px-4 text-right font-bold text-emerald-700">100%</td><td className="py-3 px-4"></td></tr>
                     </tbody>
@@ -578,7 +579,7 @@ function SimulatorContent() {
                   <p className="font-semibold text-gray-900">Informações Importantes</p>
                   <ul className="space-y-1 list-disc list-inside text-gray-500">
                     <li>Captação mínima durante as obras: <strong>30%</strong> do valor do imóvel</li>
-                    <li>Taxa de Decoração: <strong>R$ 19.505,00</strong> (parcelada durante a obra)</li>
+                    <li>Taxa de Decoração: <strong>R$ 19.505,00</strong> (10x de abr/2027 a jan/2028)</li>
                     <li>Entrega prevista: <strong>Fevereiro de 2028</strong></li>
                     <li>Saldos devedores corrigidos mensalmente pelo INCC até o habite-se</li>
                   </ul>
