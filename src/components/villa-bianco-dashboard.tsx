@@ -602,6 +602,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
   const [filterQuartos, setFilterQuartos] = useState<number | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<VillaBiancoUnit["status"] | "all">("all");
+  const [filterPosicaoSolar, setFilterPosicaoSolar] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"bloco" | "price-asc" | "price-desc">("bloco");
 
   // Buscar dados do Supabase via API + Realtime
@@ -671,11 +672,12 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
     if (filterTipologia !== "all") result = result.filter((u) => u.tipologia === filterTipologia);
     if (filterQuartos !== "all") result = result.filter((u) => u.quartos === filterQuartos);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
+    if (filterPosicaoSolar !== "all") result = result.filter((u) => getPosicaoSolar(u) === filterPosicaoSolar);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     if (sortBy === "price-asc") result.sort((a, b) => (a.valorVenda ?? Infinity) - (b.valorVenda ?? Infinity));
     if (sortBy === "price-desc") result.sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0));
     return result;
-  }, [units, filterBloco, filterTipologia, filterQuartos, filterVagas, filterStatus, sortBy]);
+  }, [units, filterBloco, filterTipologia, filterQuartos, filterVagas, filterPosicaoSolar, filterStatus, sortBy]);
 
   const activeBlocks = useMemo(() => {
     const blockSet = new Set(filteredUnits.map((u) => u.bloco));
@@ -710,7 +712,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
     router.refresh();
   }, [router]);
 
-  const hasActiveFilters = filterBloco !== "all" || filterTipologia !== "all" || filterQuartos !== "all" || filterVagas !== "all" || filterStatus !== "all" || sortBy !== "bloco";
+  const hasActiveFilters = filterBloco !== "all" || filterTipologia !== "all" || filterQuartos !== "all" || filterVagas !== "all" || filterPosicaoSolar !== "all" || filterStatus !== "all" || sortBy !== "bloco";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -766,13 +768,13 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                 variant="ghost"
                 size="sm"
                 className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setFilterBloco("all"); setFilterTipologia("all"); setFilterQuartos("all"); setFilterVagas("all"); setFilterStatus("all"); setSortBy("bloco"); }}
+                onClick={() => { setFilterBloco("all"); setFilterTipologia("all"); setFilterQuartos("all"); setFilterVagas("all"); setFilterPosicaoSolar("all"); setFilterStatus("all"); setSortBy("bloco"); }}
               >
                 Limpar filtros
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
             {/* Bloco filter */}
             <div>
               <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Bloco</label>
@@ -830,6 +832,21 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                 <option value="2">2 vagas</option>
                 <option value="3">3 vagas</option>
                 <option value="4">4 vagas</option>
+              </select>
+            </div>
+
+            {/* Posição solar filter */}
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Posição solar</label>
+              <select
+                value={filterPosicaoSolar}
+                onChange={(e) => setFilterPosicaoSolar(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+              >
+                <option value="all">Todas</option>
+                <option value="Face Norte">Face Norte</option>
+                <option value="Face Sul">Face Sul</option>
+                <option value="Nascente">Nascente</option>
               </select>
             </div>
 

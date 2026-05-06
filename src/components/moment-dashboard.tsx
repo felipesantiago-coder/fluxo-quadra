@@ -783,9 +783,9 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
               </select>
             </div>
 
-            {/* Sol filter */}
+            {/* Posição solar filter */}
             <div>
-              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Sol</label>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Posição solar</label>
               <select
                 value={filterSol}
                 onChange={(e) => setFilterSol(e.target.value)}
