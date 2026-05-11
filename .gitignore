@@ -1,51 +1,34 @@
 ```
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
 # Environment variables
 .env
 .env.local
 .env.*
 
-# Dependencies
-node_modules/
-.pnpm-store/
-
-# Build outputs
-dist/
-build/
-target/
-
-# Logs
-*.log
-
-# Editor/IDE
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# System
-.DS_Store
-Thumbs.db
+# Logs
+*.log
 
-# Python
+# Python cache (if any Python files present)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-venv/
-.venv/
-.env
 
-# Node.js
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Database
-*.db
-*.db-journal
-
-# Supabase
-.supabase/
+# Temporary files
+*.tmp
+*.temp
 ```

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { logger } from "@/lib/logger";
 
 // E-mails autorizados como admin
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
@@ -10,21 +12,22 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
 async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) {
-    console.error("[isAdmin] Erro ao obter usuário:", error?.message);
+    logger.warn(`[isAdmin] Erro ao obter usuário: ${error?.message}`);
     return false;
   }
   if (ADMIN_EMAILS.length === 0) return true; // Sem restrição se não configurado
   const isAuthorized = ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
   if (!isAuthorized) {
-    console.warn(`[isAdmin] E-mail não autorizado: ${user.email}`);
+    logger.warn(`[isAdmin] E-mail não autorizado: ${user.email}`);
   }
   return isAuthorized;
 }
 
-export async function GET() {
-  try {
+// Cache para dados de unidades (revalida a cada 60 segundos)
+const getCachedUnits = unstable_cache(
+  async () => {
     const supabase = await createClient();
-
+    
     const { data, error } = await supabase
       .from("units")
       .select("*")
@@ -32,13 +35,24 @@ export async function GET() {
       .order("unidade", { ascending: true });
 
     if (error) {
-      console.error("Erro ao buscar unidades:", error.message);
-      return NextResponse.json({ error: "Erro ao buscar unidades" }, { status: 500 });
+      logger.error(`Erro ao buscar unidades: ${error.message}`);
+      throw error;
     }
 
+    return data;
+  },
+  ["units-data"],
+  { revalidate: 60, tags: ["units"] }
+);
+
+export async function GET() {
+  try {
+    const data = await getCachedUnits();
     return NextResponse.json(data);
   } catch {
+    // Fallback para dados estáticos em caso de falha
     const { units } = await import("@/lib/units-data");
+    logger.warn("Fallback para dados estáticos de unidades");
     return NextResponse.json(units);
   }
 }
