@@ -39,8 +39,20 @@ ON units FOR SELECT
 USING (true);
 
 -- Política: apenas usuários autenticados podem EDITAR
+-- ATENÇÃO: Esta política permite que QUALQUER usuário autenticado edite as unidades
+-- Para restringir apenas a administradores, use uma política mais restritiva
 CREATE POLICY "Apenas admin pode editar"
 ON units FOR UPDATE
+USING (auth.role() = 'authenticated');
+
+-- Política para INSERT (apenas administradores)
+CREATE POLICY "Apenas admin pode inserir"
+ON units FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+-- Política para DELETE (apenas administradores)
+CREATE POLICY "Apenas admin pode deletar"
+ON units FOR DELETE
 USING (auth.role() = 'authenticated');
 
 -- 5. Criar função para atualizar o updated_at automaticamente

@@ -42,8 +42,20 @@ ON villa_bianco_units FOR SELECT
 USING (true);
 
 -- Política: apenas usuários autenticados podem EDITAR
+-- ATENÇÃO: Esta política permite que QUALQUER usuário autenticado edite as unidades
+-- Para restringir apenas a administradores, use uma política mais restritiva
 CREATE POLICY "Authenticated users can update"
 ON villa_bianco_units FOR UPDATE
+USING (auth.role() = 'authenticated');
+
+-- Política para INSERT (apenas administradores)
+CREATE POLICY "Apenas admin pode inserir villa_bianco"
+ON villa_bianco_units FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+-- Política para DELETE (apenas administradores)
+CREATE POLICY "Apenas admin pode deletar villa_bianco"
+ON villa_bianco_units FOR DELETE
 USING (auth.role() = 'authenticated');
 
 -- 5. Criar função para atualizar o updated_at automaticamente

@@ -37,9 +37,13 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set("reason", "unauthenticated");
       return NextResponse.redirect(url);
     }
-  } catch {
-    // Em caso de erro, apenas deixa passar — a validação real acontece no client/server component
-    return NextResponse.next({ request });
+  } catch (error) {
+    console.error("[middleware] Erro ao verificar sessão:", error);
+    // Em caso de erro, redireciona para login por segurança
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.searchParams.set("reason", "session_error");
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next({ request });
