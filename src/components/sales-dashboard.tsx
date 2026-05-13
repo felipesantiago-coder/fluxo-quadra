@@ -527,6 +527,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
   const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
+  const [filterTipoArea, setFilterTipoArea] = useState<Unit["tipoArea"] | "all">("all");
   const [filterSolar, setFilterSolar] = useState<Unit["posicaoSolar"] | "all">("all");
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
@@ -593,13 +594,14 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
 
   const filteredUnits = useMemo(() => {
     let result = [...units];
+    if (filterTipoArea !== "all") result = result.filter((u) => u.tipoArea === filterTipoArea);
     if (filterSolar !== "all") result = result.filter((u) => u.posicaoSolar === filterSolar);
     if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
     if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
     if (sortBy === "price-asc") result.sort((a, b) => (a.valorVenda ?? Infinity) - (b.valorVenda ?? Infinity));
     if (sortBy === "price-desc") result.sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0));
     return result;
-  }, [units, filterSolar, filterVagas, filterStatus, sortBy]);
+  }, [units, filterTipoArea, filterSolar, filterVagas, filterStatus, sortBy]);
 
   const activeFloors = useMemo(() => {
     const floorSet = new Set(filteredUnits.map((u) => u.andar));
@@ -684,18 +686,33 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filtros</span>
-            {(filterSolar !== "all" || filterVagas !== "all" || filterStatus !== "all" || sortBy !== "floor") && (
+            {(filterTipoArea !== "all" || filterSolar !== "all" || filterVagas !== "all" || filterStatus !== "all" || sortBy !== "floor") && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto text-xs text-gray-400 hover:text-gray-600"
-                onClick={() => { setFilterSolar("all"); setFilterVagas("all"); setFilterStatus("all"); setSortBy("floor"); }}
+                onClick={() => { setFilterTipoArea("all"); setFilterSolar("all"); setFilterVagas("all"); setFilterStatus("all"); setSortBy("floor"); }}
               >
                 Limpar filtros
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {/* Tipologia filter */}
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Tipologia</label>
+              <select
+                value={filterTipoArea}
+                onChange={(e) => setFilterTipoArea(e.target.value as Unit["tipoArea"] | "all")}
+                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+              >
+                <option value="all">Todas</option>
+                {areaTypes.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Posição solar filter */}
             <div>
               <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Posição Solar</label>
