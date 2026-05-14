@@ -41,7 +41,9 @@ function LoginForm() {
       }
 
       if (data.user) {
-        // Verificar role do usuário no banco (resiliente: se tabela não existir, vai para projetos)
+        const isAdminEmail = data.user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+
+        // Verificar role do usuário no banco (resiliente: se tabela não existir ou der erro, usa fallback)
         try {
           const supabase = createClient();
           const { data: profile, error: profileError } = await supabase
@@ -50,16 +52,21 @@ function LoginForm() {
             .eq("id", data.user.id)
             .single();
 
-          // Admin do sistema vai para o painel de administração (apenas se consulta teve sucesso)
           if (!profileError && profile?.role === "admin_sistema") {
             router.push("/admin-sistema");
+          } else if (isAdminEmail) {
+            // Fallback: email admin mas profiles falhou ou role incorreta → ainda vai para admin
+            router.push("/admin-sistema");
           } else {
-            // Coordenador e demais usuários vão para projetos
             router.push("/projetos");
           }
         } catch {
-          // Fallback: vai para projetos
-          router.push("/projetos");
+          // Profiles completamente inacessível — fallback por email
+          if (isAdminEmail) {
+            router.push("/admin-sistema");
+          } else {
+            router.push("/projetos");
+          }
         }
         router.refresh();
       }

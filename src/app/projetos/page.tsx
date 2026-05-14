@@ -10,17 +10,18 @@ export default async function ProjetosPage() {
 
   if (!user) redirect("/");
 
-  // Buscar role do usuário (resiliente: se tabela não existir, assume "coordenador")
-  let userRole = "coordenador";
+  // Buscar role do usuário (resiliente: se tabela não existir ou der erro, usa fallback)
+  const isAdminEmail = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+  let userRole = isAdminEmail ? "admin_sistema" : "coordenador";
   try {
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
-    if (profile?.role) userRole = profile.role;
+    if (!error && profile?.role) userRole = profile.role;
   } catch {
-    // Tabela profiles pode não existir ainda — assume role padrão
+    // Tabela profiles pode não existir ou estar com erro — usa fallback
   }
 
   return <ProjetosClient userRole={userRole} />;
