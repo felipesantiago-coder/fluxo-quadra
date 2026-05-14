@@ -9,8 +9,15 @@ export default async function AdminSistemaPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || profile.role !== "admin_sistema") redirect("/projetos");
+  // Verificar role (resiliente: se tabela não existir, redireciona para projetos)
+  let isAdminSistema = false;
+  try {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role === "admin_sistema") isAdminSistema = true;
+  } catch {
+    // Tabela profiles pode não existir ainda
+  }
+  if (!isAdminSistema) redirect("/projetos");
 
   return <AdminSistemaClient />;
 }

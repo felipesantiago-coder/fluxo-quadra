@@ -67,7 +67,7 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
   useEffect(() => {
     async function fetchEmpreendimentos() {
       try {
-        const res = await fetch("/api/admin-sistema/empreendimentos");
+        const res = await fetch("/api/empreendimentos");
         if (res.ok) {
           const data = await res.json();
           // Filtrar apenas os que NÃO são os projetos hardcoded e que estão ativos
