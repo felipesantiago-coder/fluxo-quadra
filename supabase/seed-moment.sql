@@ -70,18 +70,18 @@ INSERT INTO moment_units (andar, unidade, vagas, area, area_str, valor_venda, ti
 (5, 510, 2, 89.39, '89,39 m²', 1743895.40, '1 Suíte', 'disponivel', 'Face Norte', 3, FALSE),
 (5, 511, 2, 88.28, '88,28 m²', 1722241.27, '1 Suíte', 'disponivel', 'Face Sul', 3, FALSE),
 (5, 512, 3, 112.27, '112,27 m²', 2323616.04, '1 Suíte + 2 Semissuítes', 'disponivel', 'Face Norte', 3, FALSE),
--- 6º Andar (Coberturas)
+-- 6º Andar
 (6, 601, 3, 112.31, '112,31 m²', 2375896.22, '1 Suíte + 2 Semissuítes', 'disponivel', 'Face Norte', 3, FALSE),
 (6, 602, 3, 89.31, '89,31 m²', 1836980.47, '1 Suíte', 'disponivel', 'Face Norte', 3, FALSE),
 (6, 603, 2, 88.30, '88,3 m²', 1750539.38, '1 Suíte', 'disponivel', 'Face Sul', 3, FALSE),
-(6, 604, 3, 186.23, '186,23 m²', 2915961.53, '1 Suíte', 'disponivel', 'Face Norte', 3, TRUE),
-(6, 605, 3, 197.03, '197,03 m²', 2937899.59, '1 Suíte', 'disponivel', 'Face Sul', 3, TRUE),
-(6, 606, 3, 210.37, '210,37 m²', 3351550.17, '3 Suítes', 'disponivel', 'Face Norte', 3, TRUE),
-(6, 607, 3, 210.55, '210,55 m²', 3354389.18, '3 Suítes', 'disponivel', 'Face Norte', 3, TRUE),
-(6, 608, 3, 194.95, '194,95 m²', 2993441.59, '1 Suíte', 'disponivel', 'Face Norte', 3, TRUE),
-(6, 609, 3, 182.67, '182,67 m²', 2726253.37, '1 Suíte', 'disponivel', 'Face Sul', 3, TRUE),
-(6, 610, 3, 178.07, '178,07 m²', 2697824.16, '1 Suíte', 'disponivel', 'Face Norte', 3, TRUE),
-(6, 611, 3, 175.01, '175,01 m²', 2652046.82, '1 Suíte', 'disponivel', 'Face Sul', 3, TRUE),
-(6, 612, 3, 261.40, '261,4 m²', 4156307.72, '1 Suíte + 2 Semissuítes', 'disponivel', 'Face Norte', 3, TRUE)
+(6, 604, 3, 186.23, '186,23 m²', 2915961.53, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE),
+(6, 605, 3, 197.03, '197,03 m²', 2937899.59, 'Cobertura', 'disponivel', 'Face Sul', 3, TRUE),
+(6, 606, 3, 210.37, '210,37 m²', 3351550.17, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE),
+(6, 607, 3, 210.55, '210,55 m²', 3354389.18, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE),
+(6, 608, 3, 194.95, '194,95 m²', 2993441.59, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE),
+(6, 609, 3, 182.67, '182,67 m²', 2726253.37, 'Cobertura', 'disponivel', 'Face Sul', 3, TRUE),
+(6, 610, 3, 178.07, '178,07 m²', 2697824.16, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE),
+(6, 611, 3, 175.01, '175,01 m²', 2652046.82, 'Cobertura', 'disponivel', 'Face Sul', 3, TRUE),
+(6, 612, 3, 261.40, '261,4 m²', 4156307.72, 'Cobertura', 'disponivel', 'Face Norte', 3, TRUE)
 
-ON CONFLICT (unidade) DO UPDATE SET valor_venda = EXCLUDED.valor_venda;
+ON CONFLICT (unidade) DO UPDATE SET valor_venda = EXCLUDED.valor_venda, tipologia = EXCLUDED.tipologia, posicao_solar = EXCLUDED.posicao_solar;
