@@ -1,16 +1,29 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Building2, ArrowRight, LogOut, MapPin } from "lucide-react";
+import { Building2, ArrowRight, LogOut, MapPin, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Region = string;
 
-const projects = [
+interface EmpreendimentoDB {
+  id: string;
+  nome: string;
+  slug: string;
+  regiao: string;
+  imagem_url: string | null;
+  descricao: string;
+  ativo: boolean;
+  unit_count: number;
+}
+
+// Projetos hardcoded existentes (Quattre, Villa Bianco, Moment)
+const staticProjects = [
   {
+    id: "quattre",
     name: "Quattre Istambul",
     subtitle: "Espelho de Vendas",
     description: "72 unidades • 6 andares • 4 tipologias",
@@ -18,10 +31,9 @@ const projects = [
     region: "Sobradinho",
     href: "/espelho",
     image: "/quattre-istambul-preview.webp",
-    gradient: "from-gray-900 to-gray-800",
-    badgeColor: "bg-white/15 text-white border-white/20",
   },
   {
+    id: "villa-bianco",
     name: "Villa Bianco",
     subtitle: "Espelho de Vendas",
     description: "123 unidades • 4 blocos • 8 tipologias",
@@ -29,10 +41,9 @@ const projects = [
     region: "Park Sul",
     href: "/villa-bianco",
     image: "/villa-bianco-preview.webp",
-    gradient: "from-gray-900 to-gray-800",
-    badgeColor: "bg-white/15 text-white border-white/20",
   },
   {
+    id: "moment",
     name: "Moment",
     subtitle: "Espelho de Vendas",
     description: "72 unidades • 6 andares • 4 tipologias",
@@ -40,28 +51,71 @@ const projects = [
     region: "Noroeste",
     href: "/moment",
     image: "/moment-preview.webp",
-    gradient: "from-gray-900 to-gray-800",
-    badgeColor: "bg-white/15 text-white border-white/20",
   },
 ];
 
-// Extrai as regiões únicas dos projetos (ordem de aparição)
-const allRegions = Array.from(new Set(projects.map((p) => p.region)));
+interface ProjetosClientProps {
+  userRole: string;
+}
 
-export default function ProjetosClient() {
+export default function ProjetosClient({ userRole }: ProjetosClientProps) {
   const router = useRouter();
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
+  const [dynamicProjects, setDynamicProjects] = useState<EmpreendimentoDB[]>([]);
+
+  // Buscar empreendimentos dinâmicos do banco
+  useEffect(() => {
+    async function fetchEmpreendimentos() {
+      try {
+        const res = await fetch("/api/admin-sistema/empreendimentos");
+        if (res.ok) {
+          const data = await res.json();
+          // Filtrar apenas os que NÃO são os projetos hardcoded e que estão ativos
+          const existingSlugs = ["quattre-istambul", "villa-bianco", "moment"];
+          const filtered = (data.empreendimentos || [])
+            .filter((e: EmpreendimentoDB) => !existingSlugs.includes(e.slug) && e.ativo);
+          setDynamicProjects(filtered);
+        }
+      } catch {
+        // Silently fail - mostrar apenas projetos estáticos
+      }
+    }
+    fetchEmpreendimentos();
+  }, []);
+
+  // Combinar projetos estáticos com dinâmicos
+  const allProjects = useMemo(() => {
+    const dynamic = dynamicProjects.map((e) => ({
+      id: e.id,
+      name: e.nome,
+      subtitle: "Espelho de Vendas",
+      description: e.unit_count > 0 ? `${e.unit_count} unidades` : "Empreendimento",
+      location: e.regiao,
+      region: e.regiao,
+      href: `/empreendimento/${e.id}`,
+      image: e.imagem_url || null,
+    }));
+
+    return [...staticProjects, ...dynamic];
+  }, [dynamicProjects]);
+
+  const allRegions = useMemo(
+    () => Array.from(new Set(allProjects.map((p) => p.region))),
+    [allProjects]
+  );
 
   const filteredProjects = useMemo(() => {
-    if (filterRegion === "all") return projects;
-    return projects.filter((p) => p.region === filterRegion);
-  }, [filterRegion]);
+    if (filterRegion === "all") return allProjects;
+    return allProjects.filter((p) => p.region === filterRegion);
+  }, [allProjects, filterRegion]);
 
   const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push("/");
     router.refresh();
   }, [router]);
+
+  const isAdminSistema = userRole === "admin_sistema";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -81,6 +135,15 @@ export default function ProjetosClient() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {isAdminSistema && (
+                <a
+                  href="/admin-sistema"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-semibold transition-colors border border-amber-500/20"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Administração
+                </a>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
@@ -164,7 +227,7 @@ export default function ProjetosClient() {
             <AnimatePresence mode="popLayout">
               {filteredProjects.map((project, index) => (
                 <motion.div
-                  key={project.name}
+                  key={project.id}
                   layout
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -177,18 +240,25 @@ export default function ProjetosClient() {
                   >
                     {/* Preview image */}
                     <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
-                      <Image
-                        src={project.image}
-                        alt={`Preview ${project.name}`}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        priority
-                      />
+                      {project.image ? (
+                        <Image
+                          src={project.image}
+                          alt={`Preview ${project.name}`}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          priority={index < 2}
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                          <Building2 className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
                       {/* Overlay gradient */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
                       {/* Project badge on image */}
                       <div className="absolute bottom-3 left-3">
-                        <span className={`inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm border ${project.badgeColor}`}>
+                        <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
                           {project.subtitle}
                         </span>
                       </div>

@@ -41,15 +41,26 @@ function LoginForm() {
       }
 
       if (data.user) {
-        // Verificar se é admin via variável de ambiente pública
-        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
-          .split(",")
-          .map((e) => e.trim().toLowerCase())
-          .filter((e) => e.length > 0);
+        // Verificar role do usuário no banco
+        try {
+          const supabase = createClient();
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .single();
 
-        const isAdmin = adminEmails.length === 0 || adminEmails.includes(data.user.email?.toLowerCase() || "");
-
-        router.push("/projetos");
+          // Admin do sistema vai para o painel de administração
+          if (profile?.role === "admin_sistema") {
+            router.push("/admin-sistema");
+          } else {
+            // Coordenador e demais usuários vão para projetos
+            router.push("/projetos");
+          }
+        } catch {
+          // Fallback: vai para projetos
+          router.push("/projetos");
+        }
         router.refresh();
       }
     } catch {

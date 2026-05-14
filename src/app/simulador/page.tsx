@@ -269,7 +269,7 @@ function SimulatorContent() {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Informações da Simulação", margin, yPos);
+    doc.text("Informações da Proposta", margin, yPos);
     yPos += 10;
     autoTable(doc,{
       startY: yPos,
@@ -418,7 +418,7 @@ function SimulatorContent() {
       doc.text(`Página ${i} de ${totalPages} - Quattre Torre Istambul`, pageWidth / 2, pageHeight - 10, { align: "center" });
     }
 
-    const fileName = `Simulação_Quattre_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const fileName = `Proposta_Quattre_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
     doc.save(fileName);
   }, [result, unitName, initialArea, initialAndar, propertyValue]);
 
@@ -895,7 +895,7 @@ function SimulatorContent() {
                     className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-lg"
                   >
                     <FileDown className="w-4 h-4" />
-                    Gerar PDF da Simulação
+                    Gerar PDF da Proposta
                   </button>
                 )}
               </div>
