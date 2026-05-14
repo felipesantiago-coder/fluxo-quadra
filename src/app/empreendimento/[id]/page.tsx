@@ -24,16 +24,20 @@ export default async function EmpreendimentoPage({
 
   if (!emp) redirect("/projetos");
 
-  // Verificar role
-  const isAdmin =
-    user.email?.toLowerCase() === "prosperosdirecional@gmail.com" ||
-    (
-      await supabase
+  // Verificar role (resiliente: se tabela não existir, verifica apenas pelo email)
+  let isAdmin = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+  if (!isAdmin) {
+    try {
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
-        .single()
-    ).data?.role === "admin_sistema";
+        .single();
+      if (profile?.role === "admin_sistema") isAdmin = true;
+    } catch {
+      // Tabela profiles pode não existir — isAdmin já foi definido pelo email check
+    }
+  }
 
   return (
     <DynamicDashboard

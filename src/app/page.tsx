@@ -41,17 +41,17 @@ function LoginForm() {
       }
 
       if (data.user) {
-        // Verificar role do usuário no banco
+        // Verificar role do usuário no banco (resiliente: se tabela não existir, vai para projetos)
         try {
           const supabase = createClient();
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", data.user.id)
             .single();
 
-          // Admin do sistema vai para o painel de administração
-          if (profile?.role === "admin_sistema") {
+          // Admin do sistema vai para o painel de administração (apenas se consulta teve sucesso)
+          if (!profileError && profile?.role === "admin_sistema") {
             router.push("/admin-sistema");
           } else {
             // Coordenador e demais usuários vão para projetos
