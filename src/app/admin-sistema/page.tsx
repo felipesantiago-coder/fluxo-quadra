@@ -13,8 +13,8 @@ export default async function AdminSistemaPage() {
   const isAdminEmail = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
   let isAdminSistema = isAdminEmail;
   try {
-    const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (!error && profile?.role === "admin_sistema") isAdminSistema = true;
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (profile?.role === "admin_sistema") isAdminSistema = true;
   } catch {
     // Tabela profiles pode não existir ou estar com erro
   }

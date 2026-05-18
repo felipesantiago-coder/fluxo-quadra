@@ -10,7 +10,7 @@ async function requireAdminSistema() {
   } = await supabase.auth.getUser();
   if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }), user: null };
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
   if (!profile || profile.role !== "admin_sistema") {
     return { supabase, error: NextResponse.json({ error: "Acesso restrito ao administrador do sistema" }, { status: 403 }), user: null };
   }

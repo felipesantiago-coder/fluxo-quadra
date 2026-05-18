@@ -25,25 +25,27 @@ export default async function EmpreendimentoPage({
   if (!emp) redirect("/projetos");
 
   // Verificar role (resiliente: se tabela não existir, verifica apenas pelo email)
-  let isAdmin = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
-  if (!isAdmin) {
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (profile?.role === "admin_sistema") isAdmin = true;
-    } catch {
-      // Tabela profiles pode não existir — isAdmin já foi definido pelo email check
-    }
+  const isAdminEmail = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+  let userRole = isAdminEmail ? "admin_sistema" : "usuario_comum";
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile?.role) userRole = profile.role;
+  } catch {
+    // Tabela profiles pode não existir — usa fallback
   }
+
+  // Coordenador e admin_sistema podem alterar status de unidades
+  const canEditStatus = userRole === "coordenador" || userRole === "admin_sistema";
 
   return (
     <DynamicDashboard
       empreendimentoId={id}
       empreendimentoNome={emp.nome}
-      isAdmin={!!isAdmin}
+      isAdmin={canEditStatus}
     />
   );
 }

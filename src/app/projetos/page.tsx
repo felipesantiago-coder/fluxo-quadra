@@ -14,12 +14,12 @@ export default async function ProjetosPage() {
   const isAdminEmail = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
   let userRole = isAdminEmail ? "admin_sistema" : "coordenador";
   try {
-    const { data: profile, error } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
-    if (!error && profile?.role) userRole = profile.role;
+      .maybeSingle();
+    if (profile?.role) userRole = profile.role;
   } catch {
     // Tabela profiles pode não existir ou estar com erro — usa fallback
   }

@@ -46,13 +46,13 @@ function LoginForm() {
         // Verificar role do usuário no banco (resiliente: se tabela não existir ou der erro, usa fallback)
         try {
           const supabase = createClient();
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", data.user.id)
-            .single();
+            .maybeSingle();
 
-          if (!profileError && profile?.role === "admin_sistema") {
+          if (profile?.role === "admin_sistema") {
             router.push("/admin-sistema");
           } else if (isAdminEmail) {
             // Fallback: email admin mas profiles falhou ou role incorreta → ainda vai para admin

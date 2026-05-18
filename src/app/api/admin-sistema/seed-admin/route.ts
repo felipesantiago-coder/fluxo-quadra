@@ -15,7 +15,7 @@ export async function POST() {
       .from("profiles")
       .select("id, role")
       .eq("email", ADMIN_EMAIL)
-      .single();
+      .maybeSingle();
 
     if (existingProfile) {
       // Atualizar role se necessário
