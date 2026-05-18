@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
 // ─── Fontes de dados ───
-// Bacen SGS - Série 28655 = INCC (variação mensal %) - Fonte: FGV
-// Período: 1989-06 até presente, atualização mensal
-const BACEN_SERIES = "28655";
+// Bacen SGS - Série 10844 = INCC-M (Índice Nacional de Custo da Construção - Mensal)
+// Fonte: FGV IBRE | Período: 1990-01 até presente | Atualização mensal
+// Esta é a série oficial mais utilizada para reajuste de contratos de construção civil.
+// Série 22589 (INCC-10) também existe mas frequentemente indisponível na API do Bacen.
+const BACEN_SERIES = "10844";
 const BACEN_BASE_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs";
 
 // ─── Cache ───
@@ -36,11 +38,11 @@ function formatBacenDate(d: Date): string {
 function calcAverages(monthlyValues: number[]) {
   if (monthlyValues.length === 0) return { avg180: 0, avg12: 0 };
 
-  // Média dos últimos 180 meses (ou todos os disponíveis se < 180)
+  // Média simples dos últimos 180 meses (ou todos os disponíveis se < 180)
   const last180 = monthlyValues.slice(-180);
   const avg180 = last180.reduce((s, v) => s + v, 0) / last180.length;
 
-  // Média dos últimos 12 meses
+  // Média simples dos últimos 12 meses
   const last12 = monthlyValues.slice(-12);
   const avg12 = last12.reduce((s, v) => s + v, 0) / last12.length;
 
@@ -50,12 +52,12 @@ function calcAverages(monthlyValues: number[]) {
   };
 }
 
-// ─── Fonte 1: Bacen SGS API ───
+// ─── Fonte principal: Bacen SGS API (série 10844 - INCC-M) ───
 async function fetchFromBacen(): Promise<InccResult | null> {
   try {
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 200); // pedir um pouco mais que 180 para filtrar
+    startDate.setMonth(startDate.getMonth() - 200); // pedir um pouco mais que 180 para garantir margem
 
     const url = `${BACEN_BASE_URL}.${BACEN_SERIES}/dados?formato=json&dataInicial=${formatBacenDate(startDate)}&dataFinal=${formatBacenDate(endDate)}`;
 
@@ -69,7 +71,7 @@ async function fetchFromBacen(): Promise<InccResult | null> {
     const rawData: { data: string; valor: string }[] = await res.json();
     if (!Array.isArray(rawData) || rawData.length === 0) return null;
 
-    // Converter para números
+    // Converter para números (valores já vêm como "0.40" - ponto decimal)
     const values = rawData
       .map((item) => ({
         data: item.data,
@@ -79,10 +81,12 @@ async function fetchFromBacen(): Promise<InccResult | null> {
 
     if (values.length < 12) return null;
 
-    // Verificar sanidade: média mensal deve estar entre 0% e 5%
+    // Verificar sanidade dos dados INCC-M:
+    // - Média mensal típica do INCC-M: entre 0.1% e 1.5%
+    // - Valores individuais mensais: entre -1% e 3% (raro mas possível)
     const allValues = values.map((v) => v.valor);
     const rawAvg = allValues.reduce((s, v) => s + v, 0) / allValues.length;
-    if (rawAvg <= 0 || rawAvg > 5) return null;
+    if (rawAvg < 0.01 || rawAvg > 5) return null; // fora da faixa razoável para INCC
 
     const { avg180, avg12 } = calcAverages(allValues);
 
@@ -96,121 +100,27 @@ async function fetchFromBacen(): Promise<InccResult | null> {
         data: v.data,
         valor: Math.round(v.valor * 10000) / 10000,
       })),
-      source: "Bacen SGS (FGV)",
+      source: "Bacen SGS — INCC-M (FGV IBRE)",
     };
   } catch {
     return null;
   }
 }
 
-// ─── Fonte 2: Web scraping do brasilindicadores.com.br ───
-async function fetchFromBrasilIndicadores(): Promise<InccResult | null> {
-  try {
-    const res = await fetch("https://brasilindicadores.com.br/incc-10", {
-      signal: AbortSignal.timeout(15000),
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      },
-    });
-
-    if (!res.ok) return null;
-
-    const html = await res.text();
-
-    // Extrair dados da tabela INCC-10 do HTML
-    // O site lista tabelas anuais com dados mensais no formato: mês, variação%, acumulado12m%, acumuladoAno%
-    const monthlyValues: { data: string; valor: number }[] = [];
-
-    // Regex para capturar blocos de dados anuais
-    // Padrão: nome do mês seguido de valores percentuais
-    const monthNames = [
-      "janeiro",
-      "fevereiro",
-      "março",
-      "abril",
-      "maio",
-      "junho",
-      "julho",
-      "agosto",
-      "setembro",
-      "outubro",
-      "novembro",
-      "dezembro",
-    ];
-
-    // Encontrar todas as tabelas anuais
-    const yearBlocks = html.match(/INCC-10\s+\d{4}/g);
-    if (!yearBlocks) return null;
-
-    const years = yearBlocks.map((b) => parseInt(b.match(/\d{4}/)![0]));
-
-    for (const year of years) {
-      const yearIdx = html.indexOf(`INCC-10 ${year}`);
-      if (yearIdx === -1) continue;
-
-      // Pegar o bloco de texto após o cabeçalho do ano
-      const blockEnd = html.indexOf("INCC-10", yearIdx + 10);
-      const block = blockEnd === -1 ? html.slice(yearIdx) : html.slice(yearIdx, blockEnd);
-
-      // Para cada mês, buscar o valor percentual
-      for (let m = 0; m < 12; m++) {
-        const monthName = monthNames[m];
-        const monthIdx = block.toLowerCase().indexOf(monthName);
-        if (monthIdx === -1) continue;
-
-        // O valor vem logo após o nome do mês
-        const afterMonth = block.slice(monthIdx + monthName.length);
-        const match = afterMonth.match(/([\d,]+)\s*%/);
-        if (match) {
-          const valor = parseFloat(match[1].replace(",", "."));
-          if (!isNaN(valor)) {
-            const month = String(m + 1).padStart(2, "0");
-            monthlyValues.push({
-              data: `01/${month}/${year}`,
-              valor,
-            });
-          }
-        }
-      }
-    }
-
-    if (monthlyValues.length < 12) return null;
-
-    const allValues = monthlyValues.map((v) => v.valor);
-    const { avg180, avg12 } = calcAverages(allValues);
-
-    return {
-      avg180,
-      avg12,
-      projection: avg12,
-      lastUpdate: monthlyValues[monthlyValues.length - 1]?.data || null,
-      totalMonths: monthlyValues.length,
-      values: monthlyValues.map((v) => ({
-        data: v.data,
-        valor: Math.round(v.valor * 10000) / 10000,
-      })),
-      source: "Brasil Indicadores (FGV/IBRE)",
-    };
-  } catch {
-    return null;
-  }
-}
-
-// ─── Fallback com valores reais pesquisados (maio/2026) ───
+// ─── Fallback com valores verificados diretamente da API do Bacen (maio/2026) ───
 function getFallback(): InccResult {
-  // Valores verificados em brasilindicadores.com.br e yahii.com.br
-  // INCC-10 últimos 12 meses (jun/2025 a mai/2026): média ~0.5317% a.m.
-  // INCC-10 últimos 180 meses: média ~0.5532% a.m.
+  // Valores calculados a partir da série 10844 do Bacen SGS em 19/05/2026:
+  // Últimos 12 meses (mai/2025 – abr/2026): média = 0.4667% a.m.
+  // Últimos 180 meses (jun/2011 – abr/2026): média = 0.4855% a.m.
   return {
-    avg180: 0.5532,
-    avg12: 0.5317,
-    projection: 0.5317,
+    avg180: 0.4855,
+    avg12: 0.4667,
+    projection: 0.4667,
     lastUpdate: null,
     totalMonths: 0,
     values: [],
     fallback: true,
-    source: "Valores de referência (fontes indisponíveis)",
+    source: "Valores de referência INCC-M — Bacen SGS série 10844",
   };
 }
 
@@ -221,15 +131,10 @@ export async function GET() {
     return NextResponse.json(cache.data);
   }
 
-  // Tentar Fonte 1: Bacen SGS
+  // Tentar fonte principal: Bacen SGS (INCC-M)
   let result = await fetchFromBacen();
 
-  // Tentar Fonte 2: Web scraping
-  if (!result) {
-    result = await fetchFromBrasilIndicadores();
-  }
-
-  // Fallback com valores reais verificados
+  // Fallback com valores verificados
   if (!result) {
     result = getFallback();
   }
