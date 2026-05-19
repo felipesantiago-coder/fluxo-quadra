@@ -181,43 +181,60 @@ function SimulatorContent() {
     const mInstallments = Math.min(totalMonths, maxM);
     const sInstallments = Math.min(Math.floor(totalMonths / 6), maxS);
 
-    const mPaid = monthlyVal * mInstallments;
-    const sPaid = semesterVal * sInstallments;
+    // INCC accumulation factor: valor no mês N (a partir do início) = base × (1 + INCC)^N
+    // Quando INCC desativado, fator = 1 (parcelas iguais)
+    const inccFactor = (months: number) =>
+      inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, months) : 1;
+
+    // ─── Parcelas mensais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
+    const monthlyRows: InstallmentRow[] = [];
+    let mPaid = 0;
+    let mRemaining = 0;
+    for (let i = 0; i < maxM; i++) {
+      const val = monthlyVal * inccFactor(i);
+      if (i < mInstallments) {
+        mPaid += val;
+        monthlyRows.push({
+          parcela: `${i + 1}/${maxM}`,
+          data: formatDateBR(addMonthsToDate(dpDate, i + 1)),
+          valor: formatBRL(val),
+        });
+      } else {
+        mRemaining += val;
+      }
+    }
+
+    // ─── Parcelas semestrais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
+    const semesterRows: InstallmentRow[] = [];
+    let sPaid = 0;
+    let sRemaining = 0;
+    for (let i = 0; i < maxS; i++) {
+      const val = semesterVal * inccFactor(6 * i);
+      if (i < sInstallments) {
+        sPaid += val;
+        semesterRows.push({
+          parcela: `${i + 1}/${maxS}`,
+          data: formatDateBR(addMonthsToDate(dpDate, (i + 1) * 6)),
+          valor: formatBRL(val),
+        });
+      } else {
+        sRemaining += val;
+      }
+    }
 
     const totalCaptation = downPaymentValue + mPaid + sPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
-
     const habitese = finalPropertyValue - totalCaptation;
-    const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
-    const sRemaining = Math.max(0, semesterVal * maxS - sPaid);
     const hBalance = Math.max(0, habitese - mRemaining - sRemaining);
 
+    // Sinal (não sofre correção INCC parcela a parcela)
     const dpPerInstallment = downPaymentValue / parseInt(downPaymentInstallments);
-
     const sinalRows: InstallmentRow[] = [];
     for (let i = 1; i <= parseInt(downPaymentInstallments); i++) {
       sinalRows.push({
         parcela: `${i}/${downPaymentInstallments}`,
         data: formatDateBR(addMonthsToDate(dpDate, i - 1)),
         valor: formatBRL(dpPerInstallment),
-      });
-    }
-
-    const monthlyRows: InstallmentRow[] = [];
-    for (let i = 1; i <= mInstallments; i++) {
-      monthlyRows.push({
-        parcela: `${i}/${maxM}`,
-        data: formatDateBR(addMonthsToDate(dpDate, i)),
-        valor: formatBRL(monthlyVal),
-      });
-    }
-
-    const semesterRows: InstallmentRow[] = [];
-    for (let i = 1; i <= sInstallments; i++) {
-      semesterRows.push({
-        parcela: `${i}/${maxS}`,
-        data: formatDateBR(addMonthsToDate(dpDate, i * 6)),
-        valor: formatBRL(semesterVal),
       });
     }
 
@@ -256,9 +273,9 @@ function SimulatorContent() {
       inccCorrectionFactor,
       inccAccumulatedPercent,
       inccMode,
-      habiteseCorrected: habitese * inccCorrectionFactor,
-      mRemainingCorrected: mRemaining * inccCorrectionFactor,
-      sRemainingCorrected: sRemaining * inccCorrectionFactor,
+      habiteseCorrected: mRemaining + sRemaining + hBalance * inccCorrectionFactor,
+      mRemainingCorrected: mRemaining,
+      sRemainingCorrected: sRemaining,
       hBalanceCorrected: hBalance * inccCorrectionFactor,
     };
   }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);

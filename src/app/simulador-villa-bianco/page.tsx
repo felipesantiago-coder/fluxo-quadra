@@ -173,12 +173,38 @@ function SimulatorContent() {
     const maxMonthlyInstallments = totalMonths;
     const maxSemesterInstallments = Math.floor(totalMonths / 6);
 
-    const monthlyPaid = monthlyVal * maxMonthlyInstallments;
-    const semesterPaid = semesterVal * maxSemesterInstallments;
+    // INCC accumulation factor: valor no mês N = base × (1 + INCC)^N
+    const inccFactor = (months: number) =>
+      inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, months) : 1;
+
+    // ─── Parcelas mensais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
+    const monthlyRows: InstallmentRow[] = [];
+    let monthlyPaid = 0;
+    for (let i = 0; i < maxMonthlyInstallments; i++) {
+      const val = monthlyVal * inccFactor(i);
+      monthlyPaid += val;
+      monthlyRows.push({
+        parcela: `${i + 1}/${maxMonthlyInstallments}`,
+        data: formatDateBR(addMonthsToDate(dpDate, i + 1)),
+        valor: formatBRL(val),
+      });
+    }
+
+    // ─── Parcelas semestrais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
+    const semesterRows: InstallmentRow[] = [];
+    let semesterPaid = 0;
+    for (let i = 0; i < maxSemesterInstallments; i++) {
+      const val = semesterVal * inccFactor(6 * i);
+      semesterPaid += val;
+      semesterRows.push({
+        parcela: `${i + 1}/${maxSemesterInstallments}`,
+        data: formatDateBR(addMonthsToDate(dpDate, (i + 1) * 6)),
+        valor: formatBRL(val),
+      });
+    }
 
     const totalCaptation = downPaymentValue + monthlyPaid + semesterPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
-
     const habitese = finalPropertyValue - totalCaptation;
 
     const decorationInstallments = totalMonths;
@@ -192,27 +218,7 @@ function SimulatorContent() {
       valor: formatBRL(downPaymentValue),
     });
 
-    // Mensais: month+1 to month+totalMonths
-    const monthlyRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxMonthlyInstallments; i++) {
-      monthlyRows.push({
-        parcela: `${i}/${maxMonthlyInstallments}`,
-        data: formatDateBR(addMonthsToDate(dpDate, i)),
-        valor: formatBRL(monthlyVal),
-      });
-    }
-
-    // Semestrais: every 6 months from sinal
-    const semesterRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxSemesterInstallments; i++) {
-      semesterRows.push({
-        parcela: `${i}/${maxSemesterInstallments}`,
-        data: formatDateBR(addMonthsToDate(dpDate, i * 6)),
-        valor: formatBRL(semesterVal),
-      });
-    }
-
-    // Decoração: same schedule as mensais
+    // Decoração (não sofre correção INCC — taxa fixa por projeto)
     const decorationRows: InstallmentRow[] = [];
     for (let i = 1; i <= decorationInstallments; i++) {
       decorationRows.push({
