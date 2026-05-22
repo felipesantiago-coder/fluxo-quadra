@@ -328,7 +328,27 @@ function SimulatorContent() {
     }
 
     const fileName = `Simulacao_Moment_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(fileName);
+    // Mobile-safe download: cria blob e abre em nova aba como fallback
+    try {
+      const blob = doc.output("blob");
+      if (navigator.msSaveOrOpenBlob) {
+        navigator.msSaveOrOpenBlob(blob, fileName);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 1000);
+      }
+    } catch {
+      doc.save(fileName);
+    }
   }, [result, unitName, initialArea, propertyValue]);
 
   // ─── Render ───
