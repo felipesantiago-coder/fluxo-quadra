@@ -10,7 +10,6 @@ import {
   FileDown,
   Trash2,
   RotateCcw,
-  TrendingUp,
 } from "lucide-react";
 
 // ─── Constants ───
@@ -91,27 +90,6 @@ interface CalculationResult {
   monthlyRows: InstallmentRow[];
   semesterRows: InstallmentRow[];
   isLowCaptation: boolean;
-  inccMonthlyRate: number;
-  inccCorrectionFactor: number;
-  inccAccumulatedPercent: number;
-  inccMode: string;
-  habiteseCorrected: number;
-  mRemainingCorrected: number;
-  sRemainingCorrected: number;
-  hBalanceCorrected: number;
-}
-
-type InccMode = "none" | "180m" | "12m" | "projection";
-
-interface InccData {
-  avg180: number;
-  avg12: number;
-  projection: number;
-  lastUpdate: string | null;
-  totalMonths: number;
-  loading: boolean;
-  error: string | null;
-  isFallback: boolean;
 }
 
 // ─── Simulator Component ───
@@ -135,17 +113,6 @@ function SimulatorContent() {
   const [maxSemester, setMaxSemester] = useState("6");
   const [activeTab, setActiveTab] = useState<"sinal" | "mensal" | "semestral" | "habitese">("sinal");
   const [showResults, setShowResults] = useState(false);
-  const [inccMode, setInccMode] = useState<InccMode>("none");
-  const [inccData, setInccData] = useState<InccData>({
-    avg180: 0,
-    avg12: 0,
-    projection: 0,
-    lastUpdate: null,
-    totalMonths: 0,
-    loading: true,
-    error: null,
-    isFallback: false,
-  });
 
   const parseVal = (raw: string) => parseCurrencyToNumber(raw);
 
@@ -157,14 +124,6 @@ function SimulatorContent() {
   const discount = parseFloat(discountPercent) || 0;
   const finalPropertyValue = propertyValue * (1 - discount / 100);
   const downPaymentValue = downPaymentManual > 0 ? downPaymentManual : finalPropertyValue * 0.1;
-
-  const getInccMonthlyRate = (): number => {
-    if (inccMode === "180m") return inccData.avg180;
-    if (inccMode === "12m") return inccData.avg12;
-    if (inccMode === "projection") return inccData.projection;
-    return 0;
-  };
-  const inccMonthlyRate = inccData.loading ? 0 : getInccMonthlyRate();
 
   const result: CalculationResult = useMemo(() => {
     const dpDate = new Date(Date.UTC(
@@ -181,54 +140,19 @@ function SimulatorContent() {
     const mInstallments = Math.min(totalMonths, maxM);
     const sInstallments = Math.min(Math.floor(totalMonths / 6), maxS);
 
-    // INCC accumulation factor: valor no mês N (a partir do início) = base × (1 + INCC)^N
-    // Quando INCC desativado, fator = 1 (parcelas iguais)
-    const inccFactor = (months: number) =>
-      inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, months) : 1;
-
-    // ─── Parcelas mensais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
-    const monthlyRows: InstallmentRow[] = [];
-    let mPaid = 0;
-    let mRemaining = 0;
-    for (let i = 0; i < maxM; i++) {
-      const val = monthlyVal * inccFactor(i);
-      if (i < mInstallments) {
-        mPaid += val;
-        monthlyRows.push({
-          parcela: `${i + 1}/${maxM}`,
-          data: formatDateBR(addMonthsToDate(dpDate, i + 1)),
-          valor: formatBRL(val),
-        });
-      } else {
-        mRemaining += val;
-      }
-    }
-
-    // ─── Parcelas semestrais (1ª parcela = valor informado, demais corrigidas pelo INCC) ───
-    const semesterRows: InstallmentRow[] = [];
-    let sPaid = 0;
-    let sRemaining = 0;
-    for (let i = 0; i < maxS; i++) {
-      const val = semesterVal * inccFactor(6 * i);
-      if (i < sInstallments) {
-        sPaid += val;
-        semesterRows.push({
-          parcela: `${i + 1}/${maxS}`,
-          data: formatDateBR(addMonthsToDate(dpDate, (i + 1) * 6)),
-          valor: formatBRL(val),
-        });
-      } else {
-        sRemaining += val;
-      }
-    }
+    const mPaid = monthlyVal * mInstallments;
+    const sPaid = semesterVal * sInstallments;
 
     const totalCaptation = downPaymentValue + mPaid + sPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
+
     const habitese = finalPropertyValue - totalCaptation;
+    const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
+    const sRemaining = Math.max(0, semesterVal * maxS - sPaid);
     const hBalance = Math.max(0, habitese - mRemaining - sRemaining);
 
-    // Sinal (não sofre correção INCC parcela a parcela)
     const dpPerInstallment = downPaymentValue / parseInt(downPaymentInstallments);
+
     const sinalRows: InstallmentRow[] = [];
     for (let i = 1; i <= parseInt(downPaymentInstallments); i++) {
       sinalRows.push({
@@ -238,16 +162,23 @@ function SimulatorContent() {
       });
     }
 
-    // INCC correction over construction period
-    const deliveryDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH - 1, 30));
-    const constructionMonths = Math.max(0, monthsBetween(dpDate, deliveryDate));
-    let inccCorrectionFactor = 1;
-    if (inccMonthlyRate > 0 && constructionMonths > 0) {
-      for (let i = 0; i < constructionMonths; i++) {
-        inccCorrectionFactor *= (1 + inccMonthlyRate / 100);
-      }
+    const monthlyRows: InstallmentRow[] = [];
+    for (let i = 1; i <= mInstallments; i++) {
+      monthlyRows.push({
+        parcela: `${i}/${maxM}`,
+        data: formatDateBR(addMonthsToDate(dpDate, i)),
+        valor: formatBRL(monthlyVal),
+      });
     }
-    const inccAccumulatedPercent = (inccCorrectionFactor - 1) * 100;
+
+    const semesterRows: InstallmentRow[] = [];
+    for (let i = 1; i <= sInstallments; i++) {
+      semesterRows.push({
+        parcela: `${i}/${maxS}`,
+        data: formatDateBR(addMonthsToDate(dpDate, i * 6)),
+        valor: formatBRL(semesterVal),
+      });
+    }
 
     return {
       finalPropertyValue,
@@ -269,16 +200,8 @@ function SimulatorContent() {
       monthlyRows,
       semesterRows,
       isLowCaptation: captPct > 0 && captPct < 25,
-      inccMonthlyRate,
-      inccCorrectionFactor,
-      inccAccumulatedPercent,
-      inccMode,
-      habiteseCorrected: mRemaining + sRemaining + hBalance * inccCorrectionFactor,
-      mRemainingCorrected: mRemaining,
-      sRemainingCorrected: sRemaining,
-      hBalanceCorrected: hBalance * inccCorrectionFactor,
     };
-  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
+  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue]);
 
   // Show results when there's meaningful data
   useEffect(() => {
@@ -289,37 +212,6 @@ function SimulatorContent() {
   useEffect(() => {
     if (propertyValue > 0) setShowResults(true);
   }, [result]);
-
-  // Fetch INCC data
-  useEffect(() => {
-    async function fetchIncc() {
-      try {
-        const res = await fetch("/api/incc");
-        const data = await res.json();
-        setInccData({
-          avg180: data.avg180,
-          avg12: data.avg12,
-          projection: data.projection,
-          lastUpdate: data.lastUpdate,
-          totalMonths: data.totalMonths || 0,
-          loading: false,
-          error: null,
-          isFallback: data.fallback || false,
-        });
-      } catch {
-        setInccData((prev) => ({
-          ...prev,
-          loading: false,
-          error: "Erro ao carregar dados do INCC",
-          isFallback: true,
-          avg180: 0.45,
-          avg12: 0.4,
-          projection: 0.4,
-        }));
-      }
-    }
-    fetchIncc();
-  }, []);
 
   const handleCurrencyInput = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const { formatted } = formatInputAsCurrency(e.target.value);
@@ -377,7 +269,7 @@ function SimulatorContent() {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Informações da Proposta", margin, yPos);
+    doc.text("Informações da Simulação", margin, yPos);
     yPos += 10;
     autoTable(doc,{
       startY: yPos,
@@ -409,9 +301,6 @@ function SimulatorContent() {
         ["Mensais (Obra)", formatBRL(result.monthlyPaid), `${result.monthlyPaidPercent.toFixed(2)}%`],
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
         ["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
-        ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
-          ["Habite-se (corrigido INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
-        ] : []),
         ["Total", formatBRL(result.finalPropertyValue), "100%"],
       ],
       theme: "striped",
@@ -498,38 +387,6 @@ function SimulatorContent() {
     });
     yPos = doc.lastAutoTable.finalY + 15;
 
-    // INCC correction section
-    if (inccMode !== "none" && result.inccAccumulatedPercent > 0) {
-      if (yPos > 200) { doc.addPage(); yPos = 20; }
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Correção INCC", margin, yPos);
-      yPos += 10;
-      const dpDate = new Date(Date.UTC(
-        parseInt(downPaymentDate.split("-")[0]),
-        parseInt(downPaymentDate.split("-")[1]) - 1,
-        parseInt(downPaymentDate.split("-")[2])
-      ));
-      const deliveryDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH - 1, 30));
-      const constructionMonths = Math.max(0, monthsBetween(dpDate, deliveryDate));
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Descrição", "Valor"]],
-        body: [
-          ["Taxa Mensal INCC", `${inccMonthlyRate.toFixed(3)}% ao mês`],
-          ["Período de Correção", `${constructionMonths} meses`],
-          ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
-          ["Habite-se Original", formatBRL(result.habiteseAmount)],
-          ["Habite-se Corrigido", formatBRL(result.habiteseCorrected)],
-          ["Impacto INCC", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
-        ],
-        theme: "grid",
-        headStyles: { fillColor: [180, 83, 9], textColor: 255 },
-        margin: { top: 10, left: margin, right: margin },
-      });
-      yPos = doc.lastAutoTable.finalY + 15;
-    }
-
     // Notes
     if (yPos > 210) { doc.addPage(); yPos = 20; }
     doc.setFontSize(12);
@@ -545,10 +402,7 @@ function SimulatorContent() {
       "O saldo devedor deverá ser quitado até o habite-se ou financiado com o banco de preferência após emissão do habite-se.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
-      inccMode !== "none" && result.inccAccumulatedPercent > 0
-        ? `Correção INCC aplicada ao saldo devedor com taxa de ${inccMonthlyRate.toFixed(3)}% ao mês (${result.inccAccumulatedPercent.toFixed(2)}% acumulado no período da obra). Fonte: INCC-10/Bacen.`
-        : null,
-    ].filter(Boolean);
+    ];
     notes.forEach((note) => {
       const lines = doc.splitTextToSize(note, pageWidth - margin * 2);
       doc.text(lines, margin, yPos);
@@ -564,9 +418,31 @@ function SimulatorContent() {
       doc.text(`Página ${i} de ${totalPages} - Quattre Torre Istambul`, pageWidth / 2, pageHeight - 10, { align: "center" });
     }
 
-    const fileName = `Proposta_Quattre_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(fileName);
-  }, [result, unitName, initialArea, initialAndar, propertyValue, inccMode, inccMonthlyRate, downPaymentDate]);
+    const fileName = `Simulacao_Quattre_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    // Mobile-safe download: cria blob e abre em nova aba como fallback
+    try {
+      const blob = doc.output("blob");
+      if (navigator.msSaveOrOpenBlob) {
+        // IE / Edge antigo
+        navigator.msSaveOrOpenBlob(blob, fileName);
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        // Cleanup após breve delay
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 1000);
+      }
+    } catch {
+      doc.save(fileName);
+    }
+  }, [result, unitName, initialArea, initialAndar, propertyValue]);
 
   // ─── Render ───
   return (
@@ -800,60 +676,6 @@ function SimulatorContent() {
                   </select>
                 </div>
 
-                {/* INCC Correction */}
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-amber-600" />
-                    <label className="text-xs font-semibold text-amber-800 uppercase tracking-wider block">
-                      Correção INCC no Saldo Devedor
-                    </label>
-                  </div>
-                  <select
-                    value={inccMode}
-                    onChange={(e) => setInccMode(e.target.value as InccMode)}
-                    className="w-full h-10 px-4 rounded-xl border border-amber-200 bg-white text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-300/30 focus:border-amber-300 transition-all"
-                  >
-                    <option value="none">Sem correção INCC</option>
-                    <option value="180m" disabled={inccData.loading}>
-                      Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}
-                    </option>
-                    <option value="12m" disabled={inccData.loading}>
-                      Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}
-                    </option>
-                    <option value="projection" disabled={inccData.loading}>
-                      Projeção INCC (12m){!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}
-                    </option>
-                  </select>
-                  {inccMode !== "none" && !inccData.loading && (
-                    <div className="mt-3 space-y-1.5">
-                      <p className="text-xs text-amber-700">
-                        <span className="font-semibold">Taxa selecionada:</span> {inccMonthlyRate.toFixed(3)}% ao mês
-                      </p>
-                      {inccData.isFallback && (
-                        <p className="text-xs text-amber-600 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Usando valor de referência (fonte indisponível)
-                        </p>
-                      )}
-                      {result.inccAccumulatedPercent > 0 && (
-                        <div className="p-2.5 rounded-lg bg-white/70 border border-amber-200 text-xs text-amber-800">
-                          <span className="font-semibold">Correção acumulada no período da obra:</span>{" "}
-                          {result.inccAccumulatedPercent.toFixed(2)}%
-                          <br />
-                          <span className="font-semibold">Habite-se corrigido:</span>{" "}
-                          {formatBRL(result.habiteseCorrected)}
-                          {" (+"}{formatBRL(result.habiteseCorrected - result.habiteseAmount)})
-                        </div>
-                      )}
-                      {inccData.lastUpdate && !inccData.isFallback && (
-                        <p className="text-[10px] text-amber-500">
-                          Dados INCC-10 (Bacen) atualizados em {inccData.lastUpdate}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
                 {/* Low captation warning */}
                 {result.isLowCaptation && showResults && (
                   <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 animate-pulse">
@@ -901,17 +723,6 @@ function SimulatorContent() {
                   Captação durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span>
                 </p>
               </div>
-              {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                <div className="mt-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/25">
-                  <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Correção INCC</p>
-                  <p className="text-white text-sm font-medium">
-                    Habite-se corrigido: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
-                  </p>
-                  <p className="text-amber-200/70 text-xs mt-0.5">
-                    +{formatBRL(result.habiteseCorrected - result.habiteseAmount)} ({result.inccAccumulatedPercent.toFixed(2)}% acumulado)
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -961,16 +772,6 @@ function SimulatorContent() {
                         <td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td>
                         <td className="py-3 px-4 text-gray-400 text-xs">Saldo mensais + semestrais + final</td>
                       </tr>
-                      {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50">
-                          <td className="py-3 px-4 font-medium text-amber-900">
-                            Habite-se (corrigido INCC)
-                          </td>
-                          <td className="py-3 px-4 text-right font-semibold text-amber-900">{formatBRL(result.habiteseCorrected)}</td>
-                          <td className="py-3 px-4 text-right text-amber-700">{result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00"}%</td>
-                          <td className="py-3 px-4 text-amber-600 text-xs">INCC +{result.inccAccumulatedPercent.toFixed(2)}% ({inccMonthlyRate.toFixed(3)}% a.m.)</td>
-                        </tr>
-                      )}
                       <tr className="bg-emerald-50">
                         <td className="py-3 px-4 font-bold text-emerald-900">Valor Total</td>
                         <td className="py-3 px-4 text-right font-bold text-emerald-900">{formatBRL(result.finalPropertyValue)}</td>
@@ -1116,7 +917,7 @@ function SimulatorContent() {
                     className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-lg"
                   >
                     <FileDown className="w-4 h-4" />
-                    Gerar PDF da Proposta
+                    Gerar PDF da Simulação
                   </button>
                 )}
               </div>
