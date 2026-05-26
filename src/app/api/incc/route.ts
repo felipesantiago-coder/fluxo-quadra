@@ -6,11 +6,16 @@ import { NextResponse } from "next/server";
 // Fonte: FGV IBRE | Período: jan/1990 até presente | Atualização mensal
 // INCC-DI acompanha de perto o INCC-M e é o único INCC disponível na API do Bacen.
 const BACEN_SERIES_DI = "192";
+const BACEN_SERIES_IGPM = "189"; // IGP-M (variação mensal)
 const BACEN_BASE_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs";
 
 // brasilindicadores.com.br publica INCC-M (FGV) via tabela HTML acessível por AJAX.
 const BRASIL_INDICADORES_URL =
   "https://brasilindicadores.com.br/incc-m?handler=HistoricoValoresIndicadorPartial";
+
+// Bacen Olinda API — Expectativas de Mercado (Focus)
+const OLINDA_IGPM_12M_URL =
+  "https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoInflacao12Meses";
 
 // ─── Cache ───
 interface InccResult {
@@ -23,6 +28,7 @@ interface InccResult {
   source: string;
   indicator: string; // "INCC-M" ou "INCC-DI"
   fallback?: boolean;
+  projectionSource?: string;
 }
 
 let cache: { data: InccResult | null; timestamp: number } = {
@@ -53,6 +59,203 @@ function calcAverages(monthlyValues: number[]) {
     avg180: Math.round(avg180 * 10000) / 10000,
     avg12: Math.round(avg12 * 10000) / 10000,
   };
+}
+
+// ─── Projeção INCC via Expectativas de Mercado ───
+// Estratégia:
+// 1. Buscar expectativa de mercado para IGP-M (12 meses à frente) via Bacen Olinda
+// 2. Converter de taxa anual para taxa mensal equivalente
+// 3. Calcular fator de proporcionalidade histórico INCC / IGP-M (últimos 60 meses)
+// 4. Aplicar o fator à expectativa do IGP-M para obter a projeção INCC
+//
+// Justificativa: O INCC não possui expectativas de mercado no relatório Focus,
+// mas o IGP-M (FGV) possui forte correlação com o INCC — o próprio INCC é um
+// dos componentes do IGP-M (peso de 10%). O IGP-M é amplamente coberto por
+// analistas no relatório Focus, com dezenas de respondentes.
+async function fetchInccProjection(): Promise<{
+  value: number;
+  source: string;
+}> {
+  try {
+    // ── Passo 1: Obter expectativa 12 meses à frente do IGP-M ──
+    const olindaUrl = `${OLINDA_IGPM_12M_URL}?$filter=Indicador%20eq%20'IGP-M'%20and%20Suavizada%20eq%20'S'%20and%20baseCalculo%20eq%200&$top=1&$orderby=Data%20desc&$format=json`;
+
+    const olindaRes = await fetch(olindaUrl, {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!olindaRes.ok) return { value: 0, source: "" };
+
+    const olindaData = await olindaRes.json();
+    const entries = olindaData?.value;
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return { value: 0, source: "" };
+    }
+
+    // Usar a mediana suavizada (remove outliers) — baseCalculo 0 = total
+    const latestEntry = entries[0];
+    const igpmAnnualMedian = latestEntry.Mediana; // % anual
+
+    // Sanidade: expectativa IGP-M anual acima de 20% é cenário extremo — rejeitar
+    if (!igpmAnnualMedian || igpmAnnualMedian <= 0 || igpmAnnualMedian > 20) {
+      return { value: 0, source: "" };
+    }
+
+    // Converter taxa anual para mensal equivalente (juros compostos)
+    const igpmMonthlyRate =
+      Math.pow(1 + igpmAnnualMedian / 100, 1 / 12) - 1;
+
+    // ── Passo 2: Obter dados históricos do IGP-M (últimos 60 meses) ──
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 65);
+
+    const igpmHistoryUrl = `${BACEN_BASE_URL}.${BACEN_SERIES_IGPM}/dados?formato=json&dataInicial=${formatBacenDate(startDate)}&dataFinal=${formatBacenDate(endDate)}`;
+
+    const igpmRes = await fetch(igpmHistoryUrl, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!igpmRes.ok) return { value: 0, source: "" };
+
+    const igpmRaw: { data: string; valor: string }[] = await igpmRes.json();
+    if (!Array.isArray(igpmRaw) || igpmRaw.length < 24) {
+      return { value: 0, source: "" };
+    }
+
+    const igpmValues = igpmRaw
+      .map((item) => parseFloat(item.valor))
+      .filter((v) => !isNaN(v));
+
+    if (igpmValues.length < 24) return { value: 0, source: "" };
+
+    // Média IGP-M dos últimos 60 meses
+    const last60Igpm = igpmValues.slice(-60);
+    const avgIgpm60 =
+      last60Igpm.reduce((s, v) => s + v, 0) / last60Igpm.length;
+
+    // Sanidade: média do IGP-M tipicamente entre -0.5% e 2% ao mês
+    if (avgIgpm60 < -0.5 || avgIgpm60 > 2) {
+      return { value: 0, source: "" };
+    }
+
+    // ── Passo 3: Obter média INCC dos últimos 60 meses ──
+    // Buscar da fonte primária (brasilindicadores) ou secundária (Bacen)
+    const inccLast60 = await fetchInccLast60Months();
+
+    if (inccLast60.length < 24) return { value: 0, source: "" };
+
+    const avgIncc60 =
+      inccLast60.reduce((s, v) => s + v, 0) / inccLast60.length;
+
+    // Sanidade: média do INCC tipicamente entre 0.1% e 2% ao mês
+    if (avgIncc60 < 0.1 || avgIncc60 > 2) return { value: 0, source: "" };
+
+    // ── Passo 4: Calcular fator de proporcionalidade ──
+    // Fator = razão entre a média INCC e a média IGP-M no mesmo período
+    const factor = avgIncc60 / avgIgpm60;
+
+    // Sanidade: o fator deve estar entre 0.5 e 5 (INCC costuma ser 1.5-3× o IGP-M)
+    if (factor < 0.5 || factor > 5) return { value: 0, source: "" };
+
+    // ── Passo 5: Calcular projeção INCC ──
+    const projection = igpmMonthlyRate * factor;
+
+    // Sanidade final: projeção INCC mensal fora de 0.1%-2.0% é irrealista → rejeitar
+    if (projection < 0.1 || projection > 2.0) {
+      return { value: 0, source: "" };
+    }
+
+    const projectionRounded =
+      Math.round(projection * 100000) / 100000; // 5 casas decimais
+
+    return {
+      value: projectionRounded,
+      source: `Expectativa Focus IGP-M ${igpmAnnualMedian.toFixed(2)}% a.a. (${latestEntry.numeroRespondentes || "?"} respondentes) × fator INCC/IGP-M ${factor.toFixed(2)}x (60 meses)`,
+    };
+  } catch {
+    return { value: 0, source: "" };
+  }
+}
+
+// Busca os últimos 60 meses de dados INCC (usando as mesmas fontes da API)
+async function fetchInccLast60Months(): Promise<number[]> {
+  // Tentar brasilindicadores primeiro
+  try {
+    const res = await fetch(BRASIL_INDICADORES_URL, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      const rows = html.match(/<tr[^>]*>(.*?)<\/tr>/gis);
+      if (rows && rows.length > 0) {
+        const monthlyEntries: number[] = [];
+
+        for (const row of rows) {
+          const cells = row.match(/<td[^>]*>(.*?)<\/td>/gis);
+          if (!cells || cells.length < 2) continue;
+
+          const cleanCells = cells.map((c) =>
+            c.replace(/<[^>]+>/g, "").trim()
+          );
+
+          const yearStr = cleanCells[0];
+          if (!/^\d{4}$/.test(yearStr)) continue;
+
+          const year = parseInt(yearStr, 10);
+          if (year < 2021) continue; // últimos ~60 meses a partir de 2021
+
+          for (let m = 0; m < 12; m++) {
+            const valStr = cleanCells[m + 1]
+              ?.replace("%", "")
+              .replace(",", ".")
+              .trim();
+            if (!valStr || valStr === "") continue;
+            const valor = parseFloat(valStr);
+            if (!isNaN(valor)) monthlyEntries.push(valor);
+          }
+        }
+
+        if (monthlyEntries.length >= 24) return monthlyEntries.slice(-60);
+      }
+    }
+  } catch {
+    // fallback to Bacen
+  }
+
+  // Fallback: Bacen série 192 (INCC-DI)
+  try {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 65);
+
+    const url = `${BACEN_BASE_URL}.${BACEN_SERIES_DI}/dados?formato=json&dataInicial=${formatBacenDate(startDate)}&dataFinal=${formatBacenDate(endDate)}`;
+
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (res.ok) {
+      const rawData: { data: string; valor: string }[] = await res.json();
+      if (Array.isArray(rawData) && rawData.length >= 24) {
+        const values = rawData
+          .map((item) => parseFloat(item.valor))
+          .filter((v) => !isNaN(v));
+        if (values.length >= 24) return values.slice(-60);
+      }
+    }
+  } catch {
+    // não disponível
+  }
+
+  return [];
 }
 
 // ─── Fonte 1 (principal): INCC-M via brasilindicadores.com.br ───
@@ -143,7 +346,7 @@ async function fetchINCCmFromBrasilIndicadores(): Promise<InccResult | null> {
     return {
       avg180,
       avg12,
-      projection: avg12,
+      projection: 0, // será preenchido pela expectativa de mercado
       lastUpdate: lastEntry.data,
       totalMonths: allValues.length,
       values: since2011.map((e) => ({
@@ -198,7 +401,7 @@ async function fetchINCCdFromBacen(): Promise<InccResult | null> {
     return {
       avg180,
       avg12,
-      projection: avg12,
+      projection: 0, // será preenchido pela expectativa de mercado
       lastUpdate: values[values.length - 1]?.data || null,
       totalMonths: values.length,
       values: values.map((v) => ({
@@ -221,7 +424,7 @@ function getFallback(): InccResult {
   return {
     avg180: 0.5570,
     avg12: 0.5092,
-    projection: 0.5092,
+    projection: 0, // será preenchido pela expectativa de mercado
     lastUpdate: null,
     totalMonths: 0,
     values: [],
@@ -249,6 +452,17 @@ export async function GET() {
   // 3) Último recurso: valores estáticos verificados manualmente
   if (!result) {
     result = getFallback();
+  }
+
+  // 4) Calcular projeção baseada em expectativas de mercado (Bacen Focus / Olinda API)
+  const projection = await fetchInccProjection();
+  if (projection.value > 0) {
+    result.projection = projection.value;
+    result.projectionSource = projection.source;
+  } else {
+    // Fallback da projeção: usar média dos últimos 12 meses
+    result.projection = result.avg12;
+    result.projectionSource = "Média dos últimos 12 meses (expectativas de mercado indisponíveis)";
   }
 
   // Atualizar cache
