@@ -96,7 +96,8 @@ async function fetchInccProjection(): Promise<{
     const latestEntry = entries[0];
     const igpmAnnualMedian = latestEntry.Mediana; // % anual
 
-    if (!igpmAnnualMedian || igpmAnnualMedian <= 0 || igpmAnnualMedian > 50) {
+    // Sanidade: expectativa IGP-M anual acima de 20% é cenário extremo — rejeitar
+    if (!igpmAnnualMedian || igpmAnnualMedian <= 0 || igpmAnnualMedian > 20) {
       return { value: 0, source: "" };
     }
 
@@ -160,6 +161,11 @@ async function fetchInccProjection(): Promise<{
 
     // ── Passo 5: Calcular projeção INCC ──
     const projection = igpmMonthlyRate * factor;
+
+    // Sanidade final: projeção INCC mensal fora de 0.1%-2.0% é irrealista → rejeitar
+    if (projection < 0.1 || projection > 2.0) {
+      return { value: 0, source: "" };
+    }
 
     const projectionRounded =
       Math.round(projection * 100000) / 100000; // 5 casas decimais
