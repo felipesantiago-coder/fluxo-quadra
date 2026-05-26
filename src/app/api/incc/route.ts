@@ -64,9 +64,9 @@ function calcAverages(monthlyValues: number[]) {
 // ─── Projeção INCC via Expectativas de Mercado ───
 // Estratégia:
 // 1. Buscar expectativa de mercado para IGP-M (12 meses à frente) via Bacen Olinda
-// 2. Converter de taxa anual para taxa mensal equivalente
+// 2. Converter a expectativa anual em média mensal equivalente
 // 3. Calcular fator de proporcionalidade histórico INCC / IGP-M (últimos 60 meses)
-// 4. Aplicar o fator à expectativa do IGP-M para obter a projeção INCC
+// 4. Aplicar o fator à expectativa mensal do IGP-M para obter a projeção INCC
 //
 // Justificativa: O INCC não possui expectativas de mercado no relatório Focus,
 // mas o IGP-M (FGV) possui forte correlação com o INCC — o próprio INCC é um
@@ -78,7 +78,7 @@ async function fetchInccProjection(): Promise<{
 }> {
   try {
     // ── Passo 1: Obter expectativa 12 meses à frente do IGP-M ──
-    const olindaUrl = `${OLINDA_IGPM_12M_URL}?$filter=Indicador%20eq%20'IGP-M'%20and%20Suavizada%20eq%20'S'%20and%20baseCalculo%20eq%200&$top=1&$orderby=Data%20desc&$format=json`;
+    const olindaUrl = `${OLINDA_IGPM_12M_URL}?\$filter=Indicador%20eq%20'IGP-M'%20and%20Suavizada%20eq%20'S'%20and%20baseCalculo%20eq%200&\$top=1&\$orderby=Data%20desc&\$format=json`;
 
     const olindaRes = await fetch(olindaUrl, {
       signal: AbortSignal.timeout(10000),
@@ -101,9 +101,14 @@ async function fetchInccProjection(): Promise<{
       return { value: 0, source: "" };
     }
 
-    // Converter taxa anual para mensal equivalente (juros compostos)
-    const igpmMonthlyRate =
-      Math.pow(1 + igpmAnnualMedian / 100, 1 / 12) - 1;
+    // Converter expectativa anual em média mensal equivalente
+    // Ex: 4.19% a.a. → ~0.349% a.m. (divisão simples, consistente com médias mensais)
+    const igpmMonthlyExpectation = igpmAnnualMedian / 12;
+
+    // Sanidade: expectativa mensal do IGP-M tipicamente entre 0% e 1.5%
+    if (igpmMonthlyExpectation < 0 || igpmMonthlyExpectation > 1.5) {
+      return { value: 0, source: "" };
+    }
 
     // ── Passo 2: Obter dados históricos do IGP-M (últimos 60 meses) ──
     const endDate = new Date();
@@ -130,12 +135,12 @@ async function fetchInccProjection(): Promise<{
 
     if (igpmValues.length < 24) return { value: 0, source: "" };
 
-    // Média IGP-M dos últimos 60 meses
+    // Média IGP-M dos últimos 60 meses (variação mensal)
     const last60Igpm = igpmValues.slice(-60);
     const avgIgpm60 =
       last60Igpm.reduce((s, v) => s + v, 0) / last60Igpm.length;
 
-    // Sanidade: média do IGP-M tipicamente entre -0.5% e 2% ao mês
+    // Sanidade: média mensal do IGP-M tipicamente entre -0.5% e 2%
     if (avgIgpm60 < -0.5 || avgIgpm60 > 2) {
       return { value: 0, source: "" };
     }
@@ -149,18 +154,19 @@ async function fetchInccProjection(): Promise<{
     const avgIncc60 =
       inccLast60.reduce((s, v) => s + v, 0) / inccLast60.length;
 
-    // Sanidade: média do INCC tipicamente entre 0.1% e 2% ao mês
+    // Sanidade: média mensal do INCC tipicamente entre 0.1% e 2%
     if (avgIncc60 < 0.1 || avgIncc60 > 2) return { value: 0, source: "" };
 
     // ── Passo 4: Calcular fator de proporcionalidade ──
-    // Fator = razão entre a média INCC e a média IGP-M no mesmo período
+    // Fator = razão entre a média mensal INCC e a média mensal IGP-M no mesmo período
     const factor = avgIncc60 / avgIgpm60;
 
     // Sanidade: o fator deve estar entre 0.5 e 5 (INCC costuma ser 1.5-3× o IGP-M)
     if (factor < 0.5 || factor > 5) return { value: 0, source: "" };
 
     // ── Passo 5: Calcular projeção INCC ──
-    const projection = igpmMonthlyRate * factor;
+    // Aplicar o fator à expectativa mensal do IGP-M para derivar a expectativa INCC
+    const projection = igpmMonthlyExpectation * factor;
 
     // Sanidade final: projeção INCC mensal fora de 0.1%-2.0% é irrealista → rejeitar
     if (projection < 0.1 || projection > 2.0) {
@@ -172,7 +178,7 @@ async function fetchInccProjection(): Promise<{
 
     return {
       value: projectionRounded,
-      source: `Expectativa Focus IGP-M ${igpmAnnualMedian.toFixed(2)}% a.a. (${latestEntry.numeroRespondentes || "?"} respondentes) × fator INCC/IGP-M ${factor.toFixed(2)}x (60 meses)`,
+      source: `Expectativa Focus IGP-M ${igpmAnnualMedian.toFixed(2)}% a.a. (${latestEntry.numeroRespondentes || "?"} respondentes) → ${igpmMonthlyExpectation.toFixed(3)}% a.m. × fator INCC/IGP-M ${factor.toFixed(2)}x (60 meses)`,
     };
   } catch {
     return { value: 0, source: "" };
