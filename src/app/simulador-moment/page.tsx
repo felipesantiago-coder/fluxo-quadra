@@ -60,11 +60,13 @@ function getTodayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-type InccMode = "none" | "180m" | "12m";
+type InccMode = "none" | "180m" | "12m" | "projection";
 
 interface InccData {
   avg180: number;
   avg12: number;
+  projection: number;
+  projectionSource: string;
   lastUpdate: string | null;
   totalMonths: number;
   loading: boolean;
@@ -121,7 +123,7 @@ function SimulatorContent() {
   // INCC state
   const [inccMode, setInccMode] = useState<InccMode>("none");
   const [inccData, setInccData] = useState<InccData>({
-    avg180: 0, avg12: 0,
+    avg180: 0, avg12: 0, projection: 0, projectionSource: "",
     lastUpdate: null, totalMonths: 0,
     loading: true, error: null, isFallback: false,
   });
@@ -139,6 +141,7 @@ function SimulatorContent() {
   const getInccMonthlyRate = (): number => {
     if (inccMode === "180m") return inccData.avg180;
     if (inccMode === "12m") return inccData.avg12;
+    if (inccMode === "projection") return inccData.projection;
     return 0;
   };
   const inccMonthlyRate = inccData.loading ? 0 : getInccMonthlyRate();
@@ -207,6 +210,7 @@ function SimulatorContent() {
         const data = await res.json();
         setInccData({
           avg180: data.avg180 || 0, avg12: data.avg12 || 0,
+          projection: data.projection || 0, projectionSource: data.projectionSource || "",
           lastUpdate: data.lastUpdate || null, totalMonths: data.totalMonths || 0,
           loading: false, error: null, isFallback: data.fallback || false,
         });
@@ -587,6 +591,13 @@ function SimulatorContent() {
                       <label className="block">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      </label>
+                      <label className="block">
+                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
+                        <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
+                          <p className="text-[10px] text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
+                        )}
                       </label>
                       {inccData.lastUpdate && (
                         <p className="text-[10px] text-gray-400">Dados atualizados em {inccData.lastUpdate} — {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>

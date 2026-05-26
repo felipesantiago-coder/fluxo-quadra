@@ -41,3 +41,27 @@ Stage Summary:
 - Arquivos alterados: simulador/page.tsx, simulador-moment/page.tsx, simulador-villa-bianco/page.tsx
 - Zero ocorrências de "proposta" restantes nos simuladores
 - PDF agora funciona em mobile (iOS Safari, Chrome mobile, WebView)
+---
+Task ID: 1
+Agent: main
+Task: Implementar projeção INCC baseada em expectativas de mercado (Bacen Focus) e adicionar opção nos simuladores
+
+Work Log:
+- Verificou que INCC NÃO está disponível no catálogo da API Olinda (Bacen Expectativas)
+- Confirmou que IGP-M está disponível e amplamente coberto (54 respondentes)
+- Buscou dados históricos do IGP-M (Bacen SGS série 189) e INCC-M (brasilindicadores) para calcular fator de proporcionalidade
+- Calculou fator INCC/IGP-M ≈ 2.01x nos últimos 60 meses
+- Implementou função fetchInccProjection() na API /api/incc que:
+  1. Busca expectativa 12m do IGP-M via Olinda API (mediana suavizada)
+  2. Converte taxa anual para mensal equivalente (juros compostos)
+  3. Calcula fator histórico INCC/IGP-M (últimos 60 meses)
+  4. Aplica fator para obter projeção INCC
+  5. Fallback: usa média 12m se expectativas indisponíveis
+- Adicionou campo projectionSource no retorno da API (descrição da fonte usada)
+- Re-adicionou opção "Projeção de mercado" nos 3 simuladores (Moment, Quattre, Villa Bianco)
+- Opção agora mostra detalhes da fonte quando selecionada
+
+Stage Summary:
+- Resultado da projeção: 0.688% a.m. (IGP-M 4.19% a.a. × fator 2.01x)
+- Arquivos alterados: src/app/api/incc/route.ts, simulador-moment/page.tsx, simulador/page.tsx, simulador-villa-bianco/page.tsx
+- Build compilou sem erros
