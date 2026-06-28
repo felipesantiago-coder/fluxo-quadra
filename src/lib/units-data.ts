@@ -66,7 +66,7 @@ function getStatus(valor: number | null, unidade: number): Unit["status"] {
 }
 
 function getPosicaoSolar(unidade: number): Unit["posicaoSolar"] {
-  return unidade % 2 === 0 ? "Poente" : "Nascente";
+  return unidade % 2 === 0 ? "Nascente" : "Poente";
 }
 
 // Raw data from CSV
