@@ -186,55 +186,61 @@ function SimulatorContent() {
     const mInstallments = Math.min(totalMonths, maxM);
     const sInstallments = Math.min(Math.floor(totalMonths / 6), maxS);
 
-    const inccFactor = (months: number) => inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, months) : 1;
-    const inccCorrectionFactor = totalMonths > 0 ? inccFactor(totalMonths) : 1;
-    const inccAccumulatedPercent = (inccCorrectionFactor - 1) * 100;
+    // INCC: fator teórico de correção (referência: se nenhum pagamento fosse feito)
+    const inccCorrectionFactor = totalMonths > 0 && inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
 
-    // Monthly with INCC
+    // ── Modelo de saldo devedor (declining balance) ──
+    // O INCC corrige o saldo devedor remanescente a cada mês.
+    // As parcelas são nominais (fixas) e reduzem o saldo quando pagas.
+    let saldo = finalPropertyValue - downPaymentValue;
     let mPaid = 0;
-    let mRemainingCorrected = 0;
-    const monthlyRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxM; i++) {
-      const val = monthlyVal * inccFactor(i);
-      if (i <= mInstallments) {
-        mPaid += val;
-        monthlyRows.push({
-          parcela: `${i}/${maxM}`,
-          data: formatDateBR(addMonthsToDate(dpDate, i)),
-          valor: formatBRL(val),
-        });
-      } else {
-        mRemainingCorrected += val;
-      }
-    }
-
-    // Semester with INCC
     let sPaid = 0;
-    let sRemainingCorrected = 0;
+    let mCount = 0;
+    let sCount = 0;
+    const monthlyRows: InstallmentRow[] = [];
     const semesterRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxS; i++) {
-      const val = semesterVal * inccFactor(6 * i);
-      if (i <= sInstallments) {
-        sPaid += val;
-        semesterRows.push({
-          parcela: `${i}/${maxS}`,
-          data: formatDateBR(addMonthsToDate(dpDate, i * 6)),
-          valor: formatBRL(val),
+    const semesterPaymentMonths = new Set<number>();
+    for (let i = 1; i <= sInstallments; i++) semesterPaymentMonths.add(6 * i);
+
+    for (let month = 1; month <= totalMonths; month++) {
+      // Aplica INCC sobre o saldo devedor remanescente
+      if (inccMonthlyRate > 0) saldo *= (1 + inccMonthlyRate / 100);
+
+      // Parcela mensal
+      if (mCount < maxM && mCount < mInstallments) {
+        mCount++;
+        saldo -= monthlyVal;
+        mPaid += monthlyVal;
+        monthlyRows.push({
+          parcela: `${mCount}/${maxM}`,
+          data: formatDateBR(addMonthsToDate(dpDate, month)),
+          valor: formatBRL(monthlyVal),
         });
-      } else {
-        sRemainingCorrected += val;
+      }
+
+      // Parcela semestral (a cada 6 meses)
+      if (semesterPaymentMonths.has(month) && sCount < maxS) {
+        sCount++;
+        saldo -= semesterVal;
+        sPaid += semesterVal;
+        semesterRows.push({
+          parcela: `${sCount}/${maxS}`,
+          data: formatDateBR(addMonthsToDate(dpDate, month)),
+          valor: formatBRL(semesterVal),
+        });
       }
     }
 
+    const habiteseCorrected = Math.max(0, saldo);
+
+    // Valores nominais para exibição
     const totalCaptation = downPaymentValue + mPaid + sPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
-
-    const habitese = finalPropertyValue - totalCaptation;
+    const habitese = Math.max(0, finalPropertyValue - totalCaptation);
+    const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
     const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
     const sRemaining = Math.max(0, semesterVal * maxS - sPaid);
     const hBalance = Math.max(0, habitese - mRemaining - sRemaining);
-    const hBalanceCorrected = hBalance * inccCorrectionFactor;
-    const habiteseCorrected = mRemainingCorrected + sRemainingCorrected + hBalanceCorrected;
 
     const dpPerInstallment = downPaymentValue / parseInt(downPaymentInstallments);
 
@@ -272,9 +278,9 @@ function SimulatorContent() {
       inccAccumulatedPercent,
       inccMode,
       habiteseCorrected,
-      mRemainingCorrected,
-      sRemainingCorrected,
-      hBalanceCorrected,
+      mRemainingCorrected: 0,
+      sRemainingCorrected: 0,
+      hBalanceCorrected: 0,
     };
   }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
 

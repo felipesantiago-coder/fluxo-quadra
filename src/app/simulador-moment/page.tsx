@@ -157,28 +157,46 @@ function SimulatorContent() {
     totalMonths = Math.max(0, totalMonths);
     const maxMonthlyInstallments = totalMonths;
     const maxSemesterInstallments = Math.floor(totalMonths / 6);
-    const monthlyPaid = monthlyVal * maxMonthlyInstallments;
-    const semesterPaid = semesterVal * maxSemesterInstallments;
-    const totalCaptation = downPaymentValue + monthlyPaid + semesterPaid;
-    const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
-    const habitese = finalPropertyValue - totalCaptation;
     const DECORATION_INSTALLMENTS = 10;
     const decorationInstallmentValue = DECORATION_FEE / DECORATION_INSTALLMENTS;
     const decorationStartDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH - DECORATION_INSTALLMENTS, 1));
 
+    // INCC: fator teórico de correção (referência)
     const inccCorrectionFactor = totalMonths > 0 && inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
-    const inccAccumulatedPercent = (inccCorrectionFactor - 1) * 100;
-    const habiteseCorrected = habitese * inccCorrectionFactor;
+
+    // ── Modelo de saldo devedor (declining balance) ──
+    let saldo = finalPropertyValue - downPaymentValue;
+    let monthlyPaid = 0;
+    let semesterPaid = 0;
+    const semesterPaymentMonths = new Set<number>();
+    for (let i = 1; i <= maxSemesterInstallments; i++) semesterPaymentMonths.add(6 * i);
 
     const sinalRows: InstallmentRow[] = [{ parcela: "1/1", data: formatDateBR(dpDate), valor: formatBRL(downPaymentValue) }];
     const monthlyRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxMonthlyInstallments; i++) {
-      monthlyRows.push({ parcela: `${i}/${maxMonthlyInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, i)), valor: formatBRL(monthlyVal) });
-    }
     const semesterRows: InstallmentRow[] = [];
-    for (let i = 1; i <= maxSemesterInstallments; i++) {
-      semesterRows.push({ parcela: `${i}/${maxSemesterInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, i * 6)), valor: formatBRL(semesterVal) });
+
+    for (let month = 1; month <= totalMonths; month++) {
+      if (inccMonthlyRate > 0) saldo *= (1 + inccMonthlyRate / 100);
+
+      if (month <= maxMonthlyInstallments) {
+        saldo -= monthlyVal;
+        monthlyPaid += monthlyVal;
+        monthlyRows.push({ parcela: `${month}/${maxMonthlyInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(monthlyVal) });
+      }
+
+      if (semesterPaymentMonths.has(month)) {
+        const semIdx = month / 6;
+        saldo -= semesterVal;
+        semesterPaid += semesterVal;
+        semesterRows.push({ parcela: `${semIdx}/${maxSemesterInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(semesterVal) });
+      }
     }
+
+    const habiteseCorrected = Math.max(0, saldo);
+    const totalCaptation = downPaymentValue + monthlyPaid + semesterPaid;
+    const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
+    const habitese = Math.max(0, finalPropertyValue - totalCaptation);
+    const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
     const decorationRows: InstallmentRow[] = [];
     for (let i = 0; i < DECORATION_INSTALLMENTS; i++) {
       decorationRows.push({ parcela: `${i + 1}/${DECORATION_INSTALLMENTS}`, data: formatDateBR(addMonthsToDate(decorationStartDate, i)), valor: formatBRL(decorationInstallmentValue) });
