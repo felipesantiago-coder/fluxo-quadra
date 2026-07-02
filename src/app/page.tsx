@@ -50,7 +50,7 @@ function LoginForm() {
             .from("profiles")
             .select("role")
             .eq("id", data.user.id)
-            .single();
+            .maybeSingle();
 
           if (!profileError && profile?.role === "admin_sistema") {
             router.push("/admin-sistema");

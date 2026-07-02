@@ -18,7 +18,7 @@ export default async function ProjetosPage() {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
     if (!error && profile?.role) userRole = profile.role;
   } catch {
     // Tabela profiles pode não existir ou estar com erro — usa fallback
