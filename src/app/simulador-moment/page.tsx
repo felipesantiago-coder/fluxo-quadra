@@ -161,10 +161,10 @@ function SimulatorContent() {
     const decorationInstallmentValue = DECORATION_FEE / DECORATION_INSTALLMENTS;
     const decorationStartDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH - DECORATION_INSTALLMENTS, 1));
 
-    // INCC: fator teórico de correção (referência)
+    // INCC: fator de correção para o período total
     const inccCorrectionFactor = totalMonths > 0 && inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
 
-    // ── Modelo de saldo devedor (declining balance) ──
+    // ── Fase 1: Calcular cronograma nominal (sem INCC) ──
     let saldo = finalPropertyValue - downPaymentValue;
     let monthlyPaid = 0;
     let semesterPaid = 0;
@@ -176,26 +176,32 @@ function SimulatorContent() {
     const semesterRows: InstallmentRow[] = [];
 
     for (let month = 1; month <= totalMonths; month++) {
-      if (inccMonthlyRate > 0) saldo *= (1 + inccMonthlyRate / 100);
-
       if (month <= maxMonthlyInstallments) {
         saldo -= monthlyVal;
         monthlyPaid += monthlyVal;
-        monthlyRows.push({ parcela: `${month}/${maxMonthlyInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(monthlyVal) });
+        // Valor corrigido: do mês seguinte ao sinal até o mês de pagamento
+        const inccFactorForMonth = inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, month) : 1;
+        monthlyRows.push({ parcela: `${month}/${maxMonthlyInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(monthlyVal * inccFactorForMonth) });
       }
 
       if (semesterPaymentMonths.has(month)) {
         const semIdx = month / 6;
         saldo -= semesterVal;
         semesterPaid += semesterVal;
-        semesterRows.push({ parcela: `${semIdx}/${maxSemesterInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(semesterVal) });
+        const inccFactorForMonth = inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, month) : 1;
+        semesterRows.push({ parcela: `${semIdx}/${maxSemesterInstallments}`, data: formatDateBR(addMonthsToDate(dpDate, month)), valor: formatBRL(semesterVal * inccFactorForMonth) });
       }
     }
 
-    const habiteseCorrected = Math.max(0, saldo);
+    // Valores nominais (sem INCC)
     const totalCaptation = downPaymentValue + monthlyPaid + semesterPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
     const habitese = Math.max(0, finalPropertyValue - totalCaptation);
+
+    // ── Fase 2: Aplicar correção INCC aos saldos devedores remanescentes ──
+    // No Moment, todas as parcelas mensais e semestrais são pagas durante a obra,
+    // então o habite-se é o saldo puro corrigido pelo INCC
+    const habiteseCorrected = habitese * inccCorrectionFactor;
     const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
     const decorationRows: InstallmentRow[] = [];
     for (let i = 0; i < DECORATION_INSTALLMENTS; i++) {

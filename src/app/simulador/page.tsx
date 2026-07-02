@@ -186,12 +186,10 @@ function SimulatorContent() {
     const mInstallments = Math.min(totalMonths, maxM);
     const sInstallments = Math.min(Math.floor(totalMonths / 6), maxS);
 
-    // INCC: fator teórico de correção (referência: se nenhum pagamento fosse feito)
+    // INCC: fator de correção para o período total
     const inccCorrectionFactor = totalMonths > 0 && inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
 
-    // ── Modelo de saldo devedor (declining balance) ──
-    // O INCC corrige o saldo devedor remanescente a cada mês.
-    // As parcelas são nominais (fixas) e reduzem o saldo quando pagas.
+    // ── Fase 1: Calcular cronograma nominal (sem INCC) ──
     let saldo = finalPropertyValue - downPaymentValue;
     let mPaid = 0;
     let sPaid = 0;
@@ -203,18 +201,17 @@ function SimulatorContent() {
     for (let i = 1; i <= sInstallments; i++) semesterPaymentMonths.add(6 * i);
 
     for (let month = 1; month <= totalMonths; month++) {
-      // Aplica INCC sobre o saldo devedor remanescente
-      if (inccMonthlyRate > 0) saldo *= (1 + inccMonthlyRate / 100);
-
       // Parcela mensal
       if (mCount < maxM && mCount < mInstallments) {
         mCount++;
         saldo -= monthlyVal;
         mPaid += monthlyVal;
+        // Valor corrigido: do mês seguinte ao sinal até o mês de pagamento
+        const inccFactorForMonth = inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, month) : 1;
         monthlyRows.push({
           parcela: `${mCount}/${maxM}`,
           data: formatDateBR(addMonthsToDate(dpDate, month)),
-          valor: formatBRL(monthlyVal),
+          valor: formatBRL(monthlyVal * inccFactorForMonth),
         });
       }
 
@@ -223,24 +220,31 @@ function SimulatorContent() {
         sCount++;
         saldo -= semesterVal;
         sPaid += semesterVal;
+        const inccFactorForMonth = inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, month) : 1;
         semesterRows.push({
           parcela: `${sCount}/${maxS}`,
           data: formatDateBR(addMonthsToDate(dpDate, month)),
-          valor: formatBRL(semesterVal),
+          valor: formatBRL(semesterVal * inccFactorForMonth),
         });
       }
     }
 
-    const habiteseCorrected = Math.max(0, saldo);
-
-    // Valores nominais para exibição
+    // Valores nominais (sem INCC)
     const totalCaptation = downPaymentValue + mPaid + sPaid;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
     const habitese = Math.max(0, finalPropertyValue - totalCaptation);
-    const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
     const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
     const sRemaining = Math.max(0, semesterVal * maxS - sPaid);
     const hBalance = Math.max(0, habitese - mRemaining - sRemaining);
+
+    // ── Fase 2: Aplicar correção INCC aos saldos devedores remanescentes ──
+    // Todos os saldos devedores (parcelas mensais restantes, semestrais restantes e habite-se)
+    // são corrigidos pelo INCC do mês seguinte ao sinal até a entrega (habite-se)
+    const mRemainingCorrected = mRemaining * inccCorrectionFactor;
+    const sRemainingCorrected = sRemaining * inccCorrectionFactor;
+    const hBalanceCorrected = hBalance * inccCorrectionFactor;
+    const habiteseCorrected = mRemainingCorrected + sRemainingCorrected + hBalanceCorrected;
+    const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
 
     const dpPerInstallment = downPaymentValue / parseInt(downPaymentInstallments);
 
@@ -278,9 +282,9 @@ function SimulatorContent() {
       inccAccumulatedPercent,
       inccMode,
       habiteseCorrected,
-      mRemainingCorrected: 0,
-      sRemainingCorrected: 0,
-      hBalanceCorrected: 0,
+      mRemainingCorrected,
+      sRemainingCorrected,
+      hBalanceCorrected,
     };
   }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
 
@@ -1103,15 +1107,15 @@ function SimulatorContent() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                                 <span className="text-sm text-gray-600">Parcelas mensais restantes</span>
-                                <span className="text-sm font-semibold text-gray-900">{formatBRL(result.monthlyRemaining)}</span>
+                                <span className="text-sm font-semibold text-gray-900">{formatBRL(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? result.mRemainingCorrected : result.monthlyRemaining)}</span>
                               </div>
                               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                                 <span className="text-sm text-gray-600">Parcelas semestrais restantes</span>
-                                <span className="text-sm font-semibold text-gray-900">{formatBRL(result.semesterRemaining)}</span>
+                                <span className="text-sm font-semibold text-gray-900">{formatBRL(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? result.sRemainingCorrected : result.semesterRemaining)}</span>
                               </div>
                               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                                 <span className="text-sm text-gray-600">Saldo final do imóvel</span>
-                                <span className="text-sm font-semibold text-gray-900">{formatBRL(result.habiteseBalance)}</span>
+                                <span className="text-sm font-semibold text-gray-900">{formatBRL(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? result.hBalanceCorrected : result.habiteseBalance)}</span>
                               </div>
                             </div>
                           </div>
