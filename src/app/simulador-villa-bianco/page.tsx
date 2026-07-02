@@ -386,7 +386,7 @@ function SimulatorContent() {
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
         ["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
         ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
-          ["Habite-se (corrigido INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
+          ["Habite-se (proje\u00e7\u00e3o INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
         ] : []),
         ["Total", formatBRL(result.finalPropertyValue), "100%"],
       ],
@@ -496,24 +496,45 @@ function SimulatorContent() {
       if (yPos > 200) { doc.addPage(); yPos = 20; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Correção INCC", margin, yPos);
+      doc.text("Projecao de Correcao INCC (Estimativa)", margin, yPos);
       yPos += 10;
+      const inccMetricLabel = inccMode === "180m"
+        ? "M\u00e9dia dos \u00faltimos 180 meses do INCC"
+        : inccMode === "12m"
+          ? "M\u00e9dia dos \u00faltimos 12 meses do INCC"
+          : inccMode === "projection"
+            ? "Proje\u00e7\u00e3o de mercado"
+            : "N/A";
+      const inccSourceLabel = inccData.isFallback
+        ? "Dados de refer\u00eancia (valores estimados)"
+        : "FGV IBRE";
       autoTable(doc, {
         startY: yPos,
-        head: [["Descrição", "Valor"]],
+        head: [["Descri\u00e7\u00e3o", "Valor"]],
         body: [
-          ["Taxa Mensal INCC", `${inccMonthlyRate.toFixed(3)}% ao mês`],
-          ["Período de Correção", `${result.totalMonths} meses`],
-          ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
+          ["Taxa Mensal Utilizada", `${inccMonthlyRate.toFixed(3)}% ao m\u00eas`],
+          ["M\u00e9trica Utilizada", inccMetricLabel],
+          ["Fonte dos Dados", inccSourceLabel],
+          ["Per\u00edodo de Corre\u00e7\u00e3o", `${result.totalMonths} meses`],
+          ["Corre\u00e7\u00e3o Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
           ["Habite-se Original", formatBRL(result.habiteseAmount)],
-          ["Habite-se Corrigido", formatBRL(result.habiteseCorrected)],
-          ["Impacto INCC", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
+          ["Habite-se Projetado", formatBRL(result.habiteseCorrected)],
+          ["Impacto Estimado", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
         ],
         theme: "grid",
         headStyles: { fillColor: [180, 83, 9], textColor: 255 },
         margin: { top: 10, left: margin, right: margin },
       });
-      yPos = doc.lastAutoTable.finalY + 15;
+      yPos = doc.lastAutoTable.finalY + 8;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(120, 80, 0);
+      const disclaimerLines = doc.splitTextToSize(
+        "AVISO: Os valores de corre\u00e7\u00e3o INCC apresentados acima s\u00e3o meras proje\u00e7\u00f5es estimativas e n\u00e3o garantem o resultado final. O INCC \u00e9 um \u00edndice vari\u00e1vel cujos valores futuros n\u00e3o podem ser previstos com certeza. A taxa utilizada \u00e9 baseada em dados hist\u00f3ricos/projetados e poder\u00e1 divergir significativamente do \u00edndice efetivamente apurado durante o per\u00edodo de obras. Consulte o contrato para as condi\u00e7\u00f5es definitivas de reajuste.",
+        pageWidth - margin * 2
+      );
+      doc.text(disclaimerLines, margin, yPos);
+      yPos += disclaimerLines.length * 3.5 + 10;
     }
 
     // Notes
@@ -872,7 +893,7 @@ function SimulatorContent() {
                 <div className="mt-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/25">
                   <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Correção INCC</p>
                   <p className="text-white text-sm font-medium">
-                    Habite-se corrigido: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
+                    Habite-se projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
                   </p>
                   <p className="text-amber-200/70 text-xs mt-0.5">
                     +{formatBRL(result.habiteseCorrected - result.habiteseAmount)} ({result.inccAccumulatedPercent.toFixed(2)}% acumulado)
@@ -936,7 +957,7 @@ function SimulatorContent() {
                       </tr>
                       {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                         <tr className="border-b border-gray-100 bg-amber-50">
-                          <td className="py-3 px-4 font-medium text-amber-900">Habite-se (corrigido INCC)</td>
+                          <td className="py-3 px-4 font-medium text-amber-900">Habite-se (projeção INCC)*</td>
                           <td className="py-3 px-4 text-right font-semibold text-amber-900">{formatBRL(result.habiteseCorrected)}</td>
                           <td className="py-3 px-4 text-right text-amber-700">{result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00"}%</td>
                           <td className="py-3 px-4 text-amber-600 text-xs">INCC +{result.inccAccumulatedPercent.toFixed(2)}% ({inccMonthlyRate.toFixed(3)}% a.m.)</td>
@@ -1091,7 +1112,7 @@ function SimulatorContent() {
                           {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                               <p className="font-bold text-amber-900 text-lg">{formatBRL(result.habiteseCorrected)}</p>
-                              <p className="text-sm text-amber-700 mt-1">Habite-se corrigido pelo INCC (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
+                              <p className="text-sm text-amber-700 mt-1">Habite-se projetado pelo INCC* (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
                             </div>
                           )}
                         </div>
