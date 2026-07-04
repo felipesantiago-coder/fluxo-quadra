@@ -400,6 +400,7 @@ function SimulatorContent() {
       summaryBody.push(["Única (mês de entrega)", formatBRL(result.unicaValue), `${result.unicaPercent.toFixed(2)}%`, `1 parcela em ${result.unicaDate}`]);
     }
 
+
     if (result.remainingSemesterCount > 0) {
       summaryBody.push([`Semestrais (pós financiamento)`, formatBRL(result.remainingSemesterValue), "—", `${result.remainingSemesterCount} parcelas remanescentes`]);
     }
