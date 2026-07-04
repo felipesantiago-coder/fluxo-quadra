@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "Villa Bianco",
   ],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
   openGraph: {
     title: "Espelho de Vendas — Empreendimentos",
