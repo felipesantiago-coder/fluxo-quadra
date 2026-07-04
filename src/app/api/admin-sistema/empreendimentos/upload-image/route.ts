@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
-import sharp from "sharp";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
     const ext = path.extname(file.name).toLowerCase();
     if (!VALID_MIME_TYPES.includes(file.type) || !VALID_EXTENSIONS.includes(ext)) {
       return NextResponse.json(
-        { error: "Formato inválido. Use JPG, PNG ou WebP." },
+        { error: `Formato inválido (${file.type}). Use JPG, PNG ou WebP.` },
         { status: 400 }
       );
     }
@@ -60,15 +59,20 @@ export async function POST(request: NextRequest) {
     await mkdir(uploadDir, { recursive: true });
 
     const filePath = path.join(uploadDir, `${empreendimentoId}.webp`);
-
-    // Converter para WebP usando sharp (otimiza tamanho e mantém consistência)
     const buffer = Buffer.from(await file.arrayBuffer());
-    const webpBuffer = await sharp(buffer)
-      .resize(1200, 800, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 85 })
-      .toBuffer();
 
-    await writeFile(filePath, webpBuffer);
+    // Tentar converter para WebP com sharp; se falhar, salvar como WebP direto
+    try {
+      const sharp = (await import("sharp")).default;
+      const webpBuffer = await sharp(buffer)
+        .resize(1200, 800, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
+      await writeFile(filePath, webpBuffer);
+    } catch (sharpErr) {
+      console.error("Sharp falhou, salvando buffer original como WebP:", sharpErr);
+      await writeFile(filePath, buffer);
+    }
 
     // Atualizar URL no banco
     const imagemUrl = `/empreendimentos/${empreendimentoId}.webp`;
@@ -78,8 +82,7 @@ export async function POST(request: NextRequest) {
       .eq("id", empreendimentoId);
 
     if (err) {
-      console.error("Erro ao atualizar imagem:", err.message);
-      // Limpar arquivo salvo
+      console.error("Erro ao atualizar imagem no banco:", err.message);
       try { await unlink(filePath); } catch { /* ignore */ }
       return NextResponse.json({ error: "Erro ao atualizar imagem no banco" }, { status: 500 });
     }
@@ -87,6 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ imagem_url: imagemUrl });
   } catch (err) {
     console.error("Erro no upload de imagem:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : "Erro desconhecido";
+    return NextResponse.json({ error: `Erro interno: ${msg}` }, { status: 500 });
   }
 }
