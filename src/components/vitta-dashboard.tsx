@@ -21,28 +21,28 @@ import { Badge } from "@/components/ui/badge";
 type TipoKey = VittaUnit["tipo"];
 
 const typeColors: Record<TipoKey, { bg: string; border: string; text: string; gradient: string; accent: string }> = {
-  "Studio": {
+  "1 quarto": {
     bg: "bg-orange-50",
     border: "border-orange-200",
     text: "text-orange-700",
     gradient: "from-orange-500 to-orange-600",
     accent: "bg-orange-500",
   },
-  "1 Suíte": {
+  "2 quartos": {
     bg: "bg-emerald-50",
     border: "border-emerald-200",
     text: "text-emerald-700",
     gradient: "from-emerald-500 to-emerald-600",
     accent: "bg-emerald-500",
   },
-  "2 Suítes": {
+  "2 quartos (suíte e varanda)": {
     bg: "bg-sky-50",
     border: "border-sky-200",
     text: "text-sky-700",
     gradient: "from-sky-500 to-sky-600",
     accent: "bg-sky-500",
   },
-  "Apartamento": {
+  "Garden": {
     bg: "bg-violet-50",
     border: "border-violet-200",
     text: "text-violet-700",
@@ -84,7 +84,7 @@ function UnitCard({
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, bloco: string, newStatus: VittaUnit["status"]) => void;
 }) {
-  const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 Suíte"];
+  const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 quarto"];
   const status = statusLabels[unit.status];
   const [showStatusMenu, setShowStatusMenu] = useState(false);
 
@@ -201,7 +201,7 @@ function UnitCard({
 
 // ─── Expanded Card ───
 function ExpandedCard({ unit, onClose }: { unit: VittaUnit; onClose: () => void }) {
-  const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 Suíte"];
+  const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 quarto"];
   const status = statusLabels[unit.status];
 
   return (
