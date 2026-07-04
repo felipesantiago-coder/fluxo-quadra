@@ -26,7 +26,9 @@ export const metadata: Metadata = {
     "Villa Bianco",
   ],
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
   },
   openGraph: {
     title: "Espelho de Vendas — Empreendimentos",
