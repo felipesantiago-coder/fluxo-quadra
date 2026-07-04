@@ -21,15 +21,15 @@ export const momentFloors = [1, 2, 3, 4, 5, 6] as const;
 export const momentAndares = [1, 2, 3, 4, 5, 6] as const;
 
 export const momentPavimentos: Record<number, string> = {
-  1: "1\u00ba Pavimento",
-  2: "2\u00ba Pavimento",
-  3: "3\u00ba Pavimento",
-  4: "4\u00ba Pavimento",
-  5: "5\u00ba Pavimento",
-  6: "6\u00ba Pavimento",
+  1: "1º Pavimento",
+  2: "2º Pavimento",
+  3: "3º Pavimento",
+  4: "4º Pavimento",
+  5: "5º Pavimento",
+  6: "6º Pavimento",
 };
 
-export const momentTipologias = ["1 Su\u00edte", "3 Su\u00edtes", "1 Su\u00edte + 2 Semissu\u00edtes", "Cobertura"] as const;
+export const momentTipologias = ["1 Suíte", "3 Suítes", "1 Suíte + 2 Semissuítes", "Cobertura"] as const;
 
 function fmtCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);

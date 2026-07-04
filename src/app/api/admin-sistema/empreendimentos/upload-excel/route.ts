@@ -75,7 +75,7 @@ function normalizeColumnName(col: string): string {
     .toLowerCase()
     .trim()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_|_$/g, "");

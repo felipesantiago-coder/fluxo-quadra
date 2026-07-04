@@ -412,7 +412,7 @@ function SimulatorContent() {
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
         ["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
         ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
-          ["Habite-se (proje\u00e7\u00e3o INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
+          ["Habite-se (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
         ] : []),
         ["Total", formatBRL(result.finalPropertyValue), "100%"],
       ],
@@ -515,24 +515,24 @@ function SimulatorContent() {
       const paymentLimit2 = new Date(Date.UTC(PAYMENT_LIMIT_YEAR, PAYMENT_LIMIT_MONTH - 1, 30));
       const constructionMonths = Math.max(0, monthsBetween(dpDate2, paymentLimit2));
       const inccMetricLabel = inccMode === "180m"
-        ? "M\u00e9dia dos \u00faltimos 180 meses do INCC"
+        ? "Média dos últimos 180 meses do INCC"
         : inccMode === "12m"
-          ? "M\u00e9dia dos \u00faltimos 12 meses do INCC"
+          ? "Média dos últimos 12 meses do INCC"
           : inccMode === "projection"
-            ? "Proje\u00e7\u00e3o de mercado"
+            ? "Projeção de mercado"
             : "N/A";
       const inccSourceLabel = inccData.isFallback
-        ? "Dados de refer\u00eancia (valores estimados)"
+        ? "Dados de referência (valores estimados)"
         : "FGV IBRE";
       autoTable(doc, {
         startY: yPos,
-        head: [["Descri\u00e7\u00e3o", "Valor"]],
+        head: [["Descrição", "Valor"]],
         body: [
-          ["Taxa Mensal Utilizada", `${inccMonthlyRate.toFixed(3)}% ao m\u00eas`],
-          ["M\u00e9trica Utilizada", inccMetricLabel],
+          ["Taxa Mensal Utilizada", `${inccMonthlyRate.toFixed(3)}% ao mês`],
+          ["Métrica Utilizada", inccMetricLabel],
           ["Fonte dos Dados", inccSourceLabel],
-          ["Per\u00edodo de Corre\u00e7\u00e3o", `${constructionMonths} meses`],
-          ["Corre\u00e7\u00e3o Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
+          ["Período de Correção", `${constructionMonths} meses`],
+          ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
           ["Habite-se Original", formatBRL(result.habiteseAmount)],
           ["Habite-se Projetado", formatBRL(result.habiteseCorrected)],
           ["Impacto Estimado", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
@@ -546,7 +546,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(120, 80, 0);
       const disclaimerLines = doc.splitTextToSize(
-        "AVISO: Os valores de corre\u00e7\u00e3o INCC apresentados acima s\u00e3o meras proje\u00e7\u00f5es estimativas e n\u00e3o garantem o resultado final. O INCC \u00e9 um \u00edndice vari\u00e1vel cujos valores futuros n\u00e3o podem ser previstos com certeza. A taxa utilizada \u00e9 baseada em dados hist\u00f3ricos/projetados e poder\u00e1 divergir significativamente do \u00edndice efetivamente apurado durante o per\u00edodo de obras. Consulte o contrato para as condi\u00e7\u00f5es definitivas de reajuste.",
+        "AVISO: Os valores de correção INCC apresentados acima são meras projeções estimativas e não garantem o resultado final. O INCC é um índice variável cujos valores futuros não podem ser previstos com certeza. A taxa utilizada é baseada em dados históricos/projetados e poderá divergir significativamente do índice efetivamente apurado durante o período de obras. Consulte o contrato para as condições definitivas de reajuste.",
         pageWidth - margin * 2
       );
       doc.text(disclaimerLines, margin, yPos);

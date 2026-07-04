@@ -321,7 +321,7 @@ function SimulatorContent() {
     doc.text("Residencial Vitta", margin, 20);
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text("Simula\u00e7\u00e3o de Fluxo de Pagamento", margin, 30);
+    doc.text("Simulação de Fluxo de Pagamento", margin, 30);
     const today = new Date().toLocaleDateString("pt-BR");
     doc.setFontSize(10);
     doc.text(`Gerado em: ${today}`, pageWidth - margin - 30, 30, { align: "right" });
@@ -331,19 +331,19 @@ function SimulatorContent() {
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Informa\u00e7\u00f5es da Simula\u00e7\u00e3o", margin, yPos);
+    doc.text("Informações da Simulação", margin, yPos);
     yPos += 10;
     autoTable(doc, {
       startY: yPos,
-      head: [["Descri\u00e7\u00e3o", "Informa\u00e7\u00e3o"]],
+      head: [["Descrição", "Informação"]],
       body: [
-        ["Unidade", unitName || "N\u00e3o informado"],
-        ["\u00c1rea", initialArea || "\u2014"],
-        ["Valor do Im\u00f3vel", formatBRL(propertyValue)],
+        ["Unidade", unitName || "Não informado"],
+        ["Área", initialArea || "—"],
+        ["Valor do Imóvel", formatBRL(propertyValue)],
         ["Valor com Desconto", formatBRL(result.finalPropertyValue)],
         ["Entrega Prevista", "Abril de 2029"],
-        ["M\u00e1x. Mensais Contratadas", `${MAX_MONTHLY_INSTALLMENTS} parcelas`],
-        ["M\u00e1x. Semestrais Contratadas", `${MAX_SEMESTER_INSTALLMENTS} parcelas`],
+        ["Máx. Mensais Contratadas", `${MAX_MONTHLY_INSTALLMENTS} parcelas`],
+        ["Máx. Semestrais Contratadas", `${MAX_SEMESTER_INSTALLMENTS} parcelas`],
       ],
       theme: "grid",
       headStyles: { fillColor: primaryColor, textColor: 255 },
@@ -359,29 +359,29 @@ function SimulatorContent() {
     yPos += 10;
 
     const summaryBody: (string | number)[][] = [
-      ["Sinal", formatBRL(result.downPaymentValue), `${result.downPaymentPercent.toFixed(2)}%`, "Pagamento \u00e0 vista"],
+      ["Sinal", formatBRL(result.downPaymentValue), `${result.downPaymentPercent.toFixed(2)}%`, "Pagamento à vista"],
       [`Mensais (obra)`, formatBRL(result.monthlyPaidDuringConstruction), `${result.monthlyPaidPercent.toFixed(2)}%`, `${result.paidMonthlyCount} parcelas durante a obra`],
       [`Semestrais (obra)`, formatBRL(result.semesterPaidDuringConstruction), `${result.semesterPaidPercent.toFixed(2)}%`, `${result.paidSemesterCount} parcelas durante a obra`],
     ];
 
     if (result.remainingMonthlyCount > 0) {
-      summaryBody.push([`Mensais (p\u00f3s habite-se)`, formatBRL(result.remainingMonthlyValue), "\u2014", `${result.remainingMonthlyCount} parcelas remanescentes`]);
+      summaryBody.push([`Mensais (pós habite-se)`, formatBRL(result.remainingMonthlyValue), "—", `${result.remainingMonthlyCount} parcelas remanescentes`]);
     }
     if (result.remainingSemesterCount > 0) {
-      summaryBody.push([`Semestrais (p\u00f3s habite-se)`, formatBRL(result.remainingSemesterValue), "\u2014", `${result.remainingSemesterCount} parcelas remanescentes`]);
+      summaryBody.push([`Semestrais (pós habite-se)`, formatBRL(result.remainingSemesterValue), "—", `${result.remainingSemesterCount} parcelas remanescentes`]);
     }
 
-    summaryBody.push(["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`, "Saldo devedor p\u00f3s-obra"]);
+    summaryBody.push(["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`, "Saldo devedor pós-obra"]);
 
     if (inccMode !== "none" && result.inccAccumulatedPercent > 0) {
-      summaryBody.push(["Habite-se (proje\u00e7\u00e3o INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`, "Valor projetado com corre\u00e7\u00e3o"]);
+      summaryBody.push(["Habite-se (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`, "Valor projetado com correção"]);
     }
 
     summaryBody.push(["Total", formatBRL(result.finalPropertyValue), "100%", ""]);
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Etapa", "Valor", "%", "Observa\u00e7\u00e3o"]],
+      head: [["Etapa", "Valor", "%", "Observação"]],
       body: summaryBody,
       theme: "striped",
       headStyles: { fillColor: primaryColor, textColor: 255 },
@@ -439,7 +439,7 @@ function SimulatorContent() {
 
     autoTable(doc, {
       startY: yPos,
-      head: [["Descri\u00e7\u00e3o", "Valor"]],
+      head: [["Descrição", "Valor"]],
       body: habiteBody,
       theme: "striped",
       headStyles: { fillColor: secondaryColor, textColor: 0 },
@@ -452,27 +452,27 @@ function SimulatorContent() {
       if (yPos > 180) { doc.addPage(); yPos = 20; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Proje\u00e7\u00e3o de Corre\u00e7\u00e3o INCC (Estimativa)", margin, yPos);
+      doc.text("Projeção de Correção INCC (Estimativa)", margin, yPos);
       yPos += 10;
       const inccMetricLabel = inccMode === "180m"
-        ? "M\u00e9dia dos \u00faltimos 180 meses do INCC"
+        ? "Média dos últimos 180 meses do INCC"
         : inccMode === "12m"
-          ? "M\u00e9dia dos \u00faltimos 12 meses do INCC"
+          ? "Média dos últimos 12 meses do INCC"
           : inccMode === "projection"
-            ? "Proje\u00e7\u00e3o de mercado"
+            ? "Projeção de mercado"
             : "N/A";
       const inccSourceLabel = inccData.isFallback
-        ? "Dados de refer\u00eancia (valores estimados)"
+        ? "Dados de referência (valores estimados)"
         : "FGV IBRE";
       autoTable(doc, {
         startY: yPos,
-        head: [["Descri\u00e7\u00e3o", "Valor"]],
+        head: [["Descrição", "Valor"]],
         body: [
-          ["Taxa Mensal Utilizada", `${inccMonthlyRate.toFixed(3)}% ao m\u00eas`],
-          ["M\u00e9trica Utilizada", inccMetricLabel],
+          ["Taxa Mensal Utilizada", `${inccMonthlyRate.toFixed(3)}% ao mês`],
+          ["Métrica Utilizada", inccMetricLabel],
           ["Fonte dos Dados", inccSourceLabel],
-          ["Per\u00edodo de Corre\u00e7\u00e3o", `${result.totalMonthsUntilDelivery} meses`],
-          ["Corre\u00e7\u00e3o Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
+          ["Período de Correção", `${result.totalMonthsUntilDelivery} meses`],
+          ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
           ["Habite-se Original", formatBRL(result.habiteseAmount)],
           ["Habite-se Projetado", formatBRL(result.habiteseCorrected)],
           ["Impacto Estimado", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
@@ -486,7 +486,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(120, 80, 0);
       const disclaimerLines = doc.splitTextToSize(
-        "AVISO: Os valores de corre\u00e7\u00e3o INCC apresentados acima s\u00e3o meras proje\u00e7\u00f5es estimativas e n\u00e3o garantem o resultado final. O INCC \u00e9 um \u00edndice vari\u00e1vel cujos valores futuros n\u00e3o podem ser previstos com certeza. A taxa utilizada \u00e9 baseada em dados hist\u00f3ricos/projetados e poder\u00e1 divergir significativamente do \u00edndice efetivamente apurado durante o per\u00edodo de obras. Consulte o contrato para as condi\u00e7\u00f5es definitivas de reajuste.",
+        "AVISO: Os valores de correção INCC apresentados acima são meras projeções estimativas e não garantem o resultado final. O INCC é um índice variável cujos valores futuros não podem ser previstos com certeza. A taxa utilizada é baseada em dados históricos/projetados e poderá divergir significativamente do índice efetivamente apurado durante o período de obras. Consulte o contrato para as condições definitivas de reajuste.",
         pageWidth - margin * 2
       );
       doc.text(disclaimerLines, margin, yPos);
@@ -496,18 +496,18 @@ function SimulatorContent() {
     // Notes
     if (yPos > 210) { doc.addPage(); yPos = 20; }
     doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0);
-    doc.text("Observa\u00e7\u00f5es Importantes", margin, yPos); yPos += 8;
+    doc.text("Observações Importantes", margin, yPos); yPos += 8;
     doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(60, 60, 60);
     const notes = [
-      "O sinal \u00e9 pago \u00e0 vista.",
-      "As parcelas mensais come\u00e7am no m\u00eas seguinte ao sinal.",
-      "A primeira parcela semestral \u00e9 6 meses ap\u00f3s o sinal.",
-      `A construtora permite dividir as mensais em at\u00e9 ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em at\u00e9 ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
-      "As parcelas que n\u00e3o couberem at\u00e9 o m\u00eas anterior ao m\u00eas de entrega s\u00e3o integradas ao saldo devedor p\u00f3s habite-se.",
-      "O saldo devedor no habite-se pode ser quitado ou financiado com o banco de prefer\u00eancia.",
-      "Importante: Os saldos devedores de todas as parcelas ser\u00e3o corrigidos mensalmente pelo INCC (\u00cdndice Nacional de Custo da Constru\u00e7\u00e3o) at\u00e9 o habite-se.",
-      `Capta\u00e7\u00e3o m\u00ednima: A capta\u00e7\u00e3o durante as obras deve ser de no m\u00ednimo ${MIN_CAPTATION_PCT}% do valor do im\u00f3vel.`,
-      "Os valores, condi\u00e7\u00f5es e disponibilidade apresentados podem sofrer altera\u00e7\u00e3o sem aviso pr\u00e9vio.",
+      "O sinal é pago à vista.",
+      "As parcelas mensais começam no mês seguinte ao sinal.",
+      "A primeira parcela semestral é 6 meses após o sinal.",
+      `A construtora permite dividir as mensais em até ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em até ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
+      "As parcelas que não couberem até o mês anterior ao mês de entrega são integradas ao saldo devedor pós habite-se.",
+      "O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência.",
+      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
+      `Captação mínima: A captação durante as obras deve ser de no mínimo ${MIN_CAPTATION_PCT}% do valor do imóvel.`,
+      "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
       const lines = doc.splitTextToSize(note, pageWidth - margin * 2);
@@ -520,10 +520,10 @@ function SimulatorContent() {
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       doc.setFontSize(8); doc.setTextColor(150);
-      doc.text(`P\u00e1gina ${i} de ${totalPages} - Residencial Vitta`, pageWidth / 2, pageHeight - 10, { align: "center" });
+      doc.text(`Página ${i} de ${totalPages} - Residencial Vitta`, pageWidth / 2, pageHeight - 10, { align: "center" });
     }
 
-    const fileName = `Simula\u00e7\u00e3o_Vitta_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const fileName = `Simulação_Vitta_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
       const blob = doc.output("blob");
       if (navigator.msSaveOrOpenBlob) {
@@ -574,16 +574,16 @@ function SimulatorContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
-          <p className="text-gray-500 mt-2">Residencial Vitta &mdash; Ceil\u00e2ndia, DF &mdash; Calcule o financiamento do seu im\u00f3vel</p>
+          <p className="text-gray-500 mt-2">Residencial Vitta &mdash; Ceilândia, DF &mdash; Calcule o financiamento do seu imóvel</p>
         </div>
 
         <div className="flex items-center justify-center mb-10">
-          {["Dados B\u00e1sicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
+          {["Dados Básicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
             <div key={step} className="flex items-center">
               {i > 0 && <div className="w-8 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
               <div className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
-                  {i < 4 ? "\u2713" : i + 1}
+                  {i < 4 ? "✓" : i + 1}
                 </div>
                 <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
               </div>
@@ -598,13 +598,13 @@ function SimulatorContent() {
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
                 <div className="flex items-center gap-2 text-white">
                   <Calculator className="w-5 h-5" />
-                  <h3 className="font-semibold">Informa\u00e7\u00f5es do Im\u00f3vel</h3>
+                  <h3 className="font-semibold">Informações do Imóvel</h3>
                 </div>
               </div>
               <div className="p-6 space-y-5">
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
                   <RotateCcw className="w-4 h-4" />
-                  <span className="font-medium">C\u00e1lculo autom\u00e1tico em tempo real</span>
+                  <span className="font-medium">Cálculo automático em tempo real</span>
                 </div>
 
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
@@ -613,7 +613,7 @@ function SimulatorContent() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Im\u00f3vel (R$)</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Imóvel (R$)</label>
                   <input type="text" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 400.000,00" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                 </div>
 
@@ -630,7 +630,7 @@ function SimulatorContent() {
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Sinal (R$)</label>
                   <input type="text" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Padr\u00e3o: 6% do valor final do im\u00f3vel. Pagamento \u00e0 vista.</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 6% do valor final do imóvel. Pagamento à vista.</p>
                 </div>
 
                 <div>
@@ -677,7 +677,7 @@ function SimulatorContent() {
                   >
                     <div className="flex items-center gap-3">
                       <TrendingUp className="w-4 h-4 text-amber-600" />
-                      <span className="font-semibold text-sm text-gray-700">Corre\u00e7\u00e3o INCC</span>
+                      <span className="font-semibold text-sm text-gray-700">Correção INCC</span>
                     </div>
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${inccMode !== "none" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
                       {inccMode !== "none" ? "Ativada" : "Desativada"}
@@ -688,25 +688,25 @@ function SimulatorContent() {
                     <div className="pl-4 space-y-2">
                       <label className="block">
                         <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Sem corre\u00e7\u00e3o</span>
+                        <span className="text-sm text-gray-600">Sem correção</span>
                       </label>
                       <label className="block">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">M\u00e9dia \u00faltimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
                       <label className="block">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">M\u00e9dia \u00faltimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
                       <label className="block">
                         <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Proje\u00e7\u00e3o de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
                           <p className="text-[10px] text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
                         )}
                       </label>
                       {inccData.lastUpdate && (
-                        <p className="text-[10px] text-gray-400">Dados atualizados em {inccData.lastUpdate} &mdash; {inccData.isFallback ? "valores de refer\u00eancia" : "fonte: FGV IBRE"}</p>
+                        <p className="text-[10px] text-gray-400">Dados atualizados em {inccData.lastUpdate} &mdash; {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>
                       )}
                     </div>
                   )}
@@ -715,7 +715,7 @@ function SimulatorContent() {
                 {result.isLowCaptation && showResults && (
                   <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 animate-pulse">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-bold text-sm">Capta\u00e7\u00e3o durante as obras abaixo de {MIN_CAPTATION_PCT}% n\u00e3o \u00e9 permitida!</span>
+                    <span className="font-bold text-sm">Captação durante as obras abaixo de {MIN_CAPTATION_PCT}% não é permitida!</span>
                   </div>
                 )}
 
@@ -729,19 +729,19 @@ function SimulatorContent() {
             <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white">
               <h4 className="font-semibold text-white/80 text-sm uppercase tracking-wider mb-4">Resumo do Financiamento</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-white/60 text-xs mb-1">Valor do Im\u00f3vel</p><p className="text-xl font-bold">{formatBRL(propertyValue)}</p></div>
+                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-xl font-bold">{formatBRL(propertyValue)}</p></div>
                 <div><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p></div>
               </div>
               <div className="mt-4">
                 <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${Math.min(result.captationPercent, 100)}%` }} />
                 </div>
-                <p className="text-white/60 text-xs mt-2 text-center">Capta\u00e7\u00e3o durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span></p>
+                <p className="text-white/60 text-xs mt-2 text-center">Captação durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span></p>
               </div>
 
               {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                 <div className="mt-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/25">
-                  <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Corre\u00e7\u00e3o INCC</p>
+                  <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Correção INCC</p>
                   <p className="text-white text-sm font-medium">
                     Habite-se projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
                   </p>
@@ -774,25 +774,25 @@ function SimulatorContent() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-900 text-white">
-                        <th className="text-left py-3 px-4 rounded-tl-lg font-semibold text-xs uppercase tracking-wider">Descri\u00e7\u00e3o</th>
+                        <th className="text-left py-3 px-4 rounded-tl-lg font-semibold text-xs uppercase tracking-wider">Descrição</th>
                         <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Valor (R$)</th>
                         <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Percentual</th>
-                        <th className="text-left py-3 px-4 rounded-tr-lg font-semibold text-xs uppercase tracking-wider">Observa\u00e7\u00e3o</th>
+                        <th className="text-left py-3 px-4 rounded-tr-lg font-semibold text-xs uppercase tracking-wider">Observação</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Sinal</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Pagamento \u00e0 vista</td></tr>
+                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Sinal</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Pagamento à vista</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Mensais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidMonthlyCount}x de {MAX_MONTHLY_INSTALLMENTS}</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Semestrais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidSemesterCount}x de {MAX_SEMESTER_INSTALLMENTS}</td></tr>
                       {result.remainingMonthlyCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Mensais (p\u00f3s habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingMonthlyValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingMonthlyCount} parcelas remanescentes</td></tr>
+                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Mensais (pós habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingMonthlyValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingMonthlyCount} parcelas remanescentes</td></tr>
                       )}
                       {result.remainingSemesterCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (p\u00f3s habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
+                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (pós habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
                       )}
-                      <tr className="border-b border-gray-100 bg-gray-50"><td className="py-3 px-4 font-bold">Habite-se</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor p\u00f3s-obra</td></tr>
+                      <tr className="border-b border-gray-100 bg-gray-50"><td className="py-3 px-4 font-bold">Habite-se</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor pós-obra</td></tr>
                       {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-orange-50"><td className="py-3 px-4 font-bold text-orange-700">Habite-se (INCC)</td><td className="py-3 px-4 text-right font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</td><td className="py-3 px-4 text-right text-gray-500">{((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%</td><td className="py-3 px-4 text-orange-600 text-xs">Proje\u00e7\u00e3o com corre\u00e7\u00e3o</td></tr>
+                        <tr className="border-b border-gray-100 bg-orange-50"><td className="py-3 px-4 font-bold text-orange-700">Habite-se (INCC)</td><td className="py-3 px-4 text-right font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</td><td className="py-3 px-4 text-right text-gray-500">{((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%</td><td className="py-3 px-4 text-orange-600 text-xs">Projeção com correção</td></tr>
                       )}
                       <tr className="bg-gray-900 text-white"><td className="py-3 px-4 rounded-bl-lg font-bold">Total</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.finalPropertyValue)}</td><td className="py-3 px-4 text-right font-bold">100%</td><td className="py-3 px-4 rounded-br-lg text-white/60 text-xs"></td></tr>
                     </tbody>
@@ -845,7 +845,7 @@ function SimulatorContent() {
                       {activeTab === "habitese" && (
                         <div className="space-y-3">
                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                            <h4 className="font-semibold text-gray-900 mb-3">Composi\u00e7\u00e3o do Habite-se</h4>
+                            <h4 className="font-semibold text-gray-900 mb-3">Composição do Habite-se</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
                               {result.remainingMonthlyCount > 0 && (
@@ -865,10 +865,10 @@ function SimulatorContent() {
                           </div>
                           {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                             <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
-                              <h4 className="font-semibold text-orange-700 mb-2">Proje\u00e7\u00e3o INCC</h4>
+                              <h4 className="font-semibold text-orange-700 mb-2">Projeção INCC</h4>
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Habite-se projetado</span><span className="font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</span></div>
                               <div className="flex justify-between text-sm mt-1"><span className="text-gray-500">Impacto estimado</span><span className="font-medium text-orange-600">+{formatBRL(result.habiteseCorrected - result.habiteseAmount)}</span></div>
-                              <p className="text-[10px] text-orange-500 mt-2">* Valores estimados. O INCC \u00e9 vari\u00e1vel e n\u00e3o pode ser previsto com certeza.</p>
+                              <p className="text-[10px] text-orange-500 mt-2">* Valores estimados. O INCC é variável e não pode ser previsto com certeza.</p>
                             </div>
                           )}
                         </div>
