@@ -119,14 +119,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Erro ao remover empreendimento" }, { status: 500 });
     }
 
-    // Remover imagem se existir
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const imagePath = path.join(process.cwd(), "public", "empreendimentos", `${id}.webp`);
-    try {
-      await fs.unlink(imagePath);
-    } catch {
-      // Arquivo pode não existir, ignorar
+    // Remover imagem do Supabase Storage se existir
+    for (const ext of [".jpg", ".png", ".webp"]) {
+      try {
+        await supabase.storage.from("empreendimentos").remove([`${id}${ext}`]);
+      } catch {
+        // Arquivo pode não existir, ignorar
+      }
     }
 
     return NextResponse.json({ message: "Empreendimento removido com sucesso" });

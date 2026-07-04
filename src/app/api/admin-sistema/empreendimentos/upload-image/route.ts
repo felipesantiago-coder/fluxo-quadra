@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { writeFile, mkdir, unlink, rename } from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
@@ -10,11 +9,15 @@ async function requireAdminSistema() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || profile.role !== "admin_sistema") {
+  if (!user)
+    return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin_sistema")
     return { supabase, error: NextResponse.json({ error: "Acesso restrito" }, { status: 403 }) };
-  }
   return { supabase, error: null };
 }
 
@@ -29,6 +32,8 @@ function getExtFromMime(mime: string): string {
   }
 }
 
+const BUCKET_NAME = "empreendimentos";
+
 export async function POST(request: NextRequest) {
   try {
     const { supabase, error } = await requireAdminSistema();
@@ -39,7 +44,10 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
 
     if (!empreendimentoId || !file) {
-      return NextResponse.json({ error: "Campos 'empreendimentoId' e 'file' são obrigatórios" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Campos 'empreendimentoId' e 'file' são obrigatórios" },
+        { status: 400 }
+      );
     }
 
     // Validar formato
@@ -57,27 +65,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Imagem muito grande. Máximo 10MB." }, { status: 400 });
     }
 
-    // Garantir diretório existe
-    const uploadDir = path.join(process.cwd(), "public", "empreendimentos");
-    await mkdir(uploadDir, { recursive: true });
-
-    // Determinar extensão do arquivo salvo com base no MIME type
-    const saveExt = getExtFromMime(file.type);
-    const filePath = path.join(uploadDir, `${empreendimentoId}${saveExt}`);
-
-    // Salvar arquivo diretamente (sem conversão sharp)
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-
-    // Se existia um arquivo com extensão diferente, remover
-    for (const oldExt of [".webp", ".jpg", ".png"]) {
-      if (oldExt !== saveExt) {
-        try { await unlink(path.join(uploadDir, `${empreendimentoId}${oldExt}`)); } catch { /* não existe, ok */ }
+    // Garantir que o bucket existe
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some((b) => b.name === BUCKET_NAME);
+    if (!bucketExists) {
+      const { error: bucketErr } = await supabase.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        fileSizeLimit: MAX_SIZE,
+      });
+      if (bucketErr && !bucketErr.message.includes("already exists")) {
+        console.error("Erro ao criar bucket:", bucketErr.message);
+        return NextResponse.json({ error: "Erro ao configurar storage" }, { status: 500 });
       }
     }
 
+    // Determinar nome do arquivo e remover versão anterior
+    const saveExt = getExtFromMime(file.type);
+    const fileName = `${empreendimentoId}${saveExt}`;
+
+    // Remover arquivos antigos deste empreendimento no storage
+    for (const oldExt of [".jpg", ".png", ".webp"]) {
+      if (oldExt !== saveExt) {
+        await supabase.storage.from(BUCKET_NAME).remove([`${empreendimentoId}${oldExt}`]);
+      }
+    }
+
+    // Upload para o Supabase Storage
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (uploadErr) {
+      console.error("Erro no upload para storage:", uploadErr.message);
+      return NextResponse.json({ error: "Erro ao fazer upload da imagem" }, { status: 500 });
+    }
+
+    // Obter URL pública
+    const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+    const imagemUrl = urlData.publicUrl;
+
     // Atualizar URL no banco
-    const imagemUrl = `/empreendimentos/${empreendimentoId}${saveExt}`;
     const { err } = await supabase
       .from("empreendimentos")
       .update({ imagem_url: imagemUrl })
@@ -85,8 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (err) {
       console.error("Erro ao atualizar imagem no banco:", err.message);
-      try { await unlink(filePath); } catch { /* ignore */ }
-      return NextResponse.json({ error: "Erro ao atualizar imagem no banco" }, { status: 500 });
+      return NextResponse.json({ error: "Erro ao salvar referência da imagem" }, { status: 500 });
     }
 
     return NextResponse.json({ imagem_url: imagemUrl });
