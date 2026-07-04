@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir, unlink, rename } from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
@@ -18,13 +18,16 @@ async function requireAdminSistema() {
   return { supabase, error: null };
 }
 
-const VALID_MIME_TYPES = [
-  "image/webp",
-  "image/jpeg",
-  "image/png",
-];
-
+const VALID_MIME_TYPES = ["image/webp", "image/jpeg", "image/png"];
 const VALID_EXTENSIONS = [".webp", ".jpg", ".jpeg", ".png"];
+
+function getExtFromMime(mime: string): string {
+  switch (mime) {
+    case "image/png": return ".png";
+    case "image/jpeg": return ".jpg";
+    default: return ".webp";
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,24 +61,23 @@ export async function POST(request: NextRequest) {
     const uploadDir = path.join(process.cwd(), "public", "empreendimentos");
     await mkdir(uploadDir, { recursive: true });
 
-    const filePath = path.join(uploadDir, `${empreendimentoId}.webp`);
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // Determinar extensão do arquivo salvo com base no MIME type
+    const saveExt = getExtFromMime(file.type);
+    const filePath = path.join(uploadDir, `${empreendimentoId}${saveExt}`);
 
-    // Tentar converter para WebP com sharp; se falhar, salvar como WebP direto
-    try {
-      const sharp = (await import("sharp")).default;
-      const webpBuffer = await sharp(buffer)
-        .resize(1200, 800, { fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 85 })
-        .toBuffer();
-      await writeFile(filePath, webpBuffer);
-    } catch (sharpErr) {
-      console.error("Sharp falhou, salvando buffer original como WebP:", sharpErr);
-      await writeFile(filePath, buffer);
+    // Salvar arquivo diretamente (sem conversão sharp)
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(filePath, buffer);
+
+    // Se existia um arquivo com extensão diferente, remover
+    for (const oldExt of [".webp", ".jpg", ".png"]) {
+      if (oldExt !== saveExt) {
+        try { await unlink(path.join(uploadDir, `${empreendimentoId}${oldExt}`)); } catch { /* não existe, ok */ }
+      }
     }
 
     // Atualizar URL no banco
-    const imagemUrl = `/empreendimentos/${empreendimentoId}.webp`;
+    const imagemUrl = `/empreendimentos/${empreendimentoId}${saveExt}`;
     const { err } = await supabase
       .from("empreendimentos")
       .update({ imagem_url: imagemUrl })
