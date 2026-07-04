@@ -141,7 +141,7 @@ function SimulatorContent() {
   const semesterVal = parseVal(semesterValueInput);
   const discount = parseFloat(discountPercent) || 0;
   const finalPropertyValue = propertyValue * (1 - discount / 100);
-  const downPaymentValue = downPaymentManual > 0 ? downPaymentManual : finalPropertyValue * 0.1;
+  const downPaymentValue = downPaymentManual > 0 ? downPaymentManual : finalPropertyValue * 0.06;
 
   // INCC helper
   const getInccMonthlyRate = (): number => {
@@ -452,7 +452,7 @@ function SimulatorContent() {
       if (yPos > 180) { doc.addPage(); yPos = 20; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Projecao de Correcao INCC (Estimativa)", margin, yPos);
+      doc.text("Proje\u00e7\u00e3o de Corre\u00e7\u00e3o INCC (Estimativa)", margin, yPos);
       yPos += 10;
       const inccMetricLabel = inccMode === "180m"
         ? "M\u00e9dia dos \u00faltimos 180 meses do INCC"
@@ -523,7 +523,7 @@ function SimulatorContent() {
       doc.text(`P\u00e1gina ${i} de ${totalPages} - Residencial Vitta`, pageWidth / 2, pageHeight - 10, { align: "center" });
     }
 
-    const fileName = `Simulacao_Vitta_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const fileName = `Simula\u00e7\u00e3o_Vitta_${(unitName || "unidade").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
       const blob = doc.output("blob");
       if (navigator.msSaveOrOpenBlob) {
@@ -629,8 +629,8 @@ function SimulatorContent() {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Sinal (R$)</label>
-                  <input type="text" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 10% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Padr\u00e3o: 10% do valor final do im\u00f3vel. Pagamento \u00e0 vista.</p>
+                  <input type="text" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <p className="text-[11px] text-gray-400 mt-1">Padr\u00e3o: 6% do valor final do im\u00f3vel. Pagamento \u00e0 vista.</p>
                 </div>
 
                 <div>
