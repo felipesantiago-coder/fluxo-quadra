@@ -410,9 +410,9 @@ function SimulatorContent() {
         ["Sinal", formatBRL(result.downPaymentValue), `${result.downPaymentPercent.toFixed(2)}%`],
         ["Mensais (Obra)", formatBRL(result.monthlyPaid), `${result.monthlyPaidPercent.toFixed(2)}%`],
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
-        ["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
+        ["Financiamento", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
         ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
-          ["Habite-se (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
+          ["Financiamento (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
         ] : []),
         ["Total", formatBRL(result.finalPropertyValue), "100%"],
       ],
@@ -483,7 +483,7 @@ function SimulatorContent() {
     if (yPos > 200) { doc.addPage(); yPos = 20; }
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Detalhes do Habite-se", margin, yPos);
+    doc.text("Detalhes do Financiamento", margin, yPos);
     yPos += 10;
     autoTable(doc,{
       startY: yPos,
@@ -533,8 +533,8 @@ function SimulatorContent() {
           ["Fonte dos Dados", inccSourceLabel],
           ["Período de Correção", `${constructionMonths} meses`],
           ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
-          ["Habite-se Original", formatBRL(result.habiteseAmount)],
-          ["Habite-se Projetado", formatBRL(result.habiteseCorrected)],
+          ["Financiamento Original", formatBRL(result.habiteseAmount)],
+          ["Financiamento Projetado", formatBRL(result.habiteseCorrected)],
           ["Impacto Estimado", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
         ],
         theme: "grid",
@@ -564,9 +564,9 @@ function SimulatorContent() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60, 60, 60);
     const notes = [
-      "As parcelas não pagas durante as obras serão incluídas ao saldo devedor para o habite-se.",
-      "O saldo devedor deverá ser quitado até o habite-se ou financiado com o banco de preferência após emissão do habite-se.",
-      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
+      "As parcelas não pagas durante as obras serão incluídas ao saldo devedor para o financiamento.",
+      "O saldo devedor deverá ser quitado até o financiamento ou financiado com o banco de preferência após emissão do financiamento.",
+      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
@@ -938,7 +938,7 @@ function SimulatorContent() {
                 <div className="mt-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/25">
                   <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Correção INCC</p>
                   <p className="text-white text-sm font-medium">
-                    Habite-se projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
+                    Financiamento projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
                   </p>
                   <p className="text-amber-200/70 text-xs mt-0.5">
                     +{formatBRL(result.habiteseCorrected - result.habiteseAmount)} ({result.inccAccumulatedPercent.toFixed(2)}% acumulado)
@@ -989,14 +989,14 @@ function SimulatorContent() {
                         <td className="py-3 px-4 text-gray-400 text-xs">{result.semesterInstallments} de {maxSemester} parcelas</td>
                       </tr>
                       <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Habite-se</td>
+                        <td className="py-3 px-4 font-medium">Financiamento</td>
                         <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.habiteseAmount)}</td>
                         <td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td>
                         <td className="py-3 px-4 text-gray-400 text-xs">Saldo mensais + semestrais + final</td>
                       </tr>
                       {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                         <tr className="border-b border-gray-100 bg-amber-50">
-                          <td className="py-3 px-4 font-medium text-amber-900">Habite-se (projeção INCC)*</td>
+                          <td className="py-3 px-4 font-medium text-amber-900">Financiamento (projeção INCC)*</td>
                           <td className="py-3 px-4 text-right font-semibold text-amber-900">{formatBRL(result.habiteseCorrected)}</td>
                           <td className="py-3 px-4 text-right text-amber-700">{result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00"}%</td>
                           <td className="py-3 px-4 text-amber-600 text-xs">INCC +{result.inccAccumulatedPercent.toFixed(2)}% ({inccMonthlyRate.toFixed(3)}% a.m.)</td>
@@ -1014,7 +1014,7 @@ function SimulatorContent() {
 
                 {/* Info note */}
                 <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-gray-600">
-                  <strong className="text-gray-800">Observação:</strong> O valor do Habite-se inclui:
+                  <strong className="text-gray-800">Observação:</strong> O valor do Financiamento inclui:
                   <ul className="mt-2 space-y-1 list-disc list-inside text-gray-500">
                     <li>Parcelas mensais restantes</li>
                     <li>Parcelas semestrais restantes</li>
@@ -1037,7 +1037,7 @@ function SimulatorContent() {
                               : "text-gray-400 hover:text-gray-600"
                           }`}
                         >
-                          {tab === "habitese" ? "Habite-se" : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : "Semestrais"}
+                          {tab === "habitese" ? "Financiamento" : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : "Semestrais"}
                         </button>
                       ))}
                     </div>
@@ -1120,11 +1120,11 @@ function SimulatorContent() {
                           {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                               <p className="font-bold text-amber-900 text-lg">{formatBRL(result.habiteseCorrected)}</p>
-                              <p className="text-sm text-amber-700 mt-1">Habite-se projetado pelo INCC* (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
+                              <p className="text-sm text-amber-700 mt-1">Financiamento projetado pelo INCC* (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
                             </div>
                           )}
                           <div>
-                            <h5 className="font-semibold text-gray-900 text-sm mb-3">Composição do Habite-se:</h5>
+                            <h5 className="font-semibold text-gray-900 text-sm mb-3">Composição do Financiamento:</h5>
                             <div className="space-y-2">
                               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                                 <span className="text-sm text-gray-600">Parcelas mensais restantes</span>
@@ -1174,8 +1174,8 @@ function SimulatorContent() {
                     <li>As parcelas mensais começam no mês seguinte ao sinal</li>
                     <li>A primeira parcela semestral é 6 meses após o sinal</li>
                     <li>O número de parcelas pagas durante as obras depende da data do sinal e da entrega prevista para novembro de {DELIVERY_YEAR}</li>
-                    <li>As parcelas não pagas durante as obras serão incluídas no habite-se</li>
-                    <li>O habite-se pode ser quitado ou financiado com o banco de preferência</li>
+                    <li>As parcelas não pagas durante as obras serão incluídas no financiamento</li>
+                    <li>O financiamento pode ser quitado ou financiado com o banco de preferência</li>
                     <li><strong>Importante:</strong> Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC</li>
                     <li><strong>Captação mínima:</strong> A captação durante as obras deve ser de no mínimo 25% do valor do imóvel</li>
                   </ul>

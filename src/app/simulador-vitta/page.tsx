@@ -144,10 +144,11 @@ function SimulatorContent() {
   const downPaymentManual = parseVal(downPaymentInput);
   const monthlyVal = parseVal(monthlyValueInput);
   const semesterVal = parseVal(semesterValueInput);
-  const unicaVal = parseVal(unicaValueInput);
+  const unicaManual = parseVal(unicaValueInput);
   const discount = parseFloat(discountPercent) || 0;
   const finalPropertyValue = propertyValue * (1 - discount / 100);
   const downPaymentValue = downPaymentManual > 0 ? downPaymentManual : finalPropertyValue * 0.06;
+  const unicaValue = unicaManual > 0 ? unicaManual : finalPropertyValue * 0.05;
 
   // INCC helper
   const getInccMonthlyRate = (): number => {
@@ -169,7 +170,7 @@ function SimulatorContent() {
     let totalMonthsUntilDelivery = monthsBetween(dpDate, deliveryDate) - 1;
     totalMonthsUntilDelivery = Math.max(0, totalMonthsUntilDelivery);
 
-    // Quantas parcelas cabem durante a obra vs ficam para o habite-se
+    // Quantas parcelas cabem durante a obra vs ficam para o financiamento
     const paidMonthlyCount = Math.min(MAX_MONTHLY_INSTALLMENTS, totalMonthsUntilDelivery);
     const remainingMonthlyCount = Math.max(0, MAX_MONTHLY_INSTALLMENTS - paidMonthlyCount);
     const paidSemesterCount = Math.min(MAX_SEMESTER_INSTALLMENTS, Math.floor(totalMonthsUntilDelivery / 6));
@@ -192,11 +193,11 @@ function SimulatorContent() {
     const unicaMonth = totalMonthsUntilDelivery; // já é o mês anterior (totalMonthsUntilDelivery = monthsBetween - 1)
     const unicaDate = totalMonthsUntilDelivery > 0 ? addMonthsToDate(dpDate, unicaMonth) : dpDate;
     const inccFactorUnica = inccMonthlyRate > 0 && unicaMonth > 0 ? Math.pow(1 + inccMonthlyRate / 100, unicaMonth) : 1;
-    if (unicaVal > 0) {
+    if (unicaValue > 0) {
       unicaScheduleRows.push({
         parcela: "1/1",
         data: formatDateBR(unicaDate),
-        valor: formatBRL(unicaVal * inccFactorUnica),
+        valor: formatBRL(unicaValue * inccFactorUnica),
       });
     }
     const semesterPaymentMonths = new Set<number>();
@@ -231,7 +232,7 @@ function SimulatorContent() {
     const remainingMonthlyValue = remainingMonthlyCount * monthlyVal;
     const remainingSemesterValue = remainingSemesterCount * semesterVal;
 
-    const totalCaptation = downPaymentValue + monthlyPaidDuringConstruction + semesterPaidDuringConstruction + unicaVal;
+    const totalCaptation = downPaymentValue + monthlyPaidDuringConstruction + semesterPaidDuringConstruction + unicaValue;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
 
     // Habite-se = saldo devedor pós-obra
@@ -240,7 +241,7 @@ function SimulatorContent() {
     // ── Fase 2: Aplicar correção INCC aos saldos remanescentes ──
     // O habite-se é composto por: parcelas mensais remanescentes + semestrais remanescentes + saldo residual
     const saldoResidual = habitese - remainingMonthlyValue - remainingSemesterValue;
-    // Nota: a parcela única é durante a obra, então NÃO entra no habite-se
+    // Nota: a parcela única é durante a obra, então NÃO entra no financiamento
     const monthlyRemainingCorrected = remainingMonthlyValue * inccCorrectionFactor;
     const semesterRemainingCorrected = remainingSemesterValue * inccCorrectionFactor;
     const habiteseBalanceCorrected = Math.max(0, saldoResidual) * inccCorrectionFactor;
@@ -266,8 +267,8 @@ function SimulatorContent() {
       habiteseAmount: habitese,
       habitesePercent: finalPropertyValue > 0 ? (habitese / finalPropertyValue) * 100 : 0,
       captationPercent: captPct,
-      unicaValue: unicaVal,
-      unicaPercent: finalPropertyValue > 0 ? (unicaVal / finalPropertyValue) * 100 : 0,
+      unicaValue: unicaValue,
+      unicaPercent: finalPropertyValue > 0 ? (unicaValue / finalPropertyValue) * 100 : 0,
       unicaDate: formatDateBR(unicaDate),
       sinalRows,
       monthlyRows,
@@ -283,7 +284,7 @@ function SimulatorContent() {
       semesterRemainingCorrected,
       habiteseBalanceCorrected,
     };
-  }, [propertyValue, discount, downPaymentValue, downPaymentDate, monthlyVal, semesterVal, unicaVal, finalPropertyValue, inccMonthlyRate, inccMode]);
+  }, [propertyValue, discount, downPaymentValue, downPaymentDate, monthlyVal, semesterVal, unicaValue, finalPropertyValue, inccMonthlyRate, inccMode]);
 
   useEffect(() => { setShowResults(propertyValue > 0); }, [propertyValue]);
   useEffect(() => { if (propertyValue > 0) setShowResults(true); }, [result]);
@@ -394,16 +395,16 @@ function SimulatorContent() {
     }
 
     if (result.remainingMonthlyCount > 0) {
-      summaryBody.push([`Mensais (pós habite-se)`, formatBRL(result.remainingMonthlyValue), "—", `${result.remainingMonthlyCount} parcelas remanescentes`]);
+      summaryBody.push([`Mensais (pós financiamento)`, formatBRL(result.remainingMonthlyValue), "—", `${result.remainingMonthlyCount} parcelas remanescentes`]);
     }
     if (result.remainingSemesterCount > 0) {
-      summaryBody.push([`Semestrais (pós habite-se)`, formatBRL(result.remainingSemesterValue), "—", `${result.remainingSemesterCount} parcelas remanescentes`]);
+      summaryBody.push([`Semestrais (pós financiamento)`, formatBRL(result.remainingSemesterValue), "—", `${result.remainingSemesterCount} parcelas remanescentes`]);
     }
 
-    summaryBody.push(["Habite-se", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`, "Saldo devedor pós-obra"]);
+    summaryBody.push(["Financiamento", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`, "Saldo devedor pós-obra"]);
 
     if (inccMode !== "none" && result.inccAccumulatedPercent > 0) {
-      summaryBody.push(["Habite-se (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`, "Valor projetado com correção"]);
+      summaryBody.push(["Financiamento (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`, "Valor projetado com correção"]);
     }
 
     summaryBody.push(["Total", formatBRL(result.finalPropertyValue), "100%", ""]);
@@ -459,10 +460,10 @@ function SimulatorContent() {
     // Habite-se details
     if (yPos > 200) { doc.addPage(); yPos = 20; }
     doc.setFontSize(14); doc.setFont("helvetica", "bold");
-    doc.text("Detalhes do Habite-se", margin, yPos); yPos += 10;
+    doc.text("Detalhes do Financiamento", margin, yPos); yPos += 10;
 
     const habiteBody: (string | number)[][] = [
-      ["Saldo Devedor Total (Habite-se)", formatBRL(result.habiteseAmount)],
+      ["Saldo Devedor Total (Financiamento)", formatBRL(result.habiteseAmount)],
     ];
     if (result.remainingMonthlyCount > 0) {
       habiteBody.push([`  Parcelas mensais remanescentes (${result.remainingMonthlyCount}x)`, formatBRL(result.remainingMonthlyValue)]);
@@ -511,8 +512,8 @@ function SimulatorContent() {
           ["Fonte dos Dados", inccSourceLabel],
           ["Período de Correção", `${result.totalMonthsUntilDelivery} meses`],
           ["Correção Acumulada", `${result.inccAccumulatedPercent.toFixed(2)}%`],
-          ["Habite-se Original", formatBRL(result.habiteseAmount)],
-          ["Habite-se Projetado", formatBRL(result.habiteseCorrected)],
+          ["Financiamento Original", formatBRL(result.habiteseAmount)],
+          ["Financiamento Projetado", formatBRL(result.habiteseCorrected)],
           ["Impacto Estimado", formatBRL(result.habiteseCorrected - result.habiteseAmount)],
         ],
         theme: "grid",
@@ -542,9 +543,9 @@ function SimulatorContent() {
       "A parcela única é paga no mês anterior ao mês de entrega."
     , "A primeira parcela semestral é 6 meses após o sinal.",
       `A construtora permite dividir as mensais em até ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em até ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
-      "As parcelas que não couberem até o mês anterior ao mês de entrega são integradas ao saldo devedor pós habite-se.",
-      "O saldo devedor no habite-se pode ser quitado ou financiado com o banco de preferência.",
-      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o habite-se.",
+      "As parcelas que não couberem até o mês anterior ao mês de entrega são integradas ao saldo devedor pós financiamento.",
+      "O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência.",
+      "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
       `Captação mínima: A captação durante as obras deve ser de no mínimo ${MIN_CAPTATION_PCT}% do valor do imóvel.`,
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
@@ -686,7 +687,7 @@ function SimulatorContent() {
                         <span className="font-medium">Total mensal: {formatBRL(monthlyVal * MAX_MONTHLY_INSTALLMENTS)} ({MAX_MONTHLY_INSTALLMENTS}x)</span>
                       </div>
                       <p className="text-[11px] text-amber-600">
-                        {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} para o habite-se
+                        {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} para o financiamento
                       </p>
                     </div>
                   )}
@@ -701,7 +702,7 @@ function SimulatorContent() {
                         <span className="font-medium">Total semestral: {formatBRL(semesterVal * MAX_SEMESTER_INSTALLMENTS)} ({MAX_SEMESTER_INSTALLMENTS}x)</span>
                       </div>
                       <p className="text-[11px] text-amber-600">
-                        {result.paidSemesterCount} parcelas durante a obra + {result.remainingSemesterCount} para o habite-se
+                        {result.paidSemesterCount} parcelas durante a obra + {result.remainingSemesterCount} para o financiamento
                       </p>
                     </div>
                   )}
@@ -709,8 +710,8 @@ function SimulatorContent() {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor da Parcela Única (R$)</label>
-                  <input type="text" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Opcional — mês anterior à entrega" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Parcela única paga no mês anterior ao mês de entrega. Compõe a captação da obra.</p>
+                  <input type="text" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês anterior ao mês de entrega. Compõe a captação da obra.</p>
                 </div>
 
                 {/* INCC Correction */}
@@ -788,7 +789,7 @@ function SimulatorContent() {
                 <div className="mt-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/25">
                   <p className="text-amber-200 text-xs font-semibold uppercase tracking-wider mb-1">Correção INCC</p>
                   <p className="text-white text-sm font-medium">
-                    Habite-se projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
+                    Financiamento projetado: <span className="font-bold text-amber-200">{formatBRL(result.habiteseCorrected)}</span>
                   </p>
                   <p className="text-amber-200/70 text-xs mt-0.5">
                     +{formatBRL(result.habiteseCorrected - result.habiteseAmount)} ({result.inccAccumulatedPercent.toFixed(2)}% acumulado)
@@ -830,17 +831,17 @@ function SimulatorContent() {
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Mensais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidMonthlyCount}x de {MAX_MONTHLY_INSTALLMENTS}</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Semestrais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidSemesterCount}x de {MAX_SEMESTER_INSTALLMENTS}</td></tr>
                       {result.remainingMonthlyCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Mensais (pós habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingMonthlyValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingMonthlyCount} parcelas remanescentes</td></tr>
+                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Mensais (pós financiamento)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingMonthlyValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingMonthlyCount} parcelas remanescentes</td></tr>
                       )}
                       {result.remainingSemesterCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (pós habite-se)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
+                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (pós financiamento)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
                       )}
                       {result.unicaValue > 0 && (
                         <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium text-blue-700">Única</td><td className="py-3 px-4 text-right font-semibold text-blue-700">{formatBRL(result.unicaValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.unicaPercent.toFixed(2)}%</td><td className="py-3 px-4 text-blue-600 text-xs">1 parcela em {result.unicaDate}</td></tr>
                       )}
-                      <tr className="border-b border-gray-100 bg-gray-50"><td className="py-3 px-4 font-bold">Habite-se</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor pós-obra</td></tr>
+                      <tr className="border-b border-gray-100 bg-gray-50"><td className="py-3 px-4 font-bold">Financiamento</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor pós-obra</td></tr>
                       {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-orange-50"><td className="py-3 px-4 font-bold text-orange-700">Habite-se (INCC)</td><td className="py-3 px-4 text-right font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</td><td className="py-3 px-4 text-right text-gray-500">{((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%</td><td className="py-3 px-4 text-orange-600 text-xs">Projeção com correção</td></tr>
+                        <tr className="border-b border-gray-100 bg-orange-50"><td className="py-3 px-4 font-bold text-orange-700">Financiamento (INCC)</td><td className="py-3 px-4 text-right font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</td><td className="py-3 px-4 text-right text-gray-500">{((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%</td><td className="py-3 px-4 text-orange-600 text-xs">Projeção com correção</td></tr>
                       )}
                       <tr className="bg-gray-900 text-white"><td className="py-3 px-4 rounded-bl-lg font-bold">Total</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.finalPropertyValue)}</td><td className="py-3 px-4 text-right font-bold">100%</td><td className="py-3 px-4 rounded-br-lg text-white/60 text-xs"></td></tr>
                     </tbody>
@@ -856,7 +857,7 @@ function SimulatorContent() {
                         { key: "mensal", label: `Mensais (${result.monthlyRows.length})` },
                         { key: "semestral", label: `Semestrais (${result.semesterRows.length})` },
                         { key: "unica", label: `Única${result.unicaScheduleRows.length > 0 ? ` (${result.unicaScheduleRows.length})` : ""}` },
-                        { key: "habitese", label: "Habite-se" },
+                        { key: "habitese", label: "Financiamento" },
                       ].map((tab) => (
                         <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)}
                           className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.key ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
@@ -909,7 +910,7 @@ function SimulatorContent() {
                       {activeTab === "habitese" && (
                         <div className="space-y-3">
                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                            <h4 className="font-semibold text-gray-900 mb-3">Composição do Habite-se</h4>
+                            <h4 className="font-semibold text-gray-900 mb-3">Composição do Financiamento</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
                               {result.remainingMonthlyCount > 0 && (
@@ -930,7 +931,7 @@ function SimulatorContent() {
                           {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                             <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
                               <h4 className="font-semibold text-orange-700 mb-2">Projeção INCC</h4>
-                              <div className="flex justify-between text-sm"><span className="text-gray-600">Habite-se projetado</span><span className="font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</span></div>
+                              <div className="flex justify-between text-sm"><span className="text-gray-600">Financiamento projetado</span><span className="font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</span></div>
                               <div className="flex justify-between text-sm mt-1"><span className="text-gray-500">Impacto estimado</span><span className="font-medium text-orange-600">+{formatBRL(result.habiteseCorrected - result.habiteseAmount)}</span></div>
                               <p className="text-[10px] text-orange-500 mt-2">* Valores estimados. O INCC é variável e não pode ser previsto com certeza.</p>
                             </div>
