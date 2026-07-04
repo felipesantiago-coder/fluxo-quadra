@@ -540,8 +540,8 @@ function SimulatorContent() {
     const notes = [
       "O sinal é pago à vista.",
       "As parcelas mensais começam no mês seguinte ao sinal.",
-      "A parcela única é paga no mês de entrega do empreendimento."
-    , "A primeira parcela semestral é 6 meses após o sinal.",
+      "A parcela única é paga no mês de entrega do empreendimento.",
+      "A primeira parcela semestral é 6 meses após o sinal.",
       `A construtora permite dividir as mensais em até ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em até ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
       "As parcelas que não couberem até o mês de entrega são integradas ao saldo devedor pós financiamento.",
       "O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência.",
