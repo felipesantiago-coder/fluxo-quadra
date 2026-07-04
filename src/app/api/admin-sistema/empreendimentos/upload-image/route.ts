@@ -65,30 +65,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Imagem muito grande. Máximo 10MB." }, { status: 400 });
     }
 
-    // Garantir que o bucket existe
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some((b) => b.name === BUCKET_NAME);
-    if (!bucketExists) {
-      const { error: bucketErr } = await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
-        fileSizeLimit: MAX_SIZE,
-      });
-      if (bucketErr && !bucketErr.message.includes("already exists")) {
-        console.error("Erro ao criar bucket:", bucketErr.message);
-        return NextResponse.json({ error: "Erro ao configurar storage" }, { status: 500 });
-      }
-    }
-
-    // Determinar nome do arquivo e remover versão anterior
+    // Determinar nome do arquivo
     const saveExt = getExtFromMime(file.type);
     const fileName = `${empreendimentoId}${saveExt}`;
-
-    // Remover arquivos antigos deste empreendimento no storage
-    for (const oldExt of [".jpg", ".png", ".webp"]) {
-      if (oldExt !== saveExt) {
-        await supabase.storage.from(BUCKET_NAME).remove([`${empreendimentoId}${oldExt}`]);
-      }
-    }
 
     // Upload para o Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -100,8 +79,48 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadErr) {
-      console.error("Erro no upload para storage:", uploadErr.message);
-      return NextResponse.json({ error: "Erro ao fazer upload da imagem" }, { status: 500 });
+      const msg = uploadErr.message || "";
+
+      // Se o bucket não existe, tentar criar via insert na tabela
+      if (msg.includes("bucket") || msg.includes("Bucket") || msg.includes("not found")) {
+        try {
+          const { error: bucketErr } = await supabase
+            .from("storage.buckets")
+            .insert({
+              id: BUCKET_NAME,
+              name: BUCKET_NAME,
+              public: true,
+              file_size_limit: MAX_SIZE,
+            });
+
+          // Se criou o bucket, tentar o upload novamente
+          if (!bucketErr || bucketErr.code === "23505") {
+            const retry = await supabase.storage
+              .from(BUCKET_NAME)
+              .upload(fileName, buffer, {
+                contentType: file.type,
+                upsert: true,
+              });
+            if (!retry.error) {
+              const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+              const imagemUrl = urlData.publicUrl;
+              await supabase
+                .from("empreendimentos")
+                .update({ imagem_url: imagemUrl })
+                .eq("id", empreendimentoId);
+              return NextResponse.json({ imagem_url: imagemUrl });
+            }
+          }
+        } catch {
+          // Falha silenciosa, cai no erro abaixo
+        }
+      }
+
+      console.error("Erro no upload:", msg);
+      return NextResponse.json(
+        { error: `Erro ao fazer upload. Verifique se o bucket "${BUCKET_NAME}" existe no Supabase Storage.` },
+        { status: 500 }
+      );
     }
 
     // Obter URL pública
