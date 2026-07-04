@@ -52,6 +52,16 @@ const staticProjects = [
     href: "/moment",
     image: "/moment-preview.webp",
   },
+  {
+    id: "vitta",
+    name: "Residencial Vitta",
+    subtitle: "Espelho de Vendas",
+    description: "297 unidades • 2 blocos • 5 tipologias",
+    location: "Ceilândia, DF",
+    region: "Ceilândia",
+    href: "/vitta",
+    image: null,
+  },
 ];
 
 interface ProjetosClientProps {
