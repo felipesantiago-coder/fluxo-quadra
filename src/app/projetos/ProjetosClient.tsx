@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -20,49 +20,21 @@ interface EmpreendimentoDB {
   unit_count: number;
 }
 
-// Projetos hardcoded existentes (Quattre, Villa Bianco, Moment)
-const staticProjects = [
-  {
-    id: "quattre",
-    name: "Quattre Istambul",
-    subtitle: "Espelho de Vendas",
-    description: "72 unidades • 6 andares • 4 tipologias",
-    location: "Sobradinho, DF",
-    region: "Sobradinho",
-    href: "/espelho",
-    image: "/quattre-istambul-preview.webp",
-  },
-  {
-    id: "villa-bianco",
-    name: "Villa Bianco",
-    subtitle: "Espelho de Vendas",
-    description: "123 unidades • 4 blocos • 8 tipologias",
-    location: "Park Sul, DF",
-    region: "Park Sul",
-    href: "/villa-bianco",
-    image: "/villa-bianco-preview.webp",
-  },
-  {
-    id: "moment",
-    name: "Moment",
-    subtitle: "Espelho de Vendas",
-    description: "72 unidades • 6 andares • 4 tipologias",
-    location: "Noroeste, DF",
-    region: "Noroeste",
-    href: "/moment",
-    image: "/moment-preview.webp",
-  },
-  {
-    id: "vitta",
-    name: "Residencial Vitta",
-    subtitle: "Espelho de Vendas",
-    description: "297 unidades • 2 blocos • 5 tipologias",
-    location: "Ceilândia, DF",
-    region: "Ceilândia",
-    href: "/vitta",
-    image: null,
-  },
-];
+// Mapeamento de slug para rota legada
+// Projetos com rota especial usam a rota mapeada; os demais usam /empreendimento/[id]
+const SLUG_ROUTE_MAP: Record<string, string> = {
+  "quattre-istambul": "/espelho",
+  "villa-bianco": "/villa-bianco",
+  moment: "/moment",
+  "residencial-vitta": "/vitta",
+};
+
+function getProjectHref(emp: EmpreendimentoDB): string {
+  if (SLUG_ROUTE_MAP[emp.slug]) {
+    return SLUG_ROUTE_MAP[emp.slug];
+  }
+  return `/empreendimento/${emp.id}`;
+}
 
 interface ProjetosClientProps {
   userRole: string;
@@ -71,59 +43,39 @@ interface ProjetosClientProps {
 export default function ProjetosClient({ userRole }: ProjetosClientProps) {
   const router = useRouter();
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
-  const [dynamicProjects, setDynamicProjects] = useState<EmpreendimentoDB[]>([]);
+  const [projects, setProjects] = useState<EmpreendimentoDB[]>([]);
 
-  // Buscar empreendimentos dinâmicos do banco
+  // Buscar todos os empreendimentos do banco
   useEffect(() => {
     async function fetchEmpreendimentos() {
       try {
         const res = await fetch("/api/empreendimentos");
         if (res.ok) {
           const data = await res.json();
-          // Filtrar apenas os que NÃO são os projetos hardcoded e que estão ativos
-          const existingSlugs = ["quattre-istambul", "villa-bianco", "moment"];
-          const filtered = (data.empreendimentos || [])
-            .filter((e: EmpreendimentoDB) => !existingSlugs.includes(e.slug) && e.ativo);
-          setDynamicProjects(filtered);
+          setProjects(data.empreendimentos || []);
         }
       } catch {
-        // Silently fail - mostrar apenas projetos estáticos
+        // Silently fail
       }
     }
     fetchEmpreendimentos();
   }, []);
 
-  // Combinar projetos estáticos com dinâmicos
-  const allProjects = useMemo(() => {
-    const dynamic = dynamicProjects.map((e) => ({
-      id: e.id,
-      name: e.nome,
-      subtitle: "Espelho de Vendas",
-      description: e.unit_count > 0 ? `${e.unit_count} unidades` : "Empreendimento",
-      location: e.regiao,
-      region: e.regiao,
-      href: `/empreendimento/${e.id}`,
-      image: e.imagem_url || null,
-    }));
-
-    return [...staticProjects, ...dynamic];
-  }, [dynamicProjects]);
-
   const allRegions = useMemo(
-    () => Array.from(new Set(allProjects.map((p) => p.region))),
-    [allProjects]
+    () => Array.from(new Set(projects.map((p) => p.regiao))),
+    [projects]
   );
 
   const filteredProjects = useMemo(() => {
-    if (filterRegion === "all") return allProjects;
-    return allProjects.filter((p) => p.region === filterRegion);
-  }, [allProjects, filterRegion]);
+    if (filterRegion === "all") return projects;
+    return projects.filter((p) => p.regiao === filterRegion);
+  }, [projects, filterRegion]);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     await createClient().auth.signOut();
     router.push("/");
     router.refresh();
-  }, [router]);
+  };
 
   const isAdminSistema = userRole === "admin_sistema";
 
@@ -190,40 +142,42 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
           </div>
 
           {/* Region filter */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            className="mb-8"
-          >
-            <div className="flex items-center gap-2 flex-wrap justify-center">
-              <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Região:</span>
-              <button
-                onClick={() => setFilterRegion("all")}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
-                  filterRegion === "all"
-                    ? "bg-gray-900 text-white border-gray-900 shadow-md"
-                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                }`}
-              >
-                Todas
-              </button>
-              {allRegions.map((region) => (
+          {allRegions.length > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+              className="mb-8"
+            >
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-1">Região:</span>
                 <button
-                  key={region}
-                  onClick={() => setFilterRegion(region)}
+                  onClick={() => setFilterRegion("all")}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
-                    filterRegion === region
+                    filterRegion === "all"
                       ? "bg-gray-900 text-white border-gray-900 shadow-md"
                       : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
                   }`}
                 >
-                  {region}
+                  Todas
                 </button>
-              ))}
-            </div>
-          </motion.div>
+                {allRegions.map((region) => (
+                  <button
+                    key={region}
+                    onClick={() => setFilterRegion(region)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border ${
+                      filterRegion === region
+                        ? "bg-gray-900 text-white border-gray-900 shadow-md"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                    }`}
+                  >
+                    {region}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Results count */}
           <div className="mb-4">
@@ -235,73 +189,79 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
           {/* Project cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <AnimatePresence mode="popLayout">
-              {filteredProjects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  layout
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  transition={{ duration: 0.35, delay: 0.05 * index }}
-                >
-                  <a
-                    href={project.href}
-                    className="group block bg-white rounded-2xl shadow-md hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+              {filteredProjects.map((project, index) => {
+                const href = getProjectHref(project);
+                const description = project.descricao
+                  || (project.unit_count > 0 ? `${project.unit_count} unidades` : "Empreendimento");
+
+                return (
+                  <motion.div
+                    key={project.id}
+                    layout
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.35, delay: 0.05 * index }}
                   >
-                    {/* Preview image */}
-                    <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
-                      {project.image ? (
-                        <Image
-                          src={project.image}
-                          alt={`Preview ${project.name}`}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          priority={index < 2}
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-                          <Building2 className="w-12 h-12 text-gray-400" />
+                    <a
+                      href={href}
+                      className="group block bg-white rounded-2xl shadow-md hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                    >
+                      {/* Preview image */}
+                      <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
+                        {project.imagem_url ? (
+                          <Image
+                            src={project.imagem_url}
+                            alt={`Preview ${project.nome}`}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            priority={index < 2}
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                            <Building2 className="w-12 h-12 text-gray-400" />
+                          </div>
+                        )}
+                        {/* Overlay gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                        {/* Project badge on image */}
+                        <div className="absolute bottom-3 left-3">
+                          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
+                            Espelho de Vendas
+                          </span>
                         </div>
-                      )}
-                      {/* Overlay gradient */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-                      {/* Project badge on image */}
-                      <div className="absolute bottom-3 left-3">
-                        <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
-                          {project.subtitle}
-                        </span>
+                        {/* Region badge on image */}
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-black/40 text-white backdrop-blur-sm">
+                            <MapPin className="w-3 h-3" />
+                            {project.regiao}
+                          </span>
+                        </div>
                       </div>
-                      {/* Region badge on image */}
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-black/40 text-white backdrop-blur-sm">
-                          <MapPin className="w-3 h-3" />
-                          {project.region}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Card content */}
-                    <div className="p-5 sm:p-6">
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors">
-                        {project.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1.5">{project.location}</p>
-                      <p className="text-sm text-gray-400 mt-1">{project.description}</p>
+                      {/* Card content */}
+                      <div className="p-5 sm:p-6">
+                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors">
+                          {project.nome}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1.5">{project.regiao}</p>
+                        <p className="text-sm text-gray-400 mt-1">{description}</p>
 
-                      {/* Access button */}
-                      <div className="mt-4 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
-                          Acessar espelho
-                        </span>
-                        <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-gray-900 transition-all duration-300">
-                          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-                        </span>
+                        {/* Access button */}
+                        <div className="mt-4 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
+                            Acessar espelho
+                          </span>
+                          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-gray-900 transition-all duration-300">
+                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  </a>
-                </motion.div>
-              ))}
+                    </a>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
 

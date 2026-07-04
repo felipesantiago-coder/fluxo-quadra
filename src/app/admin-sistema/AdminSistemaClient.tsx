@@ -61,6 +61,7 @@ export default function AdminSistemaClient() {
   // Upload states keyed by empreendimento id
   const [uploadingImage, setUploadingImage] = useState<Record<string, boolean>>({});
   const [uploadingExcel, setUploadingExcel] = useState<Record<string, boolean>>({});
+  const [migrating, setMigrating] = useState(false);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -69,6 +70,18 @@ export default function AdminSistemaClient() {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
+  }, []);
+
+  // ─── Auto-migrate legacy projects ────────────────────────────────────────
+  const migrateLegacy = useCallback(async () => {
+    try {
+      setMigrating(true);
+      await fetch("/api/admin-sistema/migrate-legacy", { method: "POST" });
+    } catch {
+      // Silently fail — os projetos podem já estar migrados
+    } finally {
+      setMigrating(false);
+    }
   }, []);
 
   // ─── Fetch empreendimentos ─────────────────────────────────────────────────
@@ -88,8 +101,9 @@ export default function AdminSistemaClient() {
   }, [addToast]);
 
   useEffect(() => {
-    fetchEmpreendimentos();
-  }, [fetchEmpreendimentos]);
+    // Primeiro migra os projetos legacy, depois busca todos
+    migrateLegacy().then(() => fetchEmpreendimentos());
+  }, [migrateLegacy, fetchEmpreendimentos]);
 
   // ─── Create empreendimento ─────────────────────────────────────────────────
   const handleCreate = async () => {
@@ -152,7 +166,7 @@ export default function AdminSistemaClient() {
   const handleImageUpload = async (empId: string) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ".webp";
+    input.accept = ".jpg,.jpeg,.png,.webp";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;

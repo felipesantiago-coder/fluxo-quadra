@@ -65,3 +65,21 @@ Stage Summary:
 - Resultado da projeção: 0.688% a.m. (IGP-M 4.19% a.a. × fator 2.01x)
 - Arquivos alterados: src/app/api/incc/route.ts, simulador-moment/page.tsx, simulador/page.tsx, simulador-villa-bianco/page.tsx
 - Build compilou sem erros
+---
+Task ID: 1
+Agent: main
+Task: Habilitar upload de imagem de preview para TODOS os empreendimentos (incluindo legacy)
+
+Work Log:
+- Analisou a estrutura atual: 4 projetos hardcoded no ProjetosClient.tsx sem gestão de imagem via admin
+- Criou API /api/admin-sistema/migrate-legacy para migrar projetos hardcoded (Quattre, Villa Bianco, Moment, Vitta) para o banco
+- Atualizou upload-image/route.ts para aceitar JPG, PNG e WebP (com conversão para WebP via sharp, resize 1200x800, qualidade 85)
+- Reescreveu ProjetosClient.tsx: removeu staticProjects, agora busca tudo do banco, usa SLUG_ROUTE_MAP para rotas legadas
+- Atualizou AdminSistemaClient.tsx com auto-migração ao abrir a página e aceita .jpg/.jpeg/.png/.webp no upload
+
+Stage Summary:
+- Todos os empreendimentos agora ficam no banco de dados e podem ter imagens gerenciadas pelo admin
+- Upload aceita formatos comuns (JPG, PNG, WebP) e converte para WebP otimizado
+- Rota /projetos busca 100% do banco (sem hardcoded)
+- Rotas legadas (/espelho, /villa-bianco, /moment, /vitta) mantidas via mapeamento de slug
+- Build passou sem erros
