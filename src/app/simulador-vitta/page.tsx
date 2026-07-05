@@ -189,8 +189,8 @@ function SimulatorContent() {
     const semesterRows: InstallmentRow[] = [];
     const unicaScheduleRows: InstallmentRow[] = [];
 
-    // Parcela única: mês anterior ao mês de entrega
-    const unicaMonth = totalMonthsUntilDelivery; // já é o mês anterior (totalMonthsUntilDelivery = monthsBetween - 1)
+    // Parcela única: mês de entrega
+    const unicaMonth = totalMonthsUntilDelivery + 1;
     const unicaDate = totalMonthsUntilDelivery > 0 ? addMonthsToDate(dpDate, unicaMonth) : dpDate;
     const inccFactorUnica = inccMonthlyRate > 0 && unicaMonth > 0 ? Math.pow(1 + inccMonthlyRate / 100, unicaMonth) : 1;
     if (unicaValue > 0) {
@@ -391,7 +391,7 @@ function SimulatorContent() {
     ];
 
     if (result.unicaValue > 0) {
-      summaryBody.push(["Única (mês anterior à entrega)", formatBRL(result.unicaValue), `${result.unicaPercent.toFixed(2)}%`, `1 parcela em ${result.unicaDate}`]);
+      summaryBody.push(["Única (mês de entrega)", formatBRL(result.unicaValue), `${result.unicaPercent.toFixed(2)}%`, `1 parcela em ${result.unicaDate}`]);
     }
 
     if (result.remainingMonthlyCount > 0) {
@@ -540,10 +540,10 @@ function SimulatorContent() {
     const notes = [
       "O sinal é pago à vista.",
       "As parcelas mensais começam no mês seguinte ao sinal.",
-      "A parcela única é paga no mês anterior ao mês de entrega."
+      "A parcela única é paga no mês de entrega do empreendimento."
     , "A primeira parcela semestral é 6 meses após o sinal.",
       `A construtora permite dividir as mensais em até ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em até ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
-      "As parcelas que não couberem até o mês anterior ao mês de entrega são integradas ao saldo devedor pós financiamento.",
+      "As parcelas que não couberem até o mês de entrega são integradas ao saldo devedor pós financiamento.",
       "O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
       `Captação mínima: A captação durante as obras deve ser de no mínimo ${MIN_CAPTATION_PCT}% do valor do imóvel.`,
@@ -711,7 +711,7 @@ function SimulatorContent() {
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor da Parcela Única (R$)</label>
                   <input type="text" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês anterior ao mês de entrega. Compõe a captação da obra.</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês de entrega. Compõe a captação da obra.</p>
                 </div>
 
                 {/* INCC Correction */}
@@ -768,6 +768,16 @@ function SimulatorContent() {
                 <button onClick={clearAll} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all">
                   <Trash2 className="w-4 h-4" /> Limpar Todos os Campos
                 </button>
+
+                {showResults && (
+                  <button
+                    onClick={generatePDF}
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-lg"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Gerar PDF da Simulação
+                  </button>
+                )}
               </div>
             </div>
 
@@ -803,17 +813,10 @@ function SimulatorContent() {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-white">
+                <div className="flex items-center gap-2 text-white">
                     <Calculator className="w-5 h-5" />
                     <h3 className="font-semibold">Detalhamento do Fluxo de Pagamento</h3>
                   </div>
-                  {showResults && propertyValue > 0 && (
-                    <button onClick={generatePDF} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors">
-                      <FileDown className="w-3.5 h-3.5" /> PDF
-                    </button>
-                  )}
-                </div>
               </div>
               <div className="p-6">
                 <div className="overflow-x-auto">
@@ -901,7 +904,7 @@ function SimulatorContent() {
                           </table>
                           <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-blue-500 text-blue-700 text-xs">
                             <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <span>Paga no mês anterior ao mês de entrega (março de 2029). Este valor compõe o percentual de captação durante as obras.</span>
+                            <span>Paga no mês de entrega do empreendimento. Este valor compõe o percentual de captação durante as obras.</span>
                           </div>
                         </div>
                       )}
