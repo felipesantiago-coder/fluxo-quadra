@@ -51,7 +51,7 @@ const rawData: Omit<VittaUnit, "valorStr" | "valorFormatado">[] = [
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 1, area: 41.23, areaStr: "41,23 m²", valorVenda: 426043.0, status: "disponivel", tipo: "Loja" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 2, area: 40.5, areaStr: "40,50 m²", valorVenda: 418500.0, status: "disponivel", tipo: "Loja" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 3, area: 40.27, areaStr: "40,27 m²", valorVenda: 416123.0, status: "disponivel", tipo: "Loja" },
-  { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 4, area: 39.84, areaStr: "39,84 m²", valorVenda: 411680.0, status: "disponivel", tipo: "1 quarto" },
+  { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 4, area: 39.84, areaStr: "39,84 m²", valorVenda: 411680.0, status: "disponivel", tipo: "Loja" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 5, area: 40.37, areaStr: "40,37 m²", valorVenda: 417157.0, status: "disponivel", tipo: "Loja" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 6, area: 41.26, areaStr: "41,26 m²", valorVenda: 426353.0, status: "vendido", tipo: "Loja" },
   { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 1, area: 105.67, areaStr: "105,67 m²", valorVenda: 542446.0, status: "vendido", tipo: "2 quartos (garden)" },
