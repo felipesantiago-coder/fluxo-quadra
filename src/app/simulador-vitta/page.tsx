@@ -15,7 +15,7 @@ import {
 
 // ─── Constants ───
 const DELIVERY_YEAR = 2029;
-const DELIVERY_MONTH = 3; // April (0-indexed: 0=Jan, 3=Apr)
+const DELIVERY_MONTH = 7; // August (0-indexed: 0=Jan, 7=Aug)
 const MAX_MONTHLY_INSTALLMENTS = 60;
 const MAX_SEMESTER_INSTALLMENTS = 5;
 const MIN_CAPTATION_PCT = 25;
@@ -367,7 +367,7 @@ function SimulatorContent() {
         ["Área", initialArea || "—"],
         ["Valor do Imóvel", formatBRL(propertyValue)],
         ["Valor com Desconto", formatBRL(result.finalPropertyValue)],
-        ["Entrega Prevista", "Abril de 2029"],
+        ["Entrega Prevista", "Agosto de 2029"],
         ["Máx. Mensais Contratadas", `${MAX_MONTHLY_INSTALLMENTS} parcelas`],
         ["Máx. Semestrais Contratadas", `${MAX_SEMESTER_INSTALLMENTS} parcelas`],
       ],
@@ -649,7 +649,7 @@ function SimulatorContent() {
 
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span><strong>Entrega Prevista:</strong> Abril de 2029</span>
+                  <span><strong>Entrega Prevista:</strong> Agosto de 2029</span>
                 </div>
 
                 <div>

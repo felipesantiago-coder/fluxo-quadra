@@ -1,6 +1,6 @@
 // Residencial Vitta - Dados estáticos das unidades
 // Gerado a partir do CSV: Residencial Vitta.csv
-// Ceilândia - DF | Entrega: Abril 2029
+// Ceilândia - DF | Entrega: Agosto 2029
 
 export interface VittaUnit {
   bloco: "A" | "B";
