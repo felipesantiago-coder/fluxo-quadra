@@ -17,13 +17,13 @@ export interface VittaUnit {
 }
 
 export const vittaBlocos = ["A", "B"] as const;
-export const vittaTipos = ["1 quarto", "2 quartos", "2 quartos (suíte e varanda)", "Garden", "Loja"] as const;
+export const vittaTipos = ["1 quarto", "2 quartos", "2 quartos (suíte e varanda)", "2 quartos (garden)", "Loja"] as const;
 
-export const vittaAndares: string[] = ["Lojas", "Área Especial", "Térreo", "2º Andar", "3º Andar", "4º Andar", "5º Andar", "6º Andar", "7º Andar", "8º Andar", "9º Andar", "10º Andar", "11º Andar", "12º Andar", "13º Andar"];
+export const vittaAndares: string[] = ["Lojas", "1º andar", "Térreo", "2º Andar", "3º Andar", "4º Andar", "5º Andar", "6º Andar", "7º Andar", "8º Andar", "9º Andar", "10º Andar", "11º Andar", "12º Andar", "13º Andar"];
 
 export const vittaAndarLabels: Record<string, string> = {
   "Lojas": "Lojas",
-  "Área Especial": "Área Especial",
+  "1º andar": "1º andar",
   "Térreo": "Térreo",
   "2º Andar": "2º Andar",
   "3º Andar": "3º Andar",
@@ -54,11 +54,11 @@ const rawData: Omit<VittaUnit, "valorStr" | "valorFormatado">[] = [
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 4, area: 39.84, areaStr: "39,84 m²", valorVenda: 411680.0, status: "disponivel", tipo: "1 quarto" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 5, area: 40.37, areaStr: "40,37 m²", valorVenda: 417157.0, status: "disponivel", tipo: "Loja" },
   { bloco: "A", andar: "Lojas", andarNum: 0, unidade: 6, area: 41.26, areaStr: "41,26 m²", valorVenda: 426353.0, status: "vendido", tipo: "Loja" },
-  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 1, area: 105.67, areaStr: "105,67 m²", valorVenda: 542446.0, status: "vendido", tipo: "Garden" },
-  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 2, area: 75.73, areaStr: "75,73 m²", valorVenda: 437310.0, status: "vendido", tipo: "Garden" },
-  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 3, area: 80.57, areaStr: "80,57 m²", valorVenda: 486386.0, status: "disponivel", tipo: "Garden" },
-  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 4, area: 80.8, areaStr: "80,80 m²", valorVenda: 484851.0, status: "vendido", tipo: "Garden" },
-  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 5, area: 77.58, areaStr: "77,58 m²", valorVenda: 501753.0, status: "vendido", tipo: "Garden" },
+  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 1, area: 105.67, areaStr: "105,67 m²", valorVenda: 542446.0, status: "vendido", tipo: "2 quartos (garden)" },
+  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 2, area: 75.73, areaStr: "75,73 m²", valorVenda: 437310.0, status: "vendido", tipo: "2 quartos (garden)" },
+  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 3, area: 80.57, areaStr: "80,57 m²", valorVenda: 486386.0, status: "disponivel", tipo: "2 quartos (garden)" },
+  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 4, area: 80.8, areaStr: "80,80 m²", valorVenda: 484851.0, status: "vendido", tipo: "2 quartos (garden)" },
+  { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 5, area: 77.58, areaStr: "77,58 m²", valorVenda: 501753.0, status: "vendido", tipo: "2 quartos (garden)" },
   { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 101, area: 48.29, areaStr: "48,29 m²", valorVenda: 351554.0, status: "disponivel", tipo: "2 quartos" },
   { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 102, area: 48.49, areaStr: "48,49 m²", valorVenda: 360778.0, status: "disponivel", tipo: "2 quartos" },
   { bloco: "A", andar: "Térreo", andarNum: 1, unidade: 103, area: 32.0, areaStr: "32,00 m²", valorVenda: 231985.0, status: "disponivel", tipo: "1 quarto" },
@@ -202,17 +202,17 @@ const rawData: Omit<VittaUnit, "valorStr" | "valorFormatado">[] = [
   { bloco: "A", andar: "13º Andar", andarNum: 13, unidade: 1309, area: 32.04, areaStr: "32,04 m²", valorVenda: 249035.0, status: "disponivel", tipo: "1 quarto" },
   { bloco: "A", andar: "13º Andar", andarNum: 13, unidade: 1310, area: 54.26, areaStr: "54,26 m²", valorVenda: 454111.0, status: "vendido", tipo: "2 quartos (suíte e varanda)" },
   { bloco: "A", andar: "13º Andar", andarNum: 13, unidade: 1311, area: 54.26, areaStr: "54,26 m²", valorVenda: 454111.0, status: "vendido", tipo: "2 quartos (suíte e varanda)" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 101, area: 45.71, areaStr: "45,71 m²", valorVenda: 334704.0, status: "disponivel", tipo: "2 quartos" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 102, area: 45.98, areaStr: "45,98 m²", valorVenda: 343975.0, status: "disponivel", tipo: "2 quartos" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 103, area: 31.99, areaStr: "31,99 m²", valorVenda: 231913.0, status: "vendido", tipo: "1 quarto" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 104, area: 45.65, areaStr: "45,65 m²", valorVenda: 320506.0, status: "disponivel", tipo: "2 quartos" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 105, area: 32.71, areaStr: "32,71 m²", valorVenda: 237132.0, status: "disponivel", tipo: "1 quarto" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 106, area: 45.62, areaStr: "45,62 m²", valorVenda: 320295.0, status: "disponivel", tipo: "2 quartos" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 107, area: 33.52, areaStr: "33,52 m²", valorVenda: 243004.0, status: "disponivel", tipo: "1 quarto" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 108, area: 45.52, areaStr: "45,52 m²", valorVenda: 319593.0, status: "disponivel", tipo: "2 quartos" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 109, area: 32.04, areaStr: "32,04 m²", valorVenda: 232275.0, status: "disponivel", tipo: "1 quarto" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 110, area: 54.26, areaStr: "54,26 m²", valorVenda: 425983.0, status: "disponivel", tipo: "2 quartos (suíte e varanda)" },
-  { bloco: "B", andar: "Área Especial", andarNum: 1, unidade: 111, area: 54.26, areaStr: "54,26 m²", valorVenda: 425983.0, status: "disponivel", tipo: "2 quartos (suíte e varanda)" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 101, area: 45.71, areaStr: "45,71 m²", valorVenda: 334704.0, status: "disponivel", tipo: "2 quartos" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 102, area: 45.98, areaStr: "45,98 m²", valorVenda: 343975.0, status: "disponivel", tipo: "2 quartos" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 103, area: 31.99, areaStr: "31,99 m²", valorVenda: 231913.0, status: "vendido", tipo: "1 quarto" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 104, area: 45.65, areaStr: "45,65 m²", valorVenda: 320506.0, status: "disponivel", tipo: "2 quartos" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 105, area: 32.71, areaStr: "32,71 m²", valorVenda: 237132.0, status: "disponivel", tipo: "1 quarto" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 106, area: 45.62, areaStr: "45,62 m²", valorVenda: 320295.0, status: "disponivel", tipo: "2 quartos" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 107, area: 33.52, areaStr: "33,52 m²", valorVenda: 243004.0, status: "disponivel", tipo: "1 quarto" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 108, area: 45.52, areaStr: "45,52 m²", valorVenda: 319593.0, status: "disponivel", tipo: "2 quartos" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 109, area: 32.04, areaStr: "32,04 m²", valorVenda: 232275.0, status: "disponivel", tipo: "1 quarto" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 110, area: 54.26, areaStr: "54,26 m²", valorVenda: 425983.0, status: "disponivel", tipo: "2 quartos (suíte e varanda)" },
+  { bloco: "B", andar: "1º andar", andarNum: 1, unidade: 111, area: 54.26, areaStr: "54,26 m²", valorVenda: 425983.0, status: "disponivel", tipo: "2 quartos (suíte e varanda)" },
   { bloco: "B", andar: "2º Andar", andarNum: 2, unidade: 201, area: 45.71, areaStr: "45,71 m²", valorVenda: 340674.0, status: "disponivel", tipo: "2 quartos" },
   { bloco: "B", andar: "2º Andar", andarNum: 2, unidade: 202, area: 45.98, areaStr: "45,98 m²", valorVenda: 350131.0, status: "disponivel", tipo: "2 quartos" },
   { bloco: "B", andar: "2º Andar", andarNum: 2, unidade: 203, area: 31.99, areaStr: "31,99 m²", valorVenda: 236551.0, status: "vendido", tipo: "1 quarto" },

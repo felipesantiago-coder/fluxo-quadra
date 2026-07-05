@@ -12,7 +12,7 @@ import {
   type VittaUnit,
   vittaUnits as staticUnits,
 } from "@/lib/vitta-data";
-import { Building2, Maximize2, DollarSign, ChevronUp, Filter, X, Check, LogOut, Calculator } from "lucide-react";
+import { Building2, Maximize2, DollarSign, ChevronUp, Filter, X, Check, LogOut, Calculator, BedDouble, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,7 @@ const typeColors: Record<TipoKey, { bg: string; border: string; text: string; gr
     gradient: "from-sky-500 to-sky-600",
     accent: "bg-sky-500",
   },
-  "Garden": {
+  "2 quartos (garden)": {
     bg: "bg-violet-50",
     border: "border-violet-200",
     text: "text-violet-700",
@@ -69,6 +69,18 @@ const allStatuses: { value: VittaUnit["status"]; label: string; dotColor: string
 ];
 
 const statusTypes = ["disponivel", "vendido"] as const;
+
+// ─── Helpers ───
+function getQuartos(unit: VittaUnit): number | null {
+  if (unit.tipo === "Loja") return null;
+  const match = unit.tipo.match(/(\d+)\s*quarto/);
+  return match ? parseInt(match[1]) : null;
+}
+
+function getPosicaoSolar(unit: VittaUnit): string | null {
+  if (unit.tipo === "Loja") return null;
+  return unit.unidade % 2 === 0 ? "Nascente" : "Poente";
+}
 
 // ─── Unit Card ───
 function UnitCard({
@@ -280,6 +292,28 @@ function ExpandedCard({ unit, onClose }: { unit: VittaUnit; onClose: () => void 
                 <p className="text-[11px] text-gray-400 font-medium">Área Privativa</p>
               </div>
             </div>
+            {getQuartos(unit) !== null && (
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                  <BedDouble className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">{getQuartos(unit)} quarto{getQuartos(unit)! > 1 ? "s" : ""}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">Dormitórios</p>
+                </div>
+              </div>
+            )}
+            {getPosicaoSolar(unit) !== null && (
+              <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+                <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+                  <Sun className={`w-5 h-5 ${getPosicaoSolar(unit) === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-gray-900">{getPosicaoSolar(unit)}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">Posição Solar</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="border-t border-gray-100" />
