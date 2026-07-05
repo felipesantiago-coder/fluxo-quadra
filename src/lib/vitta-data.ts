@@ -19,7 +19,7 @@ export interface VittaUnit {
 export const vittaBlocos = ["A", "B"] as const;
 export const vittaTipos = ["1 quarto", "2 quartos", "2 quartos (suíte e varanda)", "2 quartos (garden)", "Loja"] as const;
 
-export const vittaAndares: string[] = ["Lojas", "1º andar", "Térreo", "2º Andar", "3º Andar", "4º Andar", "5º Andar", "6º Andar", "7º Andar", "8º Andar", "9º Andar", "10º Andar", "11º Andar", "12º Andar", "13º Andar"];
+export const vittaAndares: string[] = ["Lojas", "Térreo", "1º andar", "2º Andar", "3º Andar", "4º Andar", "5º Andar", "6º Andar", "7º Andar", "8º Andar", "9º Andar", "10º Andar", "11º Andar", "12º Andar", "13º Andar"];
 
 export const vittaAndarLabels: Record<string, string> = {
   "Lojas": "Lojas",
