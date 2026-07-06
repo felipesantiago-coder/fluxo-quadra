@@ -12,7 +12,7 @@ export interface VittaUnit {
   valorVenda: number;
   valorStr: string;
   valorFormatado: string;
-  status: "disponivel" | "vendido";
+  status: "disponivel" | "reservado" | "vendido";
   tipo: string;
 }
 

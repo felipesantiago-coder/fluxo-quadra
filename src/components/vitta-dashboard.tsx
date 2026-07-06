@@ -60,15 +60,17 @@ const typeColors: Record<TipoKey, { bg: string; border: string; text: string; gr
 
 const statusLabels: Record<VittaUnit["status"], { label: string; color: string; dotColor: string }> = {
   disponivel: { label: "Disponível", color: "bg-emerald-100 text-emerald-800 border-emerald-200", dotColor: "bg-emerald-500" },
+  reservado: { label: "Reservada", color: "bg-amber-100 text-amber-800 border-amber-200", dotColor: "bg-amber-500" },
   vendido: { label: "Vendida", color: "bg-red-100 text-red-800 border-red-200", dotColor: "bg-red-500" },
 };
 
 const allStatuses: { value: VittaUnit["status"]; label: string; dotColor: string }[] = [
   { value: "disponivel", label: "Disponível", dotColor: "bg-emerald-500" },
+  { value: "reservado", label: "Reservada", dotColor: "bg-amber-500" },
   { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
 ];
 
-const statusTypes = ["disponivel", "vendido"] as const;
+const statusTypes = ["disponivel", "reservado", "vendido"] as const;
 
 // ─── Helpers ───
 function getQuartos(unit: VittaUnit): number | null {
@@ -588,7 +590,7 @@ export default function VittaDashboard({ isAdmin = false, hideHeader = false }: 
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as VittaUnit["status"] | "all")}
                 className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all">
                 <option value="all">Todos</option>
-                {statusTypes.map((s) => (<option key={s} value={s}>{s === "disponivel" ? "Disponível" : "Vendida"}</option>))}
+                {statusTypes.map((s) => (<option key={s} value={s}>{s === "disponivel" ? "Disponível" : s === "reservado" ? "Reservada" : "Vendida"}</option>))}
               </select>
             </div>
             <div>
