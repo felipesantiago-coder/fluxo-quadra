@@ -113,6 +113,10 @@ interface CalculationResult {
   mRemainingCorrected: number;
   sRemainingCorrected: number;
   hBalanceCorrected: number;
+  unicaValue: number;
+  unicaPercent: number;
+  unicaDate: string;
+  unicaScheduleRows: InstallmentRow[];
 }
 
 // ─── Simulator Component ───
@@ -132,9 +136,10 @@ function SimulatorContent() {
   const [downPaymentInstallments, setDownPaymentInstallments] = useState("1");
   const [monthlyValueInput, setMonthlyValueInput] = useState("");
   const [semesterValueInput, setSemesterValueInput] = useState("");
+  const [unicaValueInput, setUnicaValueInput] = useState("");
   const [maxMonthly, setMaxMonthly] = useState("48");
   const [maxSemester, setMaxSemester] = useState("6");
-  const [activeTab, setActiveTab] = useState<"sinal" | "mensal" | "semestral" | "habitese">("sinal");
+  const [activeTab, setActiveTab] = useState<"sinal" | "mensal" | "semestral" | "unica" | "habitese">("sinal");
   const [showResults, setShowResults] = useState(false);
 
   // INCC state
@@ -157,6 +162,7 @@ function SimulatorContent() {
   const downPaymentManual = parseVal(downPaymentInput);
   const monthlyVal = parseVal(monthlyValueInput);
   const semesterVal = parseVal(semesterValueInput);
+  const unicaVal = parseVal(unicaValueInput);
 
   const discount = parseFloat(discountPercent) || 0;
   const finalPropertyValue = propertyValue * (1 - discount / 100);
@@ -229,8 +235,20 @@ function SimulatorContent() {
       }
     }
 
+    // Parcela única: mês anterior à entrega (outubro = paymentLimit month)
+    const unicaDate = totalMonths > 0 ? addMonthsToDate(dpDate, totalMonths) : dpDate;
+    const inccFactorUnica = inccMonthlyRate > 0 && totalMonths > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
+    const unicaScheduleRows: InstallmentRow[] = [];
+    if (unicaVal > 0) {
+      unicaScheduleRows.push({
+        parcela: "1/1",
+        data: formatDateBR(unicaDate),
+        valor: formatBRL(unicaVal * inccFactorUnica),
+      });
+    }
+
     // Valores nominais (sem INCC)
-    const totalCaptation = downPaymentValue + mPaid + sPaid;
+    const totalCaptation = downPaymentValue + mPaid + sPaid + unicaVal;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
     const habitese = Math.max(0, finalPropertyValue - totalCaptation);
     const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
@@ -285,8 +303,12 @@ function SimulatorContent() {
       mRemainingCorrected,
       sRemainingCorrected,
       hBalanceCorrected,
+      unicaValue: unicaVal,
+      unicaPercent: finalPropertyValue > 0 ? (unicaVal / finalPropertyValue) * 100 : 0,
+      unicaDate: formatDateBR(unicaDate),
+      unicaScheduleRows,
     };
-  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
+  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, unicaVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
 
   // Show results when there's meaningful data
   useEffect(() => {
@@ -333,6 +355,7 @@ function SimulatorContent() {
     setDownPaymentInput("");
     setMonthlyValueInput("");
     setSemesterValueInput("");
+    setUnicaValueInput("");
     setDownPaymentInstallments("1");
     setMaxMonthly("48");
     setMaxSemester("6");
@@ -410,6 +433,9 @@ function SimulatorContent() {
         ["Sinal", formatBRL(result.downPaymentValue), `${result.downPaymentPercent.toFixed(2)}%`],
         ["Mensais (Obra)", formatBRL(result.monthlyPaid), `${result.monthlyPaidPercent.toFixed(2)}%`],
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
+        ...(result.unicaValue > 0 ? [
+          ["Única (mês anterior à entrega)", formatBRL(result.unicaValue), `${result.unicaPercent.toFixed(2)}%`, `1 parcela em ${result.unicaDate}`],
+        ] : []),
         ["Financiamento", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
         ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
           ["Financiamento (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
@@ -472,6 +498,24 @@ function SimulatorContent() {
         startY: yPos,
         head: [["Parcela", "Data", "Valor"]],
         body: result.semesterRows.map((r) => [r.parcela, r.data, r.valor]),
+        theme: "grid",
+        headStyles: { fillColor: primaryColor, textColor: 255 },
+        margin: { top: 10, left: margin, right: margin },
+      });
+      yPos = doc.lastAutoTable.finalY + 15;
+    }
+
+    // Única schedule
+    if (result.unicaScheduleRows.length > 0) {
+      if (yPos > 220) { doc.addPage(); yPos = 20; }
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Cronograma: Parcela Unica", margin, yPos);
+      yPos += 10;
+      autoTable(doc, {
+        startY: yPos,
+        head: [["Parcela", "Data", "Valor"]],
+        body: result.unicaScheduleRows.map((r) => [r.parcela, r.data, r.valor]),
         theme: "grid",
         headStyles: { fillColor: primaryColor, textColor: 255 },
         margin: { top: 10, left: margin, right: margin },
@@ -564,6 +608,7 @@ function SimulatorContent() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(60, 60, 60);
     const notes = [
+      "A parcela única é paga no mês anterior ao mês de entrega do empreendimento.",
       "As parcelas não pagas durante as obras serão incluídas ao saldo devedor para o financiamento.",
       "O saldo devedor deverá ser quitado até o financiamento ou financiado com o banco de preferência após emissão do financiamento.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
@@ -842,6 +887,21 @@ function SimulatorContent() {
                   </select>
                 </div>
 
+                {/* Parcela Única */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
+                    Valor da Parcela Única (R$)
+                  </label>
+                  <input
+                    type="text"
+                    value={unicaValueInput}
+                    onChange={handleCurrencyInput(setUnicaValueInput)}
+                    placeholder="Informe o valor (opcional)"
+                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">Paga no mês anterior ao mês de entrega (outubro de 2027). Compõe a captação da obra.</p>
+                </div>
+
                 {/* INCC Correction */}
                 <div className="space-y-3">
                   <button
@@ -988,6 +1048,14 @@ function SimulatorContent() {
                         <td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td>
                         <td className="py-3 px-4 text-gray-400 text-xs">{result.semesterInstallments} de {maxSemester} parcelas</td>
                       </tr>
+                      {result.unicaValue > 0 && (
+                        <tr className="border-b border-gray-100">
+                          <td className="py-3 px-4 font-medium text-blue-700">Única</td>
+                          <td className="py-3 px-4 text-right font-semibold text-blue-700">{formatBRL(result.unicaValue)}</td>
+                          <td className="py-3 px-4 text-right text-gray-500">{result.unicaPercent.toFixed(2)}%</td>
+                          <td className="py-3 px-4 text-blue-600 text-xs">1 parcela em {result.unicaDate}</td>
+                        </tr>
+                      )}
                       <tr className="border-b border-gray-100">
                         <td className="py-3 px-4 font-medium">Financiamento</td>
                         <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.habiteseAmount)}</td>
@@ -1027,7 +1095,7 @@ function SimulatorContent() {
                   <div className="mt-6">
                     <h4 className="text-lg font-bold text-gray-900 mb-3">Cronograma de Pagamento</h4>
                     <div className="flex border-b border-gray-200">
-                      {(["sinal", "mensal", "semestral", "habitese"] as const).map((tab) => (
+                      {(["sinal", "mensal", "semestral", "unica", "habitese"] as const).map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setActiveTab(tab)}
@@ -1037,7 +1105,7 @@ function SimulatorContent() {
                               : "text-gray-400 hover:text-gray-600"
                           }`}
                         >
-                          {tab === "habitese" ? "Financiamento" : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : "Semestrais"}
+                          {tab === "habitese" ? "Financiamento" : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : tab === "unica" ? "Única" : "Semestrais"}
                         </button>
                       ))}
                     </div>
@@ -1109,6 +1177,36 @@ function SimulatorContent() {
                             )}
                           </tbody>
                         </table>
+                      )}
+
+                      {activeTab === "unica" && result.unicaScheduleRows.length > 0 && (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-100">
+                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Parcela</th>
+                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Data</th>
+                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Valor (R$)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.unicaScheduleRows.map((row, i) => (
+                              <tr key={i} className="border-b border-gray-50">
+                                <td className="py-2 px-3">{row.parcela}</td>
+                                <td className="py-2 px-3">{row.data}</td>
+                                <td className="py-2 px-3 text-right font-semibold">{row.valor}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-gray-50 font-bold">
+                              <td className="py-2 px-3" colSpan={2}>Total parcela única</td>
+                              <td className="py-2 px-3 text-right">{formatBRL(result.unicaValue)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      )}
+                      {activeTab === "unica" && result.unicaScheduleRows.length === 0 && (
+                        <p className="text-gray-400 text-sm py-4 text-center">Nenhuma parcela única informada</p>
                       )}
 
                       {activeTab === "habitese" && (

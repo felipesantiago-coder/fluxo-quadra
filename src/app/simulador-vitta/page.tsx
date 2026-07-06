@@ -112,6 +112,8 @@ interface CalculationResult {
   monthlyRemainingCorrected: number;
   semesterRemainingCorrected: number;
   habiteseBalanceCorrected: number;
+  totalMonthlyCommitted: number;
+  totalMonthlyCommittedPercent: number;
 }
 
 function SimulatorContent() {
@@ -232,20 +234,22 @@ function SimulatorContent() {
     const remainingMonthlyValue = remainingMonthlyCount * monthlyVal;
     const remainingSemesterValue = remainingSemesterCount * semesterVal;
 
-    const totalCaptation = downPaymentValue + monthlyPaidDuringConstruction + semesterPaidDuringConstruction + unicaValue;
+    const totalMonthlyCommitted = (paidMonthlyCount + remainingMonthlyCount) * monthlyVal;
+    const totalCaptation = downPaymentValue + totalMonthlyCommitted + semesterPaidDuringConstruction + unicaValue;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
 
     // Habite-se = saldo devedor pós-obra
     const habitese = Math.max(0, finalPropertyValue - totalCaptation);
 
     // ── Fase 2: Aplicar correção INCC aos saldos remanescentes ──
-    // O habite-se é composto por: parcelas mensais remanescentes + semestrais remanescentes + saldo residual
-    const saldoResidual = habitese - remainingMonthlyValue - remainingSemesterValue;
+    // Remaining monthly is now captação, not financing. Only semester remaining + residual go to financing.
+    const saldoResidual = habitese - remainingSemesterValue;
     // Nota: a parcela única é durante a obra, então NÃO entra no financiamento
-    const monthlyRemainingCorrected = remainingMonthlyValue * inccCorrectionFactor;
+    // Nota: parcelas mensais remanescentes compõem a captação, NÃO entram no financiamento
+    const monthlyRemainingCorrected = 0;
     const semesterRemainingCorrected = remainingSemesterValue * inccCorrectionFactor;
     const habiteseBalanceCorrected = Math.max(0, saldoResidual) * inccCorrectionFactor;
-    const habiteseCorrected = monthlyRemainingCorrected + semesterRemainingCorrected + habiteseBalanceCorrected;
+    const habiteseCorrected = semesterRemainingCorrected + habiteseBalanceCorrected;
 
     const inccAccumulatedPercent = habitese > 0 ? ((habiteseCorrected - habitese) / habitese) * 100 : 0;
 
@@ -260,6 +264,8 @@ function SimulatorContent() {
       remainingSemesterCount,
       monthlyPaidDuringConstruction,
       monthlyPaidPercent: finalPropertyValue > 0 ? (monthlyPaidDuringConstruction / finalPropertyValue) * 100 : 0,
+      totalMonthlyCommitted,
+      totalMonthlyCommittedPercent: finalPropertyValue > 0 ? (totalMonthlyCommitted / finalPropertyValue) * 100 : 0,
       semesterPaidDuringConstruction,
       semesterPaidPercent: finalPropertyValue > 0 ? (semesterPaidDuringConstruction / finalPropertyValue) * 100 : 0,
       remainingMonthlyValue,
@@ -386,7 +392,7 @@ function SimulatorContent() {
 
     const summaryBody: (string | number)[][] = [
       ["Sinal", formatBRL(result.downPaymentValue), `${result.downPaymentPercent.toFixed(2)}%`, "Pagamento à vista"],
-      [`Mensais (obra)`, formatBRL(result.monthlyPaidDuringConstruction), `${result.monthlyPaidPercent.toFixed(2)}%`, `${result.paidMonthlyCount} parcelas durante a obra`],
+      [`Mensais (captação)`, formatBRL(result.totalMonthlyCommitted), `${result.totalMonthlyCommittedPercent.toFixed(2)}%`, `${MAX_MONTHLY_INSTALLMENTS} parcelas (${result.paidMonthlyCount} durante a obra + ${result.remainingMonthlyCount} pós-entrega)`],
       [`Semestrais (obra)`, formatBRL(result.semesterPaidDuringConstruction), `${result.semesterPaidPercent.toFixed(2)}%`, `${result.paidSemesterCount} parcelas durante a obra`],
     ];
 
@@ -394,9 +400,6 @@ function SimulatorContent() {
       summaryBody.push(["Única (mês de entrega)", formatBRL(result.unicaValue), `${result.unicaPercent.toFixed(2)}%`, `1 parcela em ${result.unicaDate}`]);
     }
 
-    if (result.remainingMonthlyCount > 0) {
-      summaryBody.push([`Mensais (pós financiamento)`, formatBRL(result.remainingMonthlyValue), "—", `${result.remainingMonthlyCount} parcelas remanescentes`]);
-    }
     if (result.remainingSemesterCount > 0) {
       summaryBody.push([`Semestrais (pós financiamento)`, formatBRL(result.remainingSemesterValue), "—", `${result.remainingSemesterCount} parcelas remanescentes`]);
     }
@@ -465,13 +468,10 @@ function SimulatorContent() {
     const habiteBody: (string | number)[][] = [
       ["Saldo Devedor Total (Financiamento)", formatBRL(result.habiteseAmount)],
     ];
-    if (result.remainingMonthlyCount > 0) {
-      habiteBody.push([`  Parcelas mensais remanescentes (${result.remainingMonthlyCount}x)`, formatBRL(result.remainingMonthlyValue)]);
-    }
     if (result.remainingSemesterCount > 0) {
       habiteBody.push([`  Parcelas semestrais remanescentes (${result.remainingSemesterCount}x)`, formatBRL(result.remainingSemesterValue)]);
     }
-    const saldoResidual = result.habiteseAmount - result.remainingMonthlyValue - result.remainingSemesterValue;
+    const saldoResidual = result.habiteseAmount - result.remainingSemesterValue;
     if (saldoResidual > 0) {
       habiteBody.push(["  Saldo residual", formatBRL(saldoResidual)]);
     }
@@ -543,7 +543,8 @@ function SimulatorContent() {
       "A parcela única é paga no mês de entrega do empreendimento.",
       "A primeira parcela semestral é 6 meses após o sinal.",
       `A construtora permite dividir as mensais em até ${MAX_MONTHLY_INSTALLMENTS} meses e as semestrais em até ${MAX_SEMESTER_INSTALLMENTS} semestrais.`,
-      "As parcelas que não couberem até o mês de entrega são integradas ao saldo devedor pós financiamento.",
+      "Todas as parcelas mensais contratadas compõem a captação da obra, inclusive as remanescentes que são pagas após a entrega. O cliente pode pagá-las diretamente à construtora ou integrá-las ao financiamento bancário.",
+      "As parcelas semestrais que não couberem até o mês de entrega são integradas ao saldo devedor pós financiamento.",
       "O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
       `Captação mínima: A captação durante as obras deve ser de no mínimo ${MIN_CAPTATION_PCT}% do valor do imóvel.`,
@@ -687,7 +688,7 @@ function SimulatorContent() {
                         <span className="font-medium">Total mensal: {formatBRL(monthlyVal * MAX_MONTHLY_INSTALLMENTS)} ({MAX_MONTHLY_INSTALLMENTS}x)</span>
                       </div>
                       <p className="text-[11px] text-amber-600">
-                        {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} para o financiamento
+                        {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} pós-entrega (captação)
                       </p>
                     </div>
                   )}
@@ -831,10 +832,10 @@ function SimulatorContent() {
                     </thead>
                     <tbody>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Sinal</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Pagamento à vista</td></tr>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Mensais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidMonthlyCount}x de {MAX_MONTHLY_INSTALLMENTS}</td></tr>
+                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Mensais</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.totalMonthlyCommitted)}</td><td className="py-3 px-4 text-right text-gray-500">{result.totalMonthlyCommittedPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{MAX_MONTHLY_INSTALLMENTS} parcelas ({result.paidMonthlyCount} durante a obra + {result.remainingMonthlyCount} pós-entrega)</td></tr>
                       <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Semestrais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidSemesterCount}x de {MAX_SEMESTER_INSTALLMENTS}</td></tr>
                       {result.remainingMonthlyCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Mensais (pós financiamento)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingMonthlyValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingMonthlyCount} parcelas remanescentes</td></tr>
+                        <tr className="border-b border-gray-100 bg-blue-50/50"><td className="py-3 px-4 font-medium text-blue-700" colSpan={4}><div className="flex items-center gap-2"><Info className="w-4 h-4" /><span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação e podem ser pagas diretamente à construtora após a entrega ou integradas ao financiamento bancário.</span></div></td></tr>
                       )}
                       {result.remainingSemesterCount > 0 && (
                         <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (pós financiamento)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
@@ -916,21 +917,20 @@ function SimulatorContent() {
                             <h4 className="font-semibold text-gray-900 mb-3">Composição do Financiamento</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
-                              {result.remainingMonthlyCount > 0 && (
-                                <div className="flex justify-between text-sm pl-4 border-l-2 border-amber-300"><span className="text-gray-500">{result.remainingMonthlyCount}x mensais remanescentes</span><span className="font-medium text-amber-700">{formatBRL(result.remainingMonthlyValue)}</span></div>
-                              )}
                               {result.remainingSemesterCount > 0 && (
                                 <div className="flex justify-between text-sm pl-4 border-l-2 border-amber-300"><span className="text-gray-500">{result.remainingSemesterCount}x semestrais remanescentes</span><span className="font-medium text-amber-700">{formatBRL(result.remainingSemesterValue)}</span></div>
                               )}
-                              {(() => {
-                                const saldoResidual = result.habiteseAmount - result.remainingMonthlyValue - result.remainingSemesterValue;
-                                if (saldoResidual > 0) return (
-                                  <div className="flex justify-between text-sm pl-4 border-l-2 border-gray-300"><span className="text-gray-500">Saldo residual</span><span className="font-medium">{formatBRL(saldoResidual)}</span></div>
-                                );
-                                return null;
-                              })()}
+                              {(() => { const sr = result.habiteseAmount - result.remainingSemesterValue; return sr > 0 ? (
+                                  <div className="flex justify-between text-sm pl-4 border-l-2 border-gray-300"><span className="text-gray-500">Saldo residual</span><span className="font-medium">{formatBRL(sr)}</span></div>
+                              ) : null; })()}
                             </div>
                           </div>
+                          {result.remainingMonthlyCount > 0 && (
+                            <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-blue-500 text-blue-700 text-xs">
+                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                              <span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação da obra. O cliente pode optar por pagá-las diretamente à construtora após a entrega do empreendimento ou integrar esse saldo ao financiamento bancário, conforme sua renda permita.</span>
+                            </div>
+                          )}
                           {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                             <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
                               <h4 className="font-semibold text-orange-700 mb-2">Projeção INCC</h4>
@@ -943,6 +943,16 @@ function SimulatorContent() {
                       )}
                     </div>
                   </div>
+                )}
+                {showResults && propertyValue > 0 && (
+                <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-gray-600">
+                  <strong className="text-gray-800">Observação:</strong> O valor do Financiamento inclui:
+                  <ul className="mt-2 space-y-1 list-disc list-inside text-gray-500">
+                    <li>Parcelas semestrais restantes</li>
+                    <li>Saldo final do imóvel</li>
+                  </ul>
+                  <p className="mt-2 text-blue-700 text-xs font-medium">Todas as parcelas mensais contratadas (incluindo as remanescentes pós-entrega) compõem a captação da obra e não são incluídas no saldo devedor do financiamento.</p>
+                </div>
                 )}
               </div>
             </div>

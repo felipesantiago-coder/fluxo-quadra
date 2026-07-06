@@ -83,3 +83,55 @@ Stage Summary:
 - Rota /projetos busca 100% do banco (sem hardcoded)
 - Rotas legadas (/espelho, /villa-bianco, /moment, /vitta) mantidas via mapeamento de slug
 - Build passou sem erros
+---
+Task ID: 1
+Agent: general-purpose
+Task: Adicionar parcela única ao simulador Quattre Istambul
+
+Work Log:
+- Leu arquivo completo simulador/page.tsx (1270+ linhas)
+- Adicionou 4 campos ao interface CalculationResult: unicaValue, unicaPercent, unicaDate, unicaScheduleRows
+- Adicionou state unicaValueInput com useState("") (sem valor padrão - obrigatório input manual)
+- Estendeu activeTab type para incluir "unica"
+- Adicionou parseVal(unicaValueInput) após parsing de semestral
+- Inseriu lógica de parcela única no useMemo: data = addMonthsToDate(dpDate, totalMonths) = outubro 2027, INCC factor aplicado, schedule row 1/1
+- Atualizou totalCaptation para incluir unicaVal
+- Adicionou unicaVal ao dependency array do useMemo
+- Adicionou setUnicaValueInput("") ao clearAll
+- PDF: linha condicional no Resumo Financeiro, seção de cronograma, nota explicativa
+- UI: campo input de valor único após max semestrais, com helper text
+- Tabela de resultados: linha condicional azul para Única (entre semestrais e financiamento)
+- Tabs de cronograma: adicionado "unica" com label "Única", conteúdo com tabela + total + empty state
+
+Stage Summary:
+- Arquivo alterado: src/app/simulador/page.tsx
+- Parcela única: sem valor padrão, opcional, paga em outubro 2027 (mês anterior à entrega)
+- Compõe a captação da obra (reduz financiamento)
+- Corrigida pelo INCC quando ativo
+- Build compilou sem erros
+---
+Task ID: 1
+Agent: general-purpose
+Task: Vitta monthly captação fix - contar parcelas mensais remanescentes como captação
+
+Work Log:
+- Leu arquivo completo simulador-vitta/page.tsx (962 linhas)
+- Adicionou campos totalMonthlyCommitted e totalMonthlyCommittedPercent ao interface CalculationResult
+- Modificou cálculo de captação: totalMonthlyCommitted = (paidMonthlyCount + remainingMonthlyCount) * monthlyVal (TODAS as mensais)
+- Atualizou totalCaptation para usar totalMonthlyCommitted em vez de monthlyPaidDuringConstruction
+- Ajustou saldoResidual e habiteseCorrected: removeu remainingMonthlyValue (mensais agora são captação, não financiamento)
+- Atualizou mensais remanescentes corrigido (INCC) para 0
+- Resultados tabela: mudou "Mensais (obra)" para "Mensais" mostrando total, substituiu row "pós financiamento" amber por info row azul
+- Tab Financiamento: removeu mensais remanescentes da composição, adicionou nota azul explicativa
+- Adicionou caixa de observação abaixo da tabela de resultados
+- PDF: mensais agora mostram total com detalhamento, removido "Mensais (pós financiamento)" do resumo, removido mensais do habite-se
+- PDF notas: atualizada nota sobre mensais (captação) e semestrais (financiamento)
+- Helper text no input: "pós-entrega (captação)" em vez de "para o financiamento"
+
+Stage Summary:
+- Arquivo alterado: src/app/simulador-vitta/page.tsx
+- ALL monthly installments (including remaining) now count as captação
+- Only remaining semester + residual balance go to financing (habitese)
+- Client can pay remaining monthlies directly to constructor or integrate into bank financing
+- Build compilou sem erros
+---
