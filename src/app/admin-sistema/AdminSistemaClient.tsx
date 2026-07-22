@@ -221,7 +221,12 @@ export default function AdminSistemaClient() {
           throw new Error(json.error || "Erro no upload do Excel");
         }
         const json = await res.json();
-        addToast("success", `Excel processado: ${json.inserted} unidades inseridas de ${json.total_rows} linhas`);
+        const parts: string[] = [];
+        if (json.inserted) parts.push(`${json.inserted} inseridas`);
+        if (json.updated) parts.push(`${json.updated} atualizadas`);
+        if (json.skipped) parts.push(`${json.skipped} ignoradas`);
+        if (json.errors) parts.push(`${json.errors} com erro`);
+        addToast("success", `Excel: ${parts.join(", ")} — ${json.total_units} unidades totais`);
         // Refresh to update unit counts
         fetchEmpreendimentos();
       } catch (err) {

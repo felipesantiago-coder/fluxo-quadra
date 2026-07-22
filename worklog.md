@@ -135,3 +135,21 @@ Stage Summary:
 - Client can pay remaining monthlies directly to constructor or integrate into bank financing
 - Build compilou sem erros
 ---
+Task ID: 1
+Agent: main
+Task: Refatorar upload Excel: UPSERT seguro + corrigir normalização de cabeçalhos
+
+Work Log:
+- Identificou bug: normalizeColumnName() convertia espaços em '_' mas COLUMN_MAP usava chaves com espaços → cabeçalhos compostos falhavam silenciosamente
+- Corrigiu normalização: agora tanto as chaves do COLUMN_MAP quanto os cabeçalhos do Excel são normalizados com a mesma função
+- Substituiu estratégia DELETE+INSERT por UPSERT usando onConflict='empreendimento_id,unidade'
+- Adicionou validação obrigatória de coluna 'unidade' no upload
+- Adicionou unique index idx_projeto_units_emp_unidade no schema e migration
+- Adicionado política RLS INSERT para admin_sistema (necessária para upsert)
+- Refatorado toast do frontend para mostrar inseridas/atualizadas/ignoradas/erros
+- Criado migration SQL em supabase/migrations/add_unique_emp_unidade.sql
+
+Stage Summary:
+- Arquivos alterados: upload-excel/route.ts (reescrito), AdminSistemaClient.tsx, schema-admin.sql
+- Migration pendente: supabase/migrations/add_unique_emp_unidade.sql (executar no Supabase Dashboard)
+- Build aprovado sem erros

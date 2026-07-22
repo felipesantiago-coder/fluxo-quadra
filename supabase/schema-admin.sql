@@ -147,6 +147,17 @@ CREATE POLICY "projeto_units_coordenador" ON public.projeto_units
     )
   );
 
+CREATE POLICY "projeto_units_admin_insert" ON public.projeto_units
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin_sistema'
+    )
+  );
+
+-- Unique constraint para upsert no upload Excel (match por empreendimento + unidade)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projeto_units_emp_unidade
+  ON public.projeto_units(empreendimento_id, unidade);
+
 -- Index
 CREATE INDEX IF NOT EXISTS idx_projeto_units_empreendimento ON public.projeto_units(empreendimento_id);
 CREATE INDEX IF NOT EXISTS idx_projeto_units_status ON public.projeto_units(status);
