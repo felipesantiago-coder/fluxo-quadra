@@ -13,6 +13,9 @@ WHERE a.id > b.id
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projeto_units_emp_unidade
   ON public.projeto_units(empreendimento_id, unidade);
 
+-- Remover policy existente caso já tenha sido criada (idempotente)
+DROP POLICY IF EXISTS "projeto_units_admin_insert" ON public.projeto_units;
+
 -- Política RLS para INSERT (necessária para o upsert do upload Excel)
 CREATE POLICY "projeto_units_admin_insert" ON public.projeto_units
   FOR INSERT WITH CHECK (
