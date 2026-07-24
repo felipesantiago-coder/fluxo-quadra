@@ -200,6 +200,63 @@ function buildPartialUnitFromRow(
   return unit;
 }
 
+// ─── Tabelas dedicadas por slug de empreendimento ──────────────────────────
+// Alguns empreendimentos (Moment, Villa Bianco) possuem tabelas próprias
+// que alimentam seus espelhos de vendas. O upload precisa sincronizar ambas.
+const DEDICATED_TABLE_MAP: Record<string, {
+  table: string;
+  matchColumns: string[];      // colunas usadas no WHERE (ex: ["unidade"] ou ["bloco","unidade"])
+  castUnidadeToInt: boolean;   // tabelas legadas usam INTEGER, não TEXT
+}> = {
+  moment: {
+    table: "moment_units",
+    matchColumns: ["unidade"],
+    castUnidadeToInt: true,
+  },
+  "villa-bianco": {
+    table: "villa_bianco_units",
+    matchColumns: ["bloco", "unidade"],
+    castUnidadeToInt: true,
+  },
+};
+
+// ─── Sincronização com tabela dedicada ────────────────────────────────────
+async function syncToDedicatedTable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  config: { table: string; matchColumns: string[]; castUnidadeToInt: boolean },
+  partial: Record<string, unknown>,
+) {
+  // Construir update com apenas os campos presentes no partial
+  const updates: Record<string, unknown> = {};
+  const commonFields = ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "tipologia", "posicao_solar", "is_cobertura", "is_garden"];
+  for (const field of commonFields) {
+    if (partial[field] !== undefined) {
+      updates[field] = partial[field];
+    }
+  }
+  // area_str deve ser recalculado se area foi atualizado
+  if (updates.area !== undefined && !updates.area_str) {
+    updates.area_str = `${updates.area} m²`;
+  }
+  if (Object.keys(updates).length === 0) return;
+
+  // Construir WHERE a partir das colunas de match
+  let query = supabase.from(config.table as any).update(updates);
+  for (const col of config.matchColumns) {
+    let val = partial[col];
+    if (val === undefined || val === null || val === "") return;
+    if (config.castUnidadeToInt && col === "unidade") {
+      val = parseInt(String(val), 10);
+      if (isNaN(val)) return;
+    }
+    query = query.eq(col, val) as any;
+  }
+  const { error } = await query;
+  if (error) {
+    console.error(`Erro ao sincronizar com ${config.table}:`, error.message);
+  }
+}
+
 // ─── Endpoint POST ─────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
@@ -263,6 +320,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Buscar dados do empreendimento (incluindo slug para tabelas dedicadas)
+    const { data: emp } = await supabase
+      .from("empreendimentos")
+      .select("id,slug")
+      .eq("id", empreendimentoId)
+      .single();
+
+    // Detectar tabela dedicada (ex: moment → moment_units)
+    const dedicatedConfig = emp?.slug ? DEDICATED_TABLE_MAP[emp.slug] : null;
+
     // Buscar unidades existentes em lote para merge inteligente (preserva dados não presentes no Excel)
     const { data: existingUnits } = await supabase
       .from("projeto_units")
@@ -311,7 +378,7 @@ export async function POST(request: NextRequest) {
         unitToSave = partial;
       }
 
-      // Upsert: se já existir (empreendimento_id + unidade), atualiza; senão insere
+      // Upsert na tabela genérica: se já existir (empreendimento_id + unidade), atualiza; senão insere
       const { error: upsertErr } = await supabase
         .from("projeto_units")
         .upsert(unitToSave, {
@@ -323,6 +390,12 @@ export async function POST(request: NextRequest) {
         results.errors++;
         errorDetails.push(`Linha ${i + 1} (${unitName}): ${upsertErr.message}`);
         console.error(`Erro ao upsert linha ${i + 1}:`, upsertErr.message);
+        continue;
+      }
+
+      // Sincronizar com tabela dedicada (se existir)
+      if (dedicatedConfig) {
+        await syncToDedicatedTable(supabase, dedicatedConfig, partial);
       }
     }
 

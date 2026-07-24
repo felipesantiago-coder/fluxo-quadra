@@ -1,0 +1,870 @@
+     1→"use client";
+     2→
+     3→import React, { useState, useCallback, useMemo, useEffect } from "react";
+     4→import { useRouter } from "next/navigation";
+     5→import { motion, AnimatePresence } from "framer-motion";
+     6→import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
+     7→import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check, LogOut } from "lucide-react";
+     8→import { Button } from "@/components/ui/button";
+     9→import { createClient } from "@/lib/supabase/client";
+    10→import { Badge } from "@/components/ui/badge";
+    11→
+    12→// ─── Color palette for unit types ───
+    13→const typeColors: Record<Unit["tipoArea"], { bg: string; border: string; text: string; gradient: string; accent: string }> = {
+    14→  "66m²": {
+    15→    bg: "bg-emerald-50",
+    16→    border: "border-emerald-200",
+    17→    text: "text-emerald-700",
+    18→    gradient: "from-emerald-500 to-emerald-600",
+    19→    accent: "bg-emerald-500",
+    20→  },
+    21→  "67m²": {
+    22→    bg: "bg-sky-50",
+    23→    border: "border-sky-200",
+    24→    text: "text-sky-700",
+    25→    gradient: "from-sky-500 to-sky-600",
+    26→    accent: "bg-sky-500",
+    27→  },
+    28→  "69m²": {
+    29→    bg: "bg-amber-50",
+    30→    border: "border-amber-200",
+    31→    text: "text-amber-700",
+    32→    gradient: "from-amber-500 to-amber-600",
+    33→    accent: "bg-amber-500",
+    34→  },
+    35→  "100m²": {
+    36→    bg: "bg-violet-50",
+    37→    border: "border-violet-200",
+    38→    text: "text-violet-700",
+    39→    gradient: "from-violet-500 to-violet-600",
+    40→    accent: "bg-violet-500",
+    41→  },
+    42→};
+    43→
+    44→const statusLabels: Record<Unit["status"], { label: string; color: string; dotColor: string }> = {
+    45→  disponivel: { label: "Disponível", color: "bg-emerald-100 text-emerald-800 border-emerald-200", dotColor: "bg-emerald-500" },
+    46→  reservado: { label: "Reservada", color: "bg-amber-100 text-amber-800 border-amber-200", dotColor: "bg-amber-500" },
+    47→  vendido: { label: "Vendida", color: "bg-red-100 text-red-800 border-red-200", dotColor: "bg-red-500" },
+    48→};
+    49→
+    50→const allStatuses: { value: Unit["status"]; label: string; dotColor: string }[] = [
+    51→  { value: "disponivel", label: "Disponível", dotColor: "bg-emerald-500" },
+    52→  { value: "reservado", label: "Reservada", dotColor: "bg-amber-500" },
+    53→  { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
+    54→];
+    55→
+    56→// ─── Unit Card (compact grid card) ───
+    57→function UnitCard({
+    58→  unit,
+    59→  onSelect,
+    60→  isBackground,
+    61→  isAdmin,
+    62→  onStatusChange,
+    63→}: {
+    64→  unit: Unit;
+    65→  onSelect: (unit: Unit) => void;
+    66→  isBackground: boolean;
+    67→  isAdmin?: boolean;
+    68→  onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
+    69→}) {
+    70→  const colors = typeColors[unit.tipoArea];
+    71→  const status = statusLabels[unit.status];
+    72→  const [showStatusMenu, setShowStatusMenu] = useState(false);
+    73→  const [saving, setSaving] = useState(false);
+    74→  const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+    75→
+    76→  // Fechar o menu ao clicar fora
+    77→  useEffect(() => {
+    78→    if (!showStatusMenu) return;
+    79→    const handleClickOutside = () => setShowStatusMenu(false);
+    80→    document.addEventListener("click", handleClickOutside);
+    81→    return () => document.removeEventListener("click", handleClickOutside);
+    82→  }, [showStatusMenu]);
+    83→
+    84→  // Limpar feedback após 3 segundos
+    85→  useEffect(() => {
+    86→    if (!feedback) return;
+    87→    const timer = setTimeout(() => setFeedback(null), 3000);
+    88→    return () => clearTimeout(timer);
+    89→  }, [feedback]);
+    90→
+    91→  const handleStatusClick = (e: React.MouseEvent) => {
+    92→    e.stopPropagation();
+    93→    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+    94→  };
+    95→
+    96→  const handleStatusSelect = async (e: React.MouseEvent, newStatus: Unit["status"]) => {
+    97→    e.stopPropagation();
+    98→    setShowStatusMenu(false);
+    99→    if (!onStatusChange || newStatus === unit.status) return;
+   100→
+   101→    setSaving(true);
+   102→    setFeedback(null);
+   103→    try {
+   104→      const res = await fetch("/api/units", {
+   105→        method: "PATCH",
+   106→        credentials: "include",
+   107→        headers: { "Content-Type": "application/json" },
+   108→        body: JSON.stringify({ unidade: unit.unidade, status: newStatus }),
+   109→      });
+   110→      const data = await res.json();
+   111→      if (res.ok) {
+   112→        onStatusChange(unit.unidade, newStatus);
+   113→        setFeedback("success");
+   114→      } else {
+   115→        console.error("Erro ao atualizar status:", data.error);
+   116→        setFeedback("error");
+   117→      }
+   118→    } catch (err) {
+   119→      console.error("Erro ao atualizar status:", err);
+   120→      setFeedback("error");
+   121→    } finally {
+   122→      setSaving(false);
+   123→    }
+   124→  };
+   125→
+   126→  return (
+   127→    <motion.div
+   128→      layout
+   129→      initial={{ opacity: 0, y: 20 }}
+   130→      animate={{
+   131→        opacity: isBackground ? 0.25 : 1,
+   132→        y: 0,
+   133→      }}
+   134→      exit={{ opacity: 0, y: -20 }}
+   135→      transition={{
+   136→        layout: { type: "spring", stiffness: 300, damping: 30 },
+   137→        opacity: { duration: 0.3 },
+   138→      }}
+   139→      whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
+   140→      onClick={() => onSelect(unit)}
+   141→      className={`
+   142→        relative cursor-pointer rounded-xl border-2 overflow-visible
+   143→        bg-white shadow-md hover:shadow-xl
+   144→        transition-all duration-300 ease-out
+   145→        border-gray-100
+   146→        ${isBackground ? "pointer-events-none" : ""}
+   147→      `}
+   148→      style={{
+   149→        filter: isBackground ? "blur(2px)" : "none",
+   150→      }}
+   151→    >
+   152→      {/* Top colored bar */}
+   153→      <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
+   154→
+   155→      <div className="p-5 space-y-3">
+   156→        {/* Header: Unit number + Status */}
+   157→        <div className="flex items-center justify-between">
+   158→          <span className="text-xl font-bold tracking-tight text-gray-900">
+   159→            {unit.unidade}
+   160→          </span>
+   161→          <div className="relative">
+   162→            <button
+   163→              onClick={handleStatusClick}
+   164→              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color} ${isAdmin ? "cursor-pointer hover:opacity-80 ring-1 ring-offset-1 ring-gray-200 hover:ring-gray-400" : "cursor-default"}`}
+   165→            >
+   166→              {saving ? (
+   167→                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
+   168→              ) : (
+   169→                <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+   170→              )}
+   171→              {status.label}
+   172→              {isAdmin && !showStatusMenu && <span className="ml-0.5 opacity-50">▾</span>}
+   173→            </button>
+   174→
+   175→            {/* Dropdown de status */}
+   176→            <AnimatePresence>
+   177→              {showStatusMenu && isAdmin && (
+   178→                <motion.div
+   179→                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+   180→                  animate={{ opacity: 1, y: 0, scale: 1 }}
+   181→                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
+   182→                  transition={{ duration: 0.15 }}
+   183→                  className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[140px] overflow-hidden"
+   184→                  onClick={(e) => e.stopPropagation()}
+   185→                >
+   186→                  <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">Alterar status</p>
+   187→                  {allStatuses.map((s) => (
+   188→                    <button
+   189→                      key={s.value}
+   190→                      onClick={(e) => handleStatusSelect(e, s.value)}
+   191→                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
+   192→                        s.value === unit.status
+   193→                          ? "bg-gray-50 text-gray-400"
+   194→                          : "hover:bg-gray-50 text-gray-700"
+   195→                      }`}
+   196→                    >
+   197→                      <span className={`w-2 h-2 rounded-full ${s.dotColor}`} />
+   198→                      {s.label}
+   199→                      {s.value === unit.status && <Check className="w-3 h-3 ml-auto" />}
+   200→                    </button>
+   201→                  ))}
+   202→                </motion.div>
+   203→              )}
+   204→            </AnimatePresence>
+   205→          </div>
+   206→        </div>
+   207→
+   208→        {/* Feedback visual de sucesso/erro */}
+   209→        <AnimatePresence>
+   210→          {feedback && (
+   211→            <motion.div
+   212→              initial={{ opacity: 0, height: 0 }}
+   213→              animate={{ opacity: 1, height: "auto" }}
+   214→              exit={{ opacity: 0, height: 0 }}
+   215→              className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-lg ${
+   216→                feedback === "success"
+   217→                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+   218→                  : "bg-red-50 text-red-700 border border-red-200"
+   219→              }`}
+   220→            >
+   221→              {feedback === "success" ? (
+   222→                <Check className="w-3 h-3 flex-shrink-0" />
+   223→              ) : (
+   224→                <X className="w-3 h-3 flex-shrink-0" />
+   225→              )}
+   226→              {feedback === "success" ? "Status atualizado!" : "Erro ao atualizar. Verifique o console."}
+   227→            </motion.div>
+   228→          )}
+   229→        </AnimatePresence>
+   230→
+   231→        {/* Info items */}
+   232→        <div className="grid grid-cols-2 gap-2">
+   233→          <div className="flex items-center gap-1.5 text-gray-500">
+   234→            <Maximize2 className="w-3.5 h-3.5" />
+   235→            <span className="text-sm font-medium">{unit.areaStr}</span>
+   236→          </div>
+   237→          <div className="flex items-center gap-1.5 text-gray-500">
+   238→            <Car className="w-3.5 h-3.5" />
+   239→            <span className="text-sm font-medium">{unit.vagas} vag{unit.vagas === 1 ? "a" : "as"}</span>
+   240→          </div>
+   241→          <div className="flex items-center gap-1.5 text-gray-500">
+   242→            <BedDouble className="w-3.5 h-3.5" />
+   243→            <span className="text-sm font-medium">{unit.quartos} qts</span>
+   244→          </div>
+   245→          <div className="flex items-center gap-1.5 text-gray-500">
+   246→            <Sun className={`w-3.5 h-3.5 ${unit.posicaoSolar === "Nascente" ? "text-amber-500" : "text-orange-500"}`} />
+   247→            <span className="text-sm font-medium">{unit.posicaoSolar}</span>
+   248→          </div>
+   249→        </div>
+   250→
+   251→        {/* Price */}
+   252→        <div className="pt-1">
+   253→          <p className={`text-lg font-bold ${unit.valorVenda ? "text-gray-900" : "text-gray-400 italic"}`}>
+   254→            {unit.valorFormatado}
+   255→          </p>
+   256→          {unit.valorVenda && (
+   257→            <p className="text-[11px] text-gray-400 mt-0.5">
+   258→              R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
+   259→            </p>
+   260→          )}
+   261→        </div>
+   262→      </div>
+   263→    </motion.div>
+   264→  );
+   265→}
+   266→
+   267→// ─── Expanded Centered Card ───
+   268→function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
+   269→  const colors = typeColors[unit.tipoArea];
+   270→  const status = statusLabels[unit.status];
+   271→
+   272→  return (
+   273→    <motion.div
+   274→      initial={{ opacity: 0 }}
+   275→      animate={{ opacity: 1 }}
+   276→      exit={{ opacity: 0 }}
+   277→      transition={{ duration: 0.2 }}
+   278→      className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-8"
+   279→      onClick={onClose}
+   280→    >
+   281→      {/* Backdrop */}
+   282→      <motion.div
+   283→        initial={{ opacity: 0 }}
+   284→        animate={{ opacity: 1 }}
+   285→        exit={{ opacity: 0 }}
+   286→        transition={{ duration: 0.25 }}
+   287→        className="absolute inset-0 bg-black/50 backdrop-blur-md"
+   288→      />
+   289→
+   290→      {/* Card */}
+   291→      <motion.div
+   292→        initial={{ opacity: 0, scale: 0.85, y: 40 }}
+   293→        animate={{ opacity: 1, scale: 1, y: 0 }}
+   294→        exit={{ opacity: 0, scale: 0.85, y: 40 }}
+   295→        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+   296→        onClick={(e) => e.stopPropagation()}
+   297→        className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
+   298→      >
+   299→        {/* Top gradient bar */}
+   300→        <div className={`h-2 bg-gradient-to-r ${colors.gradient}`} />
+   301→
+   302→        <div className="p-6 sm:p-8 space-y-5">
+   303→          {/* Close button */}
+   304→          <button
+   305→            onClick={onClose}
+   306→            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors z-20"
+   307→          >
+   308→            <X className="w-4 h-4 text-gray-500" />
+   309→          </button>
+   310→
+   311→          {/* Header */}
+   312→          <div className="flex items-start gap-4">
+   313→            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
+   314→              <Building2 className="w-8 h-8 text-white" />
+   315→            </div>
+   316→            <div className="min-w-0 flex-1">
+   317→              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+   318→                Unidade {unit.unidade}
+   319→              </h2>
+   320→              <p className="text-sm text-gray-500 mt-0.5">
+   321→                {unit.andar}º Andar — Quattre Istambul
+   322→              </p>
+   323→              <div className="mt-3">
+   324→                <span
+   325→                  className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${status.color}`}
+   326→                >
+   327→                  <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+   328→                  {status.label}
+   329→                </span>
+   330→              </div>
+   331→            </div>
+   332→          </div>
+   333→
+   334→          {/* Separator */}
+   335→          <div className="border-t border-gray-100" />
+   336→
+   337→          {/* Stats grid 2x2 */}
+   338→          <div className="grid grid-cols-2 gap-3">
+   339→            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+   340→              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+   341→                <BedDouble className="w-5 h-5 text-gray-500" />
+   342→              </div>
+   343→              <div>
+   344→                <p className="text-lg font-bold text-gray-900">{unit.quartos} quarto{unit.quartos > 1 ? "s" : ""}</p>
+   345→                <p className="text-[11px] text-gray-400 font-medium">Dormitórios</p>
+   346→              </div>
+   347→            </div>
+   348→            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+   349→              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+   350→                <Maximize2 className="w-5 h-5 text-gray-500" />
+   351→              </div>
+   352→              <div>
+   353→                <p className="text-lg font-bold text-gray-900">{unit.areaStr}</p>
+   354→                <p className="text-[11px] text-gray-400 font-medium">Área Privativa</p>
+   355→              </div>
+   356→            </div>
+   357→            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+   358→              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+   359→                <Car className="w-5 h-5 text-gray-500" />
+   360→              </div>
+   361→              <div>
+   362→                <p className="text-lg font-bold text-gray-900">{unit.vagas} vaga{unit.vagas > 1 ? "s" : ""}</p>
+   363→                <p className="text-[11px] text-gray-400 font-medium">Garagem</p>
+   364→              </div>
+   365→            </div>
+   366→            <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100">
+   367→              <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
+   368→                <Sun className="w-5 h-5 text-gray-500" />
+   369→              </div>
+   370→              <div>
+   371→                <p className="text-lg font-bold text-gray-900">{unit.posicaoSolar}</p>
+   372→                <p className="text-[11px] text-gray-400 font-medium">Posição Solar</p>
+   373→              </div>
+   374→            </div>
+   375→          </div>
+   376→
+   377→          {/* Separator */}
+   378→          <div className="border-t border-gray-100" />
+   379→
+   380→          {/* Price */}
+   381→          <div className="space-y-3">
+   382→            <div className="flex items-center gap-2">
+   383→              <DollarSign className="w-5 h-5 text-gray-400" />
+   384→              <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Valor de Venda</span>
+   385→            </div>
+   386→            {unit.valorVenda ? (
+   387→              <div className="space-y-2">
+   388→                <p className="text-3xl font-bold text-gray-900">
+   389→                  {formatCurrency(unit.valorVenda)}
+   390→                </p>
+   391→                <div className="flex items-center gap-2">
+   392→                  <Badge variant="outline" className="text-xs border-gray-200">
+   393→                    R$ {(unit.valorVenda / unit.area).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/m²
+   394→                  </Badge>
+   395→                </div>
+   396→              </div>
+   397→            ) : (
+   398→              <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
+   399→                <p className="text-lg font-semibold text-gray-400">Consulte o valor</p>
+   400→                <p className="text-sm text-gray-400 mt-1">Entre em contato para saber o valor desta unidade</p>
+   401→              </div>
+   402→            )}
+   403→          </div>
+   404→
+   405→          {/* Simular button */}
+   406→          <a
+   407→            href={`/simulador?valor=${unit.valorVenda || 0}&unidade=${unit.unidade}&area=${unit.areaStr}&andar=${unit.andar}`}
+   408→            target="_blank"
+   409→            rel="noopener noreferrer"
+   410→            onClick={(e) => {
+   411→              if (!unit.valorVenda) { e.preventDefault(); return; }
+   412→            }}
+   413→            className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valorVenda ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+   414→          >
+   415→            <Calculator className="w-4 h-4" />
+   416→            Simular Financiamento
+   417→          </a>
+   418→        </div>
+   419→      </motion.div>
+   420→    </motion.div>
+   421→  );
+   422→}
+   423→
+   424→// ─── Floor Section ───
+   425→function FloorSection({
+   426→  floor,
+   427→  floorUnits,
+   428→  selectedUnit,
+   429→  onSelectUnit,
+   430→  isCollapsed,
+   431→  onToggle,
+   432→  isAdmin,
+   433→  onStatusChange,
+   434→}: {
+   435→  floor: number;
+   436→  floorUnits: Unit[];
+   437→  selectedUnit: Unit | null;
+   438→  onSelectUnit: (unit: Unit) => void;
+   439→  isCollapsed: boolean;
+   440→  onToggle: () => void;
+   441→  isAdmin?: boolean;
+   442→  onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
+   443→}) {
+   444→  return (
+   445→    <motion.div layout className="space-y-4">
+   446→      {/* Floor header */}
+   447→      <motion.button
+   448→        onClick={onToggle}
+   449→        className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg hover:shadow-xl transition-shadow group"
+   450→        whileHover={{ scale: 1.005 }}
+   451→        whileTap={{ scale: 0.995 }}
+   452→      >
+   453→        <div className="flex items-center gap-3">
+   454→          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
+   455→            <Building2 className="w-5 h-5" />
+   456→          </div>
+   457→          <div className="text-left">
+   458→            <h3 className="text-lg font-bold">{floor}º Andar</h3>
+   459→            <p className="text-sm text-white/60">{floorUnits.length} unidades</p>
+   460→          </div>
+   461→        </div>
+   462→        <div className="flex items-center gap-3">
+   463→          <div className="hidden sm:flex items-center gap-2">
+   464→            {areaTypes.map((type) => {
+   465→              const count = floorUnits.filter((u) => u.tipoArea === type).length;
+   466→              if (count === 0) return null;
+   467→              return (
+   468→                <Badge key={type} variant="secondary" className="text-[10px] font-semibold bg-white/15 text-white/80 border-white/20">
+   469→                  {count}x {type}
+   470→                </Badge>
+   471→              );
+   472→            })}
+   473→          </div>
+   474→          <motion.div animate={{ rotate: isCollapsed ? 0 : 180 }}>
+   475→            <ChevronUp className="w-5 h-5 text-white/60" />
+   476→          </motion.div>
+   477→        </div>
+   478→      </motion.button>
+   479→
+   480→      {/* Floor units grid */}
+   481→      <AnimatePresence>
+   482→        {!isCollapsed && (
+   483→          <motion.div
+   484→            initial={{ height: 0, opacity: 0 }}
+   485→            animate={{ height: "auto", opacity: 1 }}
+   486→            exit={{ height: 0, opacity: 0 }}
+   487→            transition={{ duration: 0.3, ease: "easeInOut" }}
+   488→            className="overflow-visible"
+   489→          >
+   490→            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+   491→              {floorUnits.map((unit) => (
+   492→                <UnitCard
+   493→                  key={unit.unidade}
+   494→                  unit={unit}
+   495→                  onSelect={onSelectUnit}
+   496→                  isBackground={selectedUnit !== null && selectedUnit?.unidade !== unit.unidade}
+   497→                  isAdmin={isAdmin}
+   498→                  onStatusChange={onStatusChange}
+   499→                />
+   500→              ))}
+   501→            </div>
+   502→          </motion.div>
+   503→        )}
+   504→      </AnimatePresence>
+   505→    </motion.div>
+   506→  );
+   507→}
+   508→
+   509→// ─── Legend ───
+   510→function Legend() {
+   511→  return (
+   512→    <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-white/80 shadow-sm border border-gray-100">
+   513→      <span className="text-xs font-semibold text-gray-500 mr-1">Tipologias:</span>
+   514→      {areaTypes.map((type) => (
+   515→        <Badge key={type} variant="outline" className={`text-[11px] font-semibold ${typeColors[type].bg} ${typeColors[type].text} ${typeColors[type].border}`}>
+   516→          <span className={`w-2 h-2 rounded-full ${typeColors[type].accent} mr-1`} />
+   517→          {type}
+   518→        </Badge>
+   519→      ))}
+   520→    </div>
+   521→  );
+   522→}
+   523→
+   524→// ─── Main Dashboard ───
+   525→export default function SalesDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
+   526→  const router = useRouter();
+   527→  const [units, setUnits] = useState<Unit[]>(staticUnits);
+   528→  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+   529→  const [collapsedFloors, setCollapsedFloors] = useState<Set<number>>(new Set());
+   530→  const [filterQuartos, setFilterQuartos] = useState<number | "all">("all");
+   531→  const [filterSolar, setFilterSolar] = useState<Unit["posicaoSolar"] | "all">("all");
+   532→  const [filterVagas, setFilterVagas] = useState<number | "all">("all");
+   533→  const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
+   534→  const [sortBy, setSortBy] = useState<"floor" | "price-asc" | "price-desc">("floor");
+   535→
+   536→  // Buscar dados do Supabase via API + Realtime
+   537→  useEffect(() => {
+   538→    let supabaseChannel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+   539→
+   540→    async function loadData() {
+   541→      try {
+   542→        const res = await fetch("/api/units");
+   543→        const data = await res.json();
+   544→
+   545→        const mapped: Unit[] = (Array.isArray(data) ? data : []).map((row: Record<string, unknown>) => ({
+   546→          andar: row.andar as number,
+   547→          unidade: row.unidade as number,
+   548→          vagas: row.vagas as number,
+   549→          area: Number(row.area),
+   550→          areaStr: row.area_str as string,
+   551→          valorVenda: row.valor_venda as number | null,
+   552→          valorStr: row.valor_venda ? Number(row.valor_venda).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "Consulte",
+   553→          valorFormatado: row.valor_venda ? formatCurrency(Number(row.valor_venda)) : "Consulte o valor",
+   554→          tipoArea: row.tipo_area as Unit["tipoArea"],
+   555→          status: row.status as Unit["status"],
+   556→          posicaoSolar: row.posicao_solar as Unit["posicaoSolar"],
+   557→          quartos: row.quartos as 2 | 3,
+   558→        }));
+   559→
+   560→        setUnits(mapped);
+   561→
+   562→        // Realtime: escutar mudanças de status
+   563→        const supabase = createClient();
+   564→        supabaseChannel = supabase
+   565→          .channel("dashboard-realtime")
+   566→          .on(
+   567→            "postgres_changes",
+   568→            { event: "UPDATE", schema: "public", table: "units" },
+   569→            (payload) => {
+   570→              const updated = payload.new as Record<string, unknown>;
+   571→              setUnits((prev) =>
+   572→                prev.map((u) =>
+   573→                  u.unidade === updated.unidade
+   574→                    ? { ...u, status: updated.status as Unit["status"] }
+   575→                    : u
+   576→                )
+   577→              );
+   578→            }
+   579→          )
+   580→          .subscribe();
+   581→      } catch {
+   582→        console.error("Erro ao carregar dados do Supabase, usando dados estáticos.");
+   583→      }
+   584→    }
+   585→
+   586→    loadData();
+   587→
+   588→    return () => {
+   589→      if (supabaseChannel) {
+   590→        createClient().removeChannel(supabaseChannel);
+   591→      }
+   592→    };
+   593→  }, []);
+   594→
+   595→  const filteredUnits = useMemo(() => {
+   596→    let result = [...units];
+   597→    if (filterQuartos !== "all") result = result.filter((u) => u.quartos === filterQuartos);
+   598→    if (filterSolar !== "all") result = result.filter((u) => u.posicaoSolar === filterSolar);
+   599→    if (filterVagas !== "all") result = result.filter((u) => u.vagas === filterVagas);
+   600→    if (filterStatus !== "all") result = result.filter((u) => u.status === filterStatus);
+   601→    if (sortBy === "price-asc") result.sort((a, b) => (a.valorVenda ?? Infinity) - (b.valorVenda ?? Infinity));
+   602→    if (sortBy === "price-desc") result.sort((a, b) => (b.valorVenda ?? 0) - (a.valorVenda ?? 0));
+   603→    return result;
+   604→  }, [units, filterQuartos, filterSolar, filterVagas, filterStatus, sortBy]);
+   605→
+   606→  const activeFloors = useMemo(() => {
+   607→    const floorSet = new Set(filteredUnits.map((u) => u.andar));
+   608→    return floors.filter((f) => floorSet.has(f));
+   609→  }, [filteredUnits]);
+   610→
+   611→  const handleSelectUnit = useCallback((unit: Unit) => {
+   612→    setSelectedUnit(unit);
+   613→  }, []);
+   614→
+   615→  const handleLocalStatusChange = useCallback((unidade: number, newStatus: Unit["status"]) => {
+   616→    setUnits((prev) => prev.map((u) => u.unidade === unidade ? { ...u, status: newStatus } : u));
+   617→    // Também atualizar selectedUnit se for a mesma unidade
+   618→    setSelectedUnit((prev) => prev && prev.unidade === unidade ? { ...prev, status: newStatus } : prev);
+   619→  }, []);
+   620→
+   621→  const handleCloseExpanded = useCallback(() => {
+   622→    setSelectedUnit(null);
+   623→  }, []);
+   624→
+   625→  const toggleFloor = useCallback((floor: number) => {
+   626→    setCollapsedFloors((prev) => {
+   627→      const next = new Set(prev);
+   628→      if (next.has(floor)) next.delete(floor);
+   629→      else next.add(floor);
+   630→      return next;
+   631→    });
+   632→  }, []);
+   633→
+   634→  const handleLogout = useCallback(async () => {
+   635→    await createClient().auth.signOut();
+   636→    router.push("/");
+   637→    router.refresh();
+   638→  }, [router]);
+   639→
+   640→  return (
+   641→    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
+   642→      {/* Header — oculto quando renderizado dentro do admin (usa o banner admin no lugar) */}
+   643→      {!hideHeader && (
+   644→        <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+   645→          <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
+   646→            <div className="flex items-center justify-between h-16">
+   647→              <div className="flex items-center gap-3">
+   648→                <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+   649→                  <Building2 className="w-5 h-5 text-white" />
+   650→                </div>
+   651→                <div>
+   652→                  <h1 className="text-lg font-bold tracking-tight">
+   653→                    Espelho de <span className="text-gray-400 font-normal">Vendas</span>
+   654→                  </h1>
+   655→                  <p className="text-[11px] text-gray-400 font-medium">Quattre Istambul</p>
+   656→                </div>
+   657→              </div>
+   658→              <div className="flex items-center gap-2">
+   659→                <a
+   660→                  href="/projetos"
+   661→                  className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+   662→                >
+   663→                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+   664→                  Projetos
+   665→                </a>
+   666→                <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+   667→                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+   668→                  Atualização em tempo real
+   669→                </div>
+   670→                <button
+   671→                  onClick={handleLogout}
+   672→                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
+   673→                >
+   674→                  <LogOut className="w-3.5 h-3.5" />
+   675→                  Sair
+   676→                </button>
+   677→              </div>
+   678→            </div>
+   679→          </div>
+   680→        </header>
+   681→      )}
+   682→
+   683→      <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
+   684→        {/* Filters */}
+   685→        <div className="p-4 rounded-xl bg-white shadow-md border border-gray-100">
+   686→          <div className="flex items-center gap-2 mb-3">
+   687→            <Filter className="w-4 h-4 text-gray-400" />
+   688→            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Filtros</span>
+   689→            {(filterQuartos !== "all" || filterSolar !== "all" || filterVagas !== "all" || filterStatus !== "all" || sortBy !== "floor") && (
+   690→              <Button
+   691→                variant="ghost"
+   692→                size="sm"
+   693→                className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+   694→                onClick={() => { setFilterQuartos("all"); setFilterSolar("all"); setFilterVagas("all"); setFilterStatus("all"); setSortBy("floor"); }}
+   695→              >
+   696→                Limpar filtros
+   697→              </Button>
+   698→            )}
+   699→          </div>
+   700→          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+   701→            {/* Tipologia filter (by quartos) */}
+   702→            <div>
+   703→              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Tipologia</label>
+   704→              <select
+   705→                value={filterQuartos}
+   706→                onChange={(e) => setFilterQuartos(e.target.value === "all" ? "all" : Number(e.target.value))}
+   707→                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+   708→              >
+   709→                <option value="all">Todas</option>
+   710→                <option value="2">2 Quartos</option>
+   711→                <option value="3">3 Quartos</option>
+   712→              </select>
+   713→            </div>
+   714→
+   715→            {/* Posição solar filter */}
+   716→            <div>
+   717→              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Posição Solar</label>
+   718→              <select
+   719→                value={filterSolar}
+   720→                onChange={(e) => setFilterSolar(e.target.value as Unit["posicaoSolar"] | "all")}
+   721→                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+   722→              >
+   723→                <option value="all">Todas</option>
+   724→                <option value="Nascente">Nascente</option>
+   725→                <option value="Poente">Poente</option>
+   726→              </select>
+   727→            </div>
+   728→
+   729→            {/* Vagas filter */}
+   730→            <div>
+   731→              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Vagas</label>
+   732→              <select
+   733→                value={filterVagas}
+   734→                onChange={(e) => setFilterVagas(e.target.value === "all" ? "all" : Number(e.target.value))}
+   735→                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+   736→              >
+   737→                <option value="all">Todas</option>
+   738→                <option value="1">1 vaga</option>
+   739→                <option value="2">2 vagas</option>
+   740→              </select>
+   741→            </div>
+   742→
+   743→            {/* Status filter */}
+   744→            <div>
+   745→              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
+   746→              <select
+   747→                value={filterStatus}
+   748→                onChange={(e) => setFilterStatus(e.target.value as Unit["status"] | "all")}
+   749→                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+   750→              >
+   751→                <option value="all">Todos</option>
+   752→                {statusTypes.map((s) => (
+   753→                  <option key={s} value={s}>
+   754→                    {s === "disponivel" ? "Disponível" : s === "reservado" ? "Reservada" : s === "vendido" ? "Vendida" : "Consultar"}
+   755→                  </option>
+   756→                ))}
+   757→              </select>
+   758→            </div>
+   759→
+   760→            {/* Ordenação */}
+   761→            <div>
+   762→              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Ordenar</label>
+   763→              <select
+   764→                value={sortBy}
+   765→                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+   766→                className="w-full h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+   767→              >
+   768→                <option value="floor">Andar</option>
+   769→                <option value="price-asc">Menor preço</option>
+   770→                <option value="price-desc">Maior preço</option>
+   771→              </select>
+   772→            </div>
+   773→
+   774→            {/* Results count */}
+   775→            <div className="flex items-end">
+   776→              <div className="w-full h-9 px-3 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center">
+   777→                <span className="text-sm font-medium text-gray-500">
+   778→                  <span className="font-bold text-gray-900">{filteredUnits.length}</span> resultado{filteredUnits.length !== 1 ? "s" : ""}
+   779→                </span>
+   780→              </div>
+   781→            </div>
+   782→          </div>
+   783→        </div>
+   784→
+   785→        {/* Legend */}
+   786→        <Legend />
+   787→
+   788→        {/* Units display — floor sections or flat sorted list */}
+   789→        {sortBy === "floor" ? (
+   790→          <div className="space-y-6">
+   791→            {activeFloors.map((floor) => {
+   792→              const floorUnits = filteredUnits
+   793→                .filter((u) => u.andar === floor)
+   794→                .sort((a, b) => a.unidade - b.unidade);
+   795→              return (
+   796→                <FloorSection
+   797→                  key={floor}
+   798→                  floor={floor}
+   799→                  floorUnits={floorUnits}
+   800→                  selectedUnit={selectedUnit}
+   801→                  onSelectUnit={handleSelectUnit}
+   802→                  isCollapsed={collapsedFloors.has(floor)}
+   803→                  onToggle={() => toggleFloor(floor)}
+   804→                  isAdmin={isAdmin}
+   805→                  onStatusChange={handleLocalStatusChange}
+   806→                />
+   807→              );
+   808→            })}
+   809→          </div>
+   810→        ) : (
+   811→          <motion.div
+   812→            key={sortBy}
+   813→            initial={{ opacity: 0 }}
+   814→            animate={{ opacity: 1 }}
+   815→            transition={{ duration: 0.3 }}
+   816→            className="space-y-4"
+   817→          >
+   818→            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+   819→              <DollarSign className="w-4 h-4" />
+   820→              Ordenado por {sortBy === "price-asc" ? "menor preço" : "maior preço"}
+   821→            </div>
+   822→            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+   823→              {filteredUnits.map((unit) => (
+   824→                <UnitCard
+   825→                  key={unit.unidade}
+   826→                  unit={unit}
+   827→                  onSelect={handleSelectUnit}
+   828→                  isBackground={false}
+   829→                  isAdmin={isAdmin}
+   830→                  onStatusChange={handleLocalStatusChange}
+   831→                />
+   832→              ))}
+   833→            </div>
+   834→          </motion.div>
+   835→        )}
+   836→
+   837→        {/* Empty state */}
+   838→        {filteredUnits.length === 0 && (
+   839→          <motion.div
+   840→            initial={{ opacity: 0 }}
+   841→            animate={{ opacity: 1 }}
+   842→            className="text-center py-20"
+   843→          >
+   844→            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+   845→            <h3 className="text-lg font-semibold text-gray-400">Nenhuma unidade encontrada</h3>
+   846→            <p className="text-sm text-gray-300 mt-1">Tente ajustar os filtros para ver mais resultados</p>
+   847→          </motion.div>
+   848→        )}
+   849→      </main>
+   850→
+   851→      {/* Footer */}
+   852→      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+   853→        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
+   854→          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+   855→            <Building2 className="w-4 h-4" />
+   856→            <span className="font-semibold text-gray-600">Espelho de Vendas</span>
+   857→          </div>
+   858→        </div>
+   859→      </footer>
+   860→
+   861→      {/* Expanded centered card overlay */}
+   862→      <AnimatePresence>
+   863→        {selectedUnit && (
+   864→          <ExpandedCard unit={selectedUnit} onClose={handleCloseExpanded} />
+   865→        )}
+   866→      </AnimatePresence>
+   867→    </div>
+   868→  );
+   869→}
+   870→
