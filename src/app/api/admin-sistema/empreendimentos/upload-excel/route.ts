@@ -136,7 +136,9 @@ function parseStatus(value: unknown): string {
 }
 
 // ─── Processamento de uma linha do Excel → campos do banco ────────────────────
-function buildUnitFromRow(
+// Retorna APENAS os campos presentes no Excel (diferente de null/undefined/vazio).
+// Campos não enviados ficarão de fora para que o merge preserve os dados existentes.
+function buildPartialUnitFromRow(
   row: Record<string, unknown>,
   columnMapping: Record<string, string>,
   empreendimentoId: string,
@@ -151,32 +153,47 @@ function buildUnitFromRow(
     const value = row[header];
 
     if (dbField === "andar") {
-      unit.andar = parseBrazilianNumber(value);
+      const parsed = parseBrazilianNumber(value);
+      if (parsed !== null) unit.andar = parsed;
     } else if (dbField === "unidade") {
-      unit.unidade = String(value ?? "").trim();
+      const str = String(value ?? "").trim();
+      if (str) unit.unidade = str;
     } else if (dbField === "area") {
       const areaVal = parseBrazilianNumber(value);
-      unit.area = areaVal;
-      unit.area_str = areaVal ? `${areaVal} m²` : "";
+      if (areaVal !== null) {
+        unit.area = areaVal;
+        unit.area_str = `${areaVal} m²`;
+      }
     } else if (dbField === "quartos") {
-      unit.quartos = parseBrazilianNumber(value) || 1;
+      const parsed = parseBrazilianNumber(value);
+      if (parsed !== null) unit.quartos = parsed;
     } else if (dbField === "vagas") {
-      unit.vagas = parseBrazilianNumber(value) || 1;
+      const parsed = parseBrazilianNumber(value);
+      if (parsed !== null) unit.vagas = parsed;
     } else if (dbField === "valor_venda") {
-      unit.valor_venda = parseBrazilianNumber(value);
+      const parsed = parseBrazilianNumber(value);
+      if (parsed !== null) unit.valor_venda = parsed;
     } else if (dbField === "status") {
-      const statusVal = parseStatus(value);
-      unit.status = ["disponivel", "reservado", "vendido"].includes(statusVal) ? statusVal : "disponivel";
+      const str = String(value ?? "").trim();
+      if (str) {
+        const statusVal = parseStatus(value);
+        unit.status = ["disponivel", "reservado", "vendido"].includes(statusVal) ? statusVal : "disponivel";
+      }
     } else if (dbField === "posicao_solar") {
-      unit.posicao_solar = String(value ?? "").trim();
+      const str = String(value ?? "").trim();
+      if (str) unit.posicao_solar = str;
     } else if (dbField === "tipologia") {
-      unit.tipologia = String(value ?? "").trim();
+      const str = String(value ?? "").trim();
+      if (str) unit.tipologia = str;
     } else if (dbField === "bloco") {
-      unit.bloco = String(value ?? "").trim();
+      const str = String(value ?? "").trim();
+      if (str) unit.bloco = str;
     } else if (dbField === "is_cobertura") {
-      unit.is_cobertura = parseBoolean(value);
+      const str = String(value ?? "").trim();
+      if (str) unit.is_cobertura = parseBoolean(value);
     } else if (dbField === "is_garden") {
-      unit.is_garden = parseBoolean(value);
+      const str = String(value ?? "").trim();
+      if (str) unit.is_garden = parseBoolean(value);
     }
   }
 
@@ -246,25 +263,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Processar linhas com UPSERT (não exclui unidades existentes)
+    // Buscar unidades existentes em lote para merge inteligente (preserva dados não presentes no Excel)
+    const { data: existingUnits } = await supabase
+      .from("projeto_units")
+      .select("*")
+      .eq("empreendimento_id", empreendimentoId);
+
+    // Indexar por nome da unidade para lookup rápido
+    const existingMap = new Map<string, Record<string, unknown>>();
+    if (existingUnits) {
+      for (const eu of existingUnits) {
+        const key = String(eu.unidade ?? "").trim().toLowerCase();
+        if (key) existingMap.set(key, eu as Record<string, unknown>);
+      }
+    }
+
+    // Determinar se o Excel é parcial (tem apenas algumas colunas) ou completo
+    const dbFieldsInExcel = new Set(Object.values(columnMapping));
+    const totalKnownFields = 12; // unidade, andar, area, quartos, vagas, valor_venda, status, posicao_solar, tipologia, bloco, is_cobertura, is_garden
+    const isPartialUpdate = dbFieldsInExcel.size < totalKnownFields;
+
+    // Processar linhas com UPSERT inteligente (partial merge)
     const results = { inserted: 0, updated: 0, skipped: 0, errors: 0 };
     const errorDetails: string[] = [];
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const unit = buildUnitFromRow(row, columnMapping, empreendimentoId, i + 1);
+      const partial = buildPartialUnitFromRow(row, columnMapping, empreendimentoId, i + 1);
 
-      const unitName = String(unit.unidade ?? "").trim();
+      const unitName = String(partial.unidade ?? "").trim();
       if (!unitName) {
         results.skipped++;
         errorDetails.push(`Linha ${i + 1}: unidade vazia, ignorada`);
         continue;
       }
 
+      // Merge com dados existentes (se a unidade já existe)
+      let unitToSave: Record<string, unknown>;
+      const existing = existingMap.get(unitName.toLowerCase());
+
+      if (existing && isPartialUpdate) {
+        // Atualização parcial: preserva tudo que não veio no Excel
+        unitToSave = { ...existing, ...partial };
+        delete unitToSave.id; // Remove o ID para o upsert não conflitar
+      } else {
+        // Inserção nova ou Excel completo: usa os dados do Excel tal qual
+        unitToSave = partial;
+      }
+
       // Upsert: se já existir (empreendimento_id + unidade), atualiza; senão insere
       const { error: upsertErr } = await supabase
         .from("projeto_units")
-        .upsert(unit, {
+        .upsert(unitToSave, {
           onConflict: "empreendimento_id,unidade",
           count: "exact",
         });
