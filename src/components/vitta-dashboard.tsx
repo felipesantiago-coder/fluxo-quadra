@@ -469,12 +469,62 @@ export default function VittaDashboard({ isAdmin = false, hideHeader = false }: 
   const [filterStatus, setFilterStatus] = useState<VittaUnit["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<"andar" | "price-asc" | "price-desc">("andar");
 
+  // Carregar unidades do banco (fallback para dados estáticos)
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/vitta-units");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            // Mapear formato do banco para o formato do dashboard
+            const mapped: VittaUnit[] = data.map((row: Record<string, unknown>) => ({
+              bloco: row.bloco as "A" | "B",
+              andar: row.andar as string,
+              andarNum: Number(row.andar_num),
+              unidade: Number(row.unidade),
+              area: Number(row.area),
+              areaStr: row.area_str as string,
+              valorVenda: Number(row.valor_venda),
+              valorStr: formatVittaCurrency(Number(row.valor_venda)),
+              valorFormatado: formatVittaCurrency(Number(row.valor_venda)),
+              status: row.status as VittaUnit["status"],
+              tipo: row.tipologia as string,
+            }));
+            setUnits(mapped);
+          }
+        }
+      } catch {
+        // Manter dados estáticos como fallback
+      }
+    })();
+  }, []);
+
   const handleSelectUnit = useCallback((unit: VittaUnit) => setSelectedUnit(unit), []);
   const handleCloseExpanded = useCallback(() => setSelectedUnit(null), []);
 
-  const handleLocalStatusChange = useCallback((unidade: number, bloco: string, newStatus: VittaUnit["status"]) => {
+  const handleLocalStatusChange = useCallback(async (unidade: number, bloco: string, newStatus: VittaUnit["status"]) => {
+    // Otimistic update
     setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade) ? { ...u, status: newStatus } : u));
     setSelectedUnit((prev) => prev && prev.bloco === bloco && prev.unidade === unidade ? { ...prev, status: newStatus } : prev);
+
+    // Persistir no banco
+    try {
+      const res = await fetch("/api/vitta-units", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bloco, unidade, status: newStatus }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("Erro ao salvar status:", json.error);
+        // Reverter em caso de erro
+        setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade) ? { ...u, status: "disponivel" } : u));
+      }
+    } catch (err) {
+      console.error("Erro ao salvar status:", err);
+    }
   }, []);
 
   const toggleFloor = useCallback((floor: string) => {
