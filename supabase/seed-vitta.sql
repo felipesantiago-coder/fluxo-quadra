@@ -295,7 +295,7 @@ INSERT INTO vitta_units (bloco, andar, andar_num, unidade, area, area_str, valor
   ('B', '13º Andar', 13, 1308, 45.52, '45,52 m²', 378821.00, '2 quartos', 'disponivel'),
   ('B', '13º Andar', 13, 1309, 32.04, '32,04 m²', 249035.00, '1 quarto', 'disponivel'),
   ('B', '13º Andar', 13, 1310, 54.26, '54,26 m²', 454111.00, '2 quartos (suíte e varanda)', 'vendido'),
-  ('B', '13º Andar', 13, 1311, 54.26, '54,26 m²', 454111.00, '2 quartos (suíte e varanda)', 'disponivel');
+  ('B', '13º Andar', 13, 1311, 54.26, '54,26 m²', 454111.00, '2 quartos (suíte e varanda)', 'disponivel')
 ON CONFLICT (bloco, unidade) DO NOTHING;
 
 -- Total rows: 297
