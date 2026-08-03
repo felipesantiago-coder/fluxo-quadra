@@ -153,3 +153,23 @@ Stage Summary:
 - Arquivos alterados: upload-excel/route.ts (reescrito), AdminSistemaClient.tsx, schema-admin.sql
 - Migration pendente: supabase/migrations/add_unique_emp_unidade.sql (executar no Supabase Dashboard)
 - Build aprovado sem erros
+
+---
+Task ID: 1
+Agent: main
+Task: Investigar e corrigir falha de atualização de preços via upload Excel parcial
+
+Work Log:
+- Leitura completa do route de upload (upload-excel/route.ts)
+- Mapeamento de todas as fontes de dados dos espelhos de vendas (5 empreendimentos)
+- Leitura da API vitta-units/route.ts para confirmar estrutura da tabela dedicada
+- Identificação de 3 bugs na cadeia upload → espelho
+- Aplicação das 4 correções no route de upload
+- Verificação com npx next build (sucesso)
+
+Stage Summary:
+- Bug 1: "valor_total" não estava no COLUMN_MAP → coluna "Valor Total" era ignorada silenciosamente
+- Bug 2: Vitta ausente do DEDICATED_TABLE_MAP → upload nunca syncava com vitta_units
+- Bug 3: syncToDedicatedTable recebia `partial` para o WHERE → update sem coluna "bloco" falhava para Vitta/Villa Bianco
+- Correções: adicionados valor_total/valor_da_unidade/preco_total ao COLUMN_MAP, Vitta ao DEDICATED_TABLE_MAP, novo parâmetro matchData na função de sync
+

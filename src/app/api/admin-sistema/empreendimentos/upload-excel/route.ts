@@ -59,8 +59,11 @@ const COLUMN_MAP: Record<string, string> = {
   valor: "valor_venda",
   valor_de_venda: "valor_venda",
   valor_venda: "valor_venda",
+  valor_total: "valor_venda",
+  valor_da_unidade: "valor_venda",
   preco: "valor_venda",
   preco_de_venda: "valor_venda",
+  preco_total: "valor_venda",
   status: "status",
   posicao_solar: "posicao_solar",
   posicao: "posicao_solar",
@@ -218,6 +221,11 @@ const DEDICATED_TABLE_MAP: Record<string, {
     matchColumns: ["bloco", "unidade"],
     castUnidadeToInt: true,
   },
+  vitta: {
+    table: "vitta_units",
+    matchColumns: ["bloco", "unidade"],
+    castUnidadeToInt: true,
+  },
 };
 
 // ─── Sincronização com tabela dedicada ────────────────────────────────────
@@ -225,8 +233,9 @@ async function syncToDedicatedTable(
   supabase: Awaited<ReturnType<typeof createClient>>,
   config: { table: string; matchColumns: string[]; castUnidadeToInt: boolean },
   partial: Record<string, unknown>,
+  matchData: Record<string, unknown>,
 ) {
-  // Construir update com apenas os campos presentes no partial
+  // Construir update com apenas os campos presentes no partial (dados do Excel)
   const updates: Record<string, unknown> = {};
   const commonFields = ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "tipologia", "posicao_solar", "is_cobertura", "is_garden"];
   for (const field of commonFields) {
@@ -240,10 +249,12 @@ async function syncToDedicatedTable(
   }
   if (Object.keys(updates).length === 0) return;
 
-  // Construir WHERE a partir das colunas de match
+  // Construir WHERE a partir das colunas de match usando matchData (dados mesclados)
+  // Isso permite que update parcial sem a coluna 'bloco' ainda funcione,
+  // pois o bloco vem do registro existente no banco via unitToSave.
   let query = supabase.from(config.table as any).update(updates);
   for (const col of config.matchColumns) {
-    let val = partial[col];
+    let val = matchData[col];
     if (val === undefined || val === null || val === "") return;
     if (config.castUnidadeToInt && col === "unidade") {
       val = parseInt(String(val), 10);
@@ -394,8 +405,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Sincronizar com tabela dedicada (se existir)
+      // Passa unitToSave (dados mesclados) para o WHERE, pois pode conter
+      // colunas de match (ex: bloco) ausentes do Excel mas presentes no banco.
       if (dedicatedConfig) {
-        await syncToDedicatedTable(supabase, dedicatedConfig, partial);
+        await syncToDedicatedTable(supabase, dedicatedConfig, partial, unitToSave);
       }
     }
 
