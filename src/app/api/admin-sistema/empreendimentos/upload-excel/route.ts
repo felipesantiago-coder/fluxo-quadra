@@ -204,7 +204,7 @@ function buildPartialUnitFromRow(
 }
 
 // ─── Tabelas dedicadas por slug de empreendimento ──────────────────────────
-// Alguns empreendimentos (Moment, Villa Bianco) possuem tabelas próprias
+// Alguns empreendimentos possuem tabelas próprias
 // que alimentam seus espelhos de vendas. O upload precisa sincronizar ambas.
 const DEDICATED_TABLE_MAP: Record<string, {
   table: string;
@@ -224,6 +224,11 @@ const DEDICATED_TABLE_MAP: Record<string, {
   vitta: {
     table: "vitta_units",
     matchColumns: ["bloco", "unidade"],
+    castUnidadeToInt: true,
+  },
+  "quattre-istambul": {
+    table: "units",
+    matchColumns: ["unidade"],
     castUnidadeToInt: true,
   },
 };
