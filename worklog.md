@@ -173,3 +173,31 @@ Stage Summary:
 - Bug 3: syncToDedicatedTable recebia `partial` para o WHERE → update sem coluna "bloco" falhava para Vitta/Villa Bianco
 - Correções: adicionados valor_total/valor_da_unidade/preco_total ao COLUMN_MAP, Vitta ao DEDICATED_TABLE_MAP, novo parâmetro matchData na função de sync
 
+
+---
+Task ID: 1
+Agent: main
+Task: Implementar TOTP, WebAuthn/FIDO2 e notificação por e-mail para MFA
+
+Work Log:
+- Criada migration SQL (supabase/migration-mfa.sql) com tabelas user_totp, user_passkeys, user_login_events
+- Adicionado campo mfa_enabled na tabela profiles
+- Instalados pacotes: otplib@12, qrcode, @simplewebauthn/server, @simplewebauthn/browser, resend
+- Criado src/lib/mfa/totp.ts (geração/verificação TOTP)
+- Criado src/lib/mfa/webauthn.ts (registro/autenticação WebAuthn + challenge store)
+- Criado src/lib/mfa/email.ts (notificação novo dispositivo + fingerprinting + recordLoginEvent)
+- Criadas 9 API routes: totp/setup, totp/verify, webauthn/register/begin+finish, webauthn/authenticate/begin+finish, mfa/check, mfa/status, mfa/disable
+- Criada página /mfa-verify (verificação pós-login: tenta WebAuthn primeiro, fallback TOTP)
+- Criada página /mfa-setup (configuração: TOTP com QR code + WebAuthn passkeys)
+- Atualizado middleware para interceptar usuários com MFA ativo mas não verificados
+- Atualizado login page para detectar MFA e redirecionar para /mfa-verify
+- Adicionado botão "Segurança" no header do admin-sistema
+- Build validado com sucesso
+
+Stage Summary:
+- TOTP (Google Authenticator): implementado com otplib@12 + QR code via qrcode
+- WebAuthn/FIDO2: implementado com @simplewebauthn, fallback automático para TOTP
+- Notificação e-mail: implementada com Resend (gratuito 3k/mês), log se sem API key
+- Detecção novo dispositivo: fingerprinting de UA + comparação com histórico
+- Fluxo: login → detecta MFA → cookie mfa_pending → middleware redireciona → /mfa-verify → cookie mfa_verified → libera acesso
+

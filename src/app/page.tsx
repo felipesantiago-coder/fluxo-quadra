@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Building2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Building2, Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -42,31 +42,53 @@ function LoginForm() {
 
       if (data.user) {
         const isAdminEmail = data.user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+        const redirectPath = isAdminEmail ? "/admin-sistema" : "/projetos";
 
-        // Verificar role do usuário no banco (resiliente: se tabela não existir ou der erro, usa fallback)
+        // Verificar role do usuário e MFA
         try {
           const supabase = createClient();
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
-            .select("role")
+            .select("role, mfa_enabled")
             .eq("id", data.user.id)
             .maybeSingle();
 
-          if (!profileError && profile?.role === "admin_sistema") {
-            router.push("/admin-sistema");
-          } else if (isAdminEmail) {
-            // Fallback: email admin mas profiles falhou ou role incorreta → ainda vai para admin
-            router.push("/admin-sistema");
+          // Verificar se tem TOTP verificado ou passkeys
+          let hasMfa = profile?.mfa_enabled ?? false;
+          if (!hasMfa) {
+            const { data: totp } = await supabase
+              .from("user_totp")
+              .select("id")
+              .eq("user_id", data.user.id)
+              .eq("verified", true)
+              .maybeSingle();
+            if (totp) hasMfa = true;
+          }
+          if (!hasMfa) {
+            const { count } = await supabase
+              .from("user_passkeys")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", data.user.id);
+            if (count && count > 0) hasMfa = true;
+          }
+
+          // Determinar redirect baseado no role
+          const finalRedirect =
+            (!profileError && profile?.role === "admin_sistema") || isAdminEmail
+              ? "/admin-sistema"
+              : "/projetos";
+
+          if (hasMfa) {
+            // Redirecionar para verificação MFA
+            // Define cookie mfa_pending para o middleware interceptar futuras requisições
+            document.cookie = "mfa_pending=1; path=/; max-age=300; SameSite=Lax";
+            router.push(`/mfa-verify?redirect=${encodeURIComponent(finalRedirect)}`);
           } else {
-            router.push("/projetos");
+            router.push(finalRedirect);
           }
         } catch {
-          // Profiles completamente inacessível — fallback por email
-          if (isAdminEmail) {
-            router.push("/admin-sistema");
-          } else {
-            router.push("/projetos");
-          }
+          // Em caso de erro, seguir sem MFA
+          router.push(redirectPath);
         }
         router.refresh();
       }
