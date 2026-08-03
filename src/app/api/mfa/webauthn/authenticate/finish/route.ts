@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   verifyAuthentication,
   consumeChallenge,
+  getRPConfigFromRequest,
 } from "@/lib/mfa/webauthn";
 import { recordLoginEvent } from "@/lib/mfa/email";
 
@@ -59,12 +60,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rpConfig = getRPConfigFromRequest(request);
+
     // Verify the authentication response
     const verification = verifyAuthentication(response, challenge, {
       credentialID: cred.credential_id,
       publicKey: cred.public_key,
       counter: cred.counter,
-    });
+    }, rpConfig);
 
     if (!verification.verificationInfo) {
       return NextResponse.json(

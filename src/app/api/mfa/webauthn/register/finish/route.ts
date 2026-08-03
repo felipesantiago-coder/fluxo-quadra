@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   verifyRegistration,
   consumeChallenge,
+  getRPConfigFromRequest,
 } from "@/lib/mfa/webauthn";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +42,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rpConfig = getRPConfigFromRequest(request);
+
     // Verify the registration response
-    const verification = verifyRegistration(response, challenge);
+    const verification = verifyRegistration(response, challenge, rpConfig);
 
     if (!verification.registrationInfo) {
       return NextResponse.json(
@@ -60,9 +63,7 @@ export async function POST(request: NextRequest) {
       public_key: Buffer.from(regInfo.credentialPublicKey).toString("base64"),
       counter: regInfo.counter,
       device_name: deviceName || "Dispositivo sem nome",
-      transports: regInfo.credentialDeviceType
-        ? [regInfo.credentialDeviceType]
-        : [],
+      transports: [],
     });
 
     if (insertError) {

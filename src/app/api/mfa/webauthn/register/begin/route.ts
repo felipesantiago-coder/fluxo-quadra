@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildRegistrationOptions,
   storeChallenge,
+  getRPConfigFromRequest,
 } from "@/lib/mfa/webauthn";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -24,12 +25,15 @@ export async function POST() {
       .select("credential_id")
       .eq("user_id", user.id);
 
+    const rpConfig = getRPConfigFromRequest(request);
+
     const options = buildRegistrationOptions(
       user.id,
       user.email!,
       (existingPasskeys ?? []).map((p) => ({
         credentialID: p.credential_id,
-      }))
+      })),
+      rpConfig
     );
 
     // Store the challenge for later verification

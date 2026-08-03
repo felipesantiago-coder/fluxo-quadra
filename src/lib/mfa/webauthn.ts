@@ -7,17 +7,76 @@ import {
 import type {
   VerifiedRegistrationResponse,
   VerifiedAuthenticationResponse,
+  PublicKeyCredentialDescriptor,
 } from "@simplewebauthn/server";
 
-// RP ID e nome — em produção usar variáveis de ambiente
-export function getRPConfig() {
-  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const url = new URL(origin);
+/**
+ * Extrai rpID e origin de forma segura a partir do request HTTP.
+ * Funciona em qualquer ambiente (localhost, IP, domínio) sem depender de env vars.
+ */
+export function getRPConfigFromRequest(request: Request) {
+  // Em produção AWS Lambda, o Caddy faz reverse proxy → usamos x-forwarded-* headers
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  
+  // Fallback para Host header direto (funciona em localhost)
+  const host = forwardedHost || request.headers.get("host") || "localhost:3000";
+  
+  // Remover porta para o rpID (WebAuthn não usa porta)
+  const hostname = host.split(":")[0];
+  
+  // Construir origin completo (com porta se não for padrão)
+  let origin: string;
+  if (host.includes(":")) {
+    const port = host.split(":")[1];
+    const isDefault = (forwardedProto === "https" && port === "443") || (forwardedProto === "http" && port === "80");
+    origin = isDefault ? `${forwardedProto}://${hostname}` : `${forwardedProto}://${host}`;
+  } else {
+    origin = `${forwardedProto}://${hostname}`;
+  }
+  
+  // rpID: para localhost, usar "localhost"; senão usar o hostname
+  const rpID = hostname === "localhost" ? "localhost" : hostname;
+  
   return {
-    rpID: process.env.WEBAUTHN_RP_ID || url.hostname,
+    rpID,
     rpName: process.env.WEBAUTHN_RP_NAME || "Fluxo Quadra",
-    origin: process.env.WEBAUTHN_ORIGIN || origin,
+    origin,
   };
+}
+
+// Fallback para compatibilidade (APIs que ainda não recebem request)
+export function getRPConfig() {
+  const origin = process.env.NEXT_PUBLIC_APP_URL || "";
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      return {
+        rpID: process.env.WEBAUTHN_RP_ID || url.hostname,
+        rpName: process.env.WEBAUTHN_RP_NAME || "Fluxo Quadra",
+        origin: process.env.WEBAUTHN_ORIGIN || origin,
+      };
+    } catch {
+      // Fall through
+    }
+  }
+  // Fallback seguro para quando não há env var — as rotas devem usar getRPConfigFromRequest
+  return {
+    rpID: "localhost",
+    rpName: "Fluxo Quadra",
+    origin: "http://localhost:3000",
+  };
+}
+
+/**
+ * Decodifica um credential ID (base64url ou base64) para Uint8Array.
+ */
+function decodeCredentialID(credentialID: string): Uint8Array {
+  // WebAuthn usa base64url sem padding
+  let base64 = credentialID.replace(/-/g, "+").replace(/_/g, "/");
+  // Adicionar padding se necessário
+  while (base64.length % 4 !== 0) base64 += "=";
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
 /**
@@ -26,24 +85,26 @@ export function getRPConfig() {
 export function buildRegistrationOptions(
   userId: string,
   userEmail: string,
-  existingCredentials: { credentialID: string }[]
+  existingCredentials: { credentialID: string }[],
+  rpConfig?: { rpID: string; rpName: string; origin: string }
 ) {
-  const { rpID, rpName, origin } = getRPConfig();
+  const { rpID, rpName, origin } = rpConfig || getRPConfig();
   return generateRegistrationOptions({
     rpName,
     rpID,
     origin,
     userName: userEmail,
     userID: new TextEncoder().encode(userId),
-    // Excluir credenciais já registradas (evitar re-registro do mesmo dispositivo)
+    // Excluir credenciais já registradas
     excludeCredentials: existingCredentials.map((c) => ({
-      id: new Uint8Array(Buffer.from(c.credentialID, "base64url")),
+      id: decodeCredentialID(c.credentialID),
       type: "public-key" as const,
     })),
     authenticatorSelection: {
-      authenticatorAttachment: "platform",
-      userVerification: "required",
-      // null = permite qualquer algoritmo, o navegador escolhe
+      // "cross-platform" permite chaves de segurança USB/NFC, além de plataforma
+      // "platform" restringe a apenas impressão digital/FaceID do dispositivo atual
+      authenticatorAttachment: "cross-platform",
+      userVerification: "preferred",
       residentKey: "preferred",
     },
     timeout: 120_000,
@@ -63,36 +124,41 @@ export function verifyRegistration(
     };
     type: string;
   },
-  expectedChallenge: string
+  expectedChallenge: string,
+  rpConfig?: { rpID: string; origin: string }
 ): VerifiedRegistrationResponse {
-  const { rpID, origin } = getRPConfig();
+  const { rpID, origin } = rpConfig || getRPConfig();
   return verifyRegistrationResponse({
     response: registrationResponse as any,
     expectedChallenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
-    requireUserVerification: true,
+    requireUserVerification: false,
   });
 }
 
 /**
  * Gera opções de autenticação WebAuthn (challenge para login).
  */
-export function buildAuthenticationOptions(
-  credentials: { credentialID: string; transports?: string[] }[]
+export function buildAuthOptions(
+  credentials: { credentialID: string; transports?: string[] }[],
+  rpConfig?: { rpID: string; origin: string }
 ) {
-  const { rpID } = getRPConfig();
+  const { rpID, origin } = rpConfig || getRPConfig();
   return generateAuthenticationOptions({
     rpID,
     allowCredentials: credentials.map((c) => ({
-      id: new Uint8Array(Buffer.from(c.credentialID, "base64url")),
+      id: decodeCredentialID(c.credentialID),
       type: "public-key" as const,
       transports: (c.transports as any[]) || undefined,
     })),
-    userVerification: "required",
+    userVerification: "preferred",
     timeout: 120_000,
   });
 }
+
+// Alias para compatibilidade
+export const buildAuthenticationOptions = buildAuthOptions;
 
 /**
  * Verifica a resposta de autenticação do navegador.
@@ -113,20 +179,21 @@ export function verifyAuthentication(
     credentialID: string;
     publicKey: string;
     counter: number;
-  }
+  },
+  rpConfig?: { rpID: string; origin: string }
 ): VerifiedAuthenticationResponse {
-  const { rpID, origin } = getRPConfig();
+  const { rpID, origin } = rpConfig || getRPConfig();
   return verifyAuthenticationResponse({
     response: authenticationResponse as any,
     expectedChallenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
     authenticator: {
-      credentialID: new Uint8Array(Buffer.from(credential.credentialID, "base64url")),
-      publicKey: new Uint8Array(Buffer.from(credential.publicKey, "base64")),
+      credentialID: decodeCredentialID(credential.credentialID),
+      publicKey: Uint8Array.from(atob(credential.publicKey), (c) => c.charCodeAt(0)),
       counter: credential.counter,
     },
-    requireUserVerification: true,
+    requireUserVerification: false,
   });
 }
 

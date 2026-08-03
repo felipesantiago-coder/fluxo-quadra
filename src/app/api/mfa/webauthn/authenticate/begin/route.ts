@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildAuthenticationOptions,
   storeChallenge,
+  getRPConfigFromRequest,
 } from "@/lib/mfa/webauthn";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
     const {
@@ -31,11 +32,14 @@ export async function POST() {
       );
     }
 
+    const rpConfig = getRPConfigFromRequest(request);
+
     const options = buildAuthenticationOptions(
       passkeys.map((p) => ({
         credentialID: p.credential_id,
         transports: p.transports as string[] | undefined,
-      }))
+      })),
+      rpConfig
     );
 
     // Store the challenge for later verification
