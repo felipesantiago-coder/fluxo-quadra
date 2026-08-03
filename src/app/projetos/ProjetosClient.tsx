@@ -106,6 +106,13 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                   Administração
                 </a>
               )}
+              <a
+                href="/mfa-setup"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Segurança</span>
+              </a>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
