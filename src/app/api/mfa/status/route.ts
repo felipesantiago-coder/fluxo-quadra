@@ -9,12 +9,19 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-    // MFA status do perfil
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("mfa_enabled")
-      .eq("id", user.id)
-      .single();
+    // MFA status: verificar tanto profiles.mfa_enabled quanto a existência de credenciais
+    // (profiles.mfa_enabled pode estar desatualizado se a RLS bloqueou o update)
+    let profileMfa = false;
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("mfa_enabled")
+        .eq("id", user.id)
+        .single();
+      profileMfa = profile?.mfa_enabled ?? false;
+    } catch {
+      // Se falhar, determinar pelo estado real das credenciais
+    }
 
     // TOTP
     const { data: totp } = await supabase
@@ -30,8 +37,23 @@ export async function GET() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
+    // MFA está ativo se o perfil diz OU se existem credenciais verificadas
+    const hasVerifiedCredential = !!totp?.verified || (passkeys && passkeys.length > 0);
+    const mfaEnabled = profileMfa || hasVerifiedCredential;
+
+    // Se as credenciais existem mas o perfil não reflete, tentar corrigir
+    if (hasVerifiedCredential && !profileMfa) {
+      supabase
+        .from("profiles")
+        .update({ mfa_enabled: true })
+        .eq("id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("Não conseguiu atualizar mfa_enabled no perfil:", error.message);
+        });
+    }
+
     return NextResponse.json({
-      mfa_enabled: profile?.mfa_enabled ?? false,
+      mfa_enabled: mfaEnabled,
       hasTotp: !!totp?.verified,
       totp_configured: !!totp,
       totp_verified: !!totp?.verified,

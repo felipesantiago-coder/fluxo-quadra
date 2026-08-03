@@ -101,9 +101,8 @@ export function buildRegistrationOptions(
       type: "public-key" as const,
     })),
     authenticatorSelection: {
-      // "cross-platform" permite chaves de segurança USB/NFC, além de plataforma
-      // "platform" restringe a apenas impressão digital/FaceID do dispositivo atual
-      authenticatorAttachment: "cross-platform",
+      // Não especificar authenticatorAttachment para permitir que o navegador
+      // escolha o melhor método disponível (biometria, PIN, chave de segurança)
       userVerification: "preferred",
       residentKey: "preferred",
     },

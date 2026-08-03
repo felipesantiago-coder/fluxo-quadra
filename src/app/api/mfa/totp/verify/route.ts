@@ -76,17 +76,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Atualizar perfil (pode falhar por RLS, mas TOTP já está ativo)
       const { error: updateProfileError } = await supabase
         .from("profiles")
         .update({ mfa_enabled: true })
         .eq("id", user.id);
 
       if (updateProfileError) {
-        console.error("Erro ao atualizar perfil:", updateProfileError.message);
-        return NextResponse.json(
-          { error: "Erro ao atualizar perfil" },
-          { status: 500 }
-        );
+        // RLS pode bloquear o update, mas o TOTP já foi ativado
+        // A API de status detecta a inconsistência e corrige
+        console.warn("Não conseguiu atualizar mfa_enabled no perfil (RLS?):", updateProfileError.message);
       }
 
       return NextResponse.json({
