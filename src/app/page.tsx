@@ -45,11 +45,26 @@ function LoginForm() {
 
         try {
           const supabase = createClient();
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role, mfa_enabled, must_change_password, must_setup_mfa")
-            .eq("id", data.user.id)
-            .maybeSingle();
+
+          // Query resiliente: tenta buscar colunas novas; se falhar (colunas ainda não existem),
+          // faz query apenas com as colunas base
+          let profile: Record<string, unknown> | null = null;
+          try {
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("role, mfa_enabled, must_change_password, must_setup_mfa")
+              .eq("id", data.user.id)
+              .maybeSingle();
+            profile = p as Record<string, unknown> | null;
+          } catch {
+            // Colunas must_change_password / must_setup_mfa ainda não existem
+            const { data: p } = await supabase
+              .from("profiles")
+              .select("role, mfa_enabled")
+              .eq("id", data.user.id)
+              .maybeSingle();
+            profile = p as Record<string, unknown> | null;
+          }
 
           // ── Fluxo de primeiro acesso ──────────────────────
           if (profile?.must_change_password) {

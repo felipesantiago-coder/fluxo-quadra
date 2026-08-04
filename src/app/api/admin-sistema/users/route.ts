@@ -25,13 +25,32 @@ export async function GET() {
     }
 
     // Buscar todos os perfis (admin pode ver todos via RLS)
-    const { data: profiles, error } = await supabase
+    // Query resiliente: tenta com colunas novas primeiro, fallback para colunas base
+    let profiles;
+    let error;
+
+    const { data: dataFull, error: errFull } = await supabase
       .from("profiles")
       .select("id, email, display_name, role, must_change_password, must_setup_mfa, mfa_enabled, created_at")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!errFull) {
+      profiles = dataFull;
+    } else {
+      // Colunas must_change_password / must_setup_mfa ainda não existem
+      const { data: dataBase, error: errBase } = await supabase
+        .from("profiles")
+        .select("id, email, display_name, role, mfa_enabled, created_at")
+        .order("created_at", { ascending: false });
+      if (errBase) {
+        return NextResponse.json({ error: errBase.message }, { status: 500 });
+      }
+      // Adicionar campos padrão para compatibilidade com a interface
+      profiles = (dataBase || []).map((p: Record<string, unknown>) => ({
+        ...p,
+        must_change_password: false,
+        must_setup_mfa: false,
+      }));
     }
 
     return NextResponse.json({ users: profiles || [] });

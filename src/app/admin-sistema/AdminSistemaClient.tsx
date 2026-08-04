@@ -89,7 +89,7 @@ export default function AdminSistemaClient() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [createUserForm, setCreateUserForm] = useState({ email: "", displayName: "", role: "coordenador" as "coordenador" | "admin_sistema" });
+  const [createUserForm, setCreateUserForm] = useState({ email: "", displayName: "", role: "coordenador" as "comum" | "coordenador" | "admin_sistema" });
   const [creatingUser, setCreatingUser] = useState(false);
   const [createdUserPassword, setCreatedUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -640,7 +640,7 @@ export default function AdminSistemaClient() {
                                 ? "bg-amber-100 text-amber-700"
                                 : "bg-gray-100 text-gray-600"
                             }`}>
-                              {u.role === "admin_sistema" ? "Admin" : "Coordenador"}
+                              {u.role === "admin_sistema" ? "Admin" : u.role === "coordenador" ? "Coordenador" : "Comum"}
                             </span>
                           </td>
                           <td className="px-4 py-3">
@@ -888,9 +888,10 @@ export default function AdminSistemaClient() {
                       <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Função</label>
                       <select
                         value={createUserForm.role}
-                        onChange={(e) => setCreateUserForm((f) => ({ ...f, role: e.target.value as "coordenador" | "admin_sistema" }))}
+                        onChange={(e) => setCreateUserForm((f) => ({ ...f, role: e.target.value as "comum" | "coordenador" | "admin_sistema" }))}
                         className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
                       >
+                        <option value="comum">Usuário Comum</option>
                         <option value="coordenador">Coordenador</option>
                         <option value="admin_sistema">Administrador do Sistema</option>
                       </select>

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const { email, displayName, role } = body as {
       email: string;
       displayName?: string;
-      role?: "coordenador" | "admin_sistema";
+      role?: "comum" | "coordenador" | "admin_sistema";
     };
 
     // Validações
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = role || "coordenador";
-    if (!["coordenador", "admin_sistema"].includes(userRole)) {
+    if (!["comum", "coordenador", "admin_sistema"].includes(userRole)) {
       return NextResponse.json(
         { error: "Role inválido" },
         { status: 400 }
