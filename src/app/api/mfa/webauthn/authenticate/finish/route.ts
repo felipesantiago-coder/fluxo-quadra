@@ -60,14 +60,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse publicKey: pode ser JSON (COSEKey) ou string base64
-    let publicKey = cred.public_key;
-    if (typeof publicKey === "string") {
+    // v13 espera publicKey como Uint8Array.
+    // Novos registros: base64 → Uint8Array.
+    // Registros antigos (JSON.stringify de Uint8Array): detectar e converter.
+    let publicKey: Uint8Array;
+    if (typeof cred.public_key === "string") {
+      // Tentar JSON.parse — se resultar em objeto com chaves numéricas, é Uint8Array serializado
       try {
-        publicKey = JSON.parse(publicKey);
+        const parsed = JSON.parse(cred.public_key);
+        if (parsed && typeof parsed === "object" && !ArrayBuffer.isView(parsed)) {
+          // Objeto com chaves numéricas = Uint8Array antigo (JSON.stringify)
+          const bytes = new Uint8Array(Object.keys(parsed).length);
+          for (const k of Object.keys(parsed)) {
+            bytes[Number(k)] = parsed[k];
+          }
+          publicKey = bytes;
+        } else {
+          // É base64 puro
+          publicKey = new Uint8Array(Buffer.from(cred.public_key, "base64"));
+        }
       } catch {
-        // Se não é JSON, manter como string (pode ser base64 de versão anterior)
+        // Não é JSON — tratar como base64
+        publicKey = new Uint8Array(Buffer.from(cred.public_key, "base64"));
       }
+    } else {
+      // Já é Uint8Array (improvável vir do banco, mas cobertura defensiva)
+      publicKey = cred.public_key;
     }
 
     const rpConfig = getRPConfigFromRequest(request);
@@ -79,7 +97,7 @@ export async function POST(request: NextRequest) {
       counter: cred.counter,
     }, rpConfig);
 
-    if (!verification.verificationInfo) {
+    if (!verification.authenticationInfo) {
       return NextResponse.json(
         { error: "Falha na verificação da autenticação" },
         { status: 400 }
@@ -89,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Update the counter to prevent replay attacks
     const { error: updateError } = await supabase
       .from("user_passkeys")
-      .update({ counter: verification.verificationInfo.newCounter })
+      .update({ counter: verification.authenticationInfo.newCounter })
       .eq("user_id", user.id)
       .eq("credential_id", response.id);
 

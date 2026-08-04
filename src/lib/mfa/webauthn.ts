@@ -90,11 +90,10 @@ export async function buildRegistrationOptions(
   existingCredentials: { credentialID: string }[],
   rpConfig?: { rpID: string; rpName: string; origin: string }
 ) {
-  const { rpID, rpName, origin } = rpConfig || getRPConfig();
+  const { rpID, rpName } = rpConfig || getRPConfig();
   return generateRegistrationOptions({
     rpName,
     rpID,
-    origin,
     userName: userEmail,
     userID: new TextEncoder().encode(userId),
     // Na v13, excludeCredentials[].id deve ser string base64url
@@ -194,7 +193,7 @@ export async function verifyAuthentication(
     expectedChallenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
-    authenticator: {
+    credential: {
       id: credential.credentialID,
       publicKey: credential.publicKey,
       counter: credential.counter,

@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
     const regInfo = verification.registrationInfo;
     const cred = regInfo.credential;
 
-    // Salvar publicKey como JSON (v13 retorna COSEKey object)
+    // v13 retorna publicKey como Uint8Array — converter para base64 para armazenamento
     const publicKeyStr = typeof cred.publicKey === "string"
       ? cred.publicKey
-      : JSON.stringify(cred.publicKey);
+      : Buffer.from(cred.publicKey).toString("base64");
 
     // Save the new passkey
     const { error: insertError } = await supabase.from("user_passkeys").insert({

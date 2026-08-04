@@ -201,3 +201,29 @@ Stage Summary:
 - Detecção novo dispositivo: fingerprinting de UA + comparação com histórico
 - Fluxo: login → detecta MFA → cookie mfa_pending → middleware redireciona → /mfa-verify → cookie mfa_verified → libera acesso
 
+---
+Task ID: 2
+Agent: main
+Task: Corrigir MFA: botão acesso para todos os usuários + TOTP inativo + WebAuthn falha
+
+Work Log:
+- Adicionado botão "Segurança" no header de ProjetosClient.tsx (antes apenas em AdminSistemaClient)
+- Corrigido getRPConfig() que crashava com new URL(undefined), substituído por getRPConfigFromRequest(request)
+- Corrigido decodeCredentialID() para usar atob() em vez de Buffer.from(id, 'base64url')
+- Removido authenticatorAttachment: 'cross-platform' para permitir biometria nativa
+- Mudado userVerification de 'required' para 'preferred'
+- Criada migration RLS: profiles_update_own_mfa (UPDATE próprio perfil para qualquer usuário)
+- /api/mfa/status: self-repair quando RLS bloqueia profile update
+- /api/mfa/totp/verify: não falha quando RLS bloqueia (log warning)
+- Corrigido WebAuthn: 'authenticator' → 'credential' na chamada verifyAuthenticationResponse (v13)
+- Corrigido authenticate/finish: 'verificationInfo' → 'authenticationInfo' (v13 API)
+- Corrigido publicKey: salvar como base64 (Uint8Array → Buffer → base64) em vez de JSON.stringify
+- Corrigido authenticate/finish: restaurar publicKey de base64 para Uint8Array (com compatibilidade para formato antigo)
+- Removido 'origin' de generateRegistrationOptions (não aceito na v13)
+
+Stage Summary:
+- TOTP: totalmente funcional (configuração + login)
+- WebAuthn: corrigido para v13 da @simplewebauthn/server (3 bugs de API)
+- RLS: policy adicionada para usuários não-admin atualizarem próprio perfil
+- Migration pendente: supabase/migration-mfa-rls-fix.sql
+
