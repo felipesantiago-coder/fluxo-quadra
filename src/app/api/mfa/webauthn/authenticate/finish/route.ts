@@ -60,12 +60,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Parse publicKey: pode ser JSON (COSEKey) ou string base64
+    let publicKey = cred.public_key;
+    if (typeof publicKey === "string") {
+      try {
+        publicKey = JSON.parse(publicKey);
+      } catch {
+        // Se não é JSON, manter como string (pode ser base64 de versão anterior)
+      }
+    }
+
     const rpConfig = getRPConfigFromRequest(request);
 
-    // Verify the authentication response
-    const verification = verifyAuthentication(response, challenge, {
+    // v13: verifyAuthentication é async
+    const verification = await verifyAuthentication(response, challenge, {
       credentialID: cred.credential_id,
-      publicKey: cred.public_key,
+      publicKey,
       counter: cred.counter,
     }, rpConfig);
 
@@ -96,23 +106,16 @@ export async function POST(request: NextRequest) {
       path: "/",
       maxAge: 86400,
     });
-    // Limpar cookie de pendência MFA
     cookieStore.delete("mfa_pending");
 
-    // Record the login event (fire-and-forget)
+    // Record the login event
     const userAgent = request.headers.get("user-agent");
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "unknown";
 
-    recordLoginEvent({
-      userId: user.id,
-      userAgent,
-      ip,
-    }).catch((err) => {
-      console.error("Erro ao registrar evento de login:", err);
-    });
+    recordLoginEvent({ userId: user.id, userAgent, ip }).catch(() => {});
 
     return NextResponse.json({
       success: true,

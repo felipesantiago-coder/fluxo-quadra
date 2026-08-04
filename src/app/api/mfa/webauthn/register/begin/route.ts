@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
 
     const rpConfig = getRPConfigFromRequest(request);
 
-    const options = buildRegistrationOptions(
+    // v13: buildRegistrationOptions é async
+    const options = await buildRegistrationOptions(
       user.id,
       user.email!,
       (existingPasskeys ?? []).map((p) => ({

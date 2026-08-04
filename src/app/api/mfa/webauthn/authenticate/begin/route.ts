@@ -34,7 +34,8 @@ export async function POST(request: NextRequest) {
 
     const rpConfig = getRPConfigFromRequest(request);
 
-    const options = buildAuthenticationOptions(
+    // v13: buildAuthenticationOptions é async
+    const options = await buildAuthenticationOptions(
       passkeys.map((p) => ({
         credentialID: p.credential_id,
         transports: p.transports as string[] | undefined,

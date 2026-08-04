@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     const rpConfig = getRPConfigFromRequest(request);
 
-    // Verify the registration response
-    const verification = verifyRegistration(response, challenge, rpConfig);
+    // v13: verifyRegistration é async
+    const verification = await verifyRegistration(response, challenge, rpConfig);
 
     if (!verification.registrationInfo) {
       return NextResponse.json(
@@ -55,13 +55,19 @@ export async function POST(request: NextRequest) {
     }
 
     const regInfo = verification.registrationInfo;
+    const cred = regInfo.credential;
+
+    // Salvar publicKey como JSON (v13 retorna COSEKey object)
+    const publicKeyStr = typeof cred.publicKey === "string"
+      ? cred.publicKey
+      : JSON.stringify(cred.publicKey);
 
     // Save the new passkey
     const { error: insertError } = await supabase.from("user_passkeys").insert({
       user_id: user.id,
-      credential_id: regInfo.credentialID,
-      public_key: Buffer.from(regInfo.credentialPublicKey).toString("base64"),
-      counter: regInfo.counter,
+      credential_id: cred.id,
+      public_key: publicKeyStr,
+      counter: cred.counter,
       device_name: deviceName || "Dispositivo sem nome",
       transports: [],
     });
@@ -74,14 +80,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enable MFA on the user profile
+    // Enable MFA on the user profile (não falha se RLS bloquear)
     const { error: profileError } = await supabase
       .from("profiles")
       .update({ mfa_enabled: true })
       .eq("id", user.id);
 
     if (profileError) {
-      console.error("Erro ao atualizar perfil:", profileError.message);
+      console.warn("Não conseguiu atualizar mfa_enabled no perfil:", profileError.message);
     }
 
     return NextResponse.json({

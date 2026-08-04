@@ -7,45 +7,57 @@ import {
 import type {
   VerifiedRegistrationResponse,
   VerifiedAuthenticationResponse,
-  PublicKeyCredentialDescriptor,
 } from "@simplewebauthn/server";
 
 /**
  * Extrai rpID e origin de forma segura a partir do request HTTP.
- * Funciona em qualquer ambiente (localhost, IP, domínio) sem depender de env vars.
+ * Usa o header Origin (enviado pelo navegador em POST) quando disponível,
+ * pois é a fonte mais confiável do origin real.
  */
 export function getRPConfigFromRequest(request: Request) {
-  // Em produção AWS Lambda, o Caddy faz reverse proxy → usamos x-forwarded-* headers
+  // 1. Origin header: o navegador envia em toda requisição cross-origin e same-site POST
+  //    Este é o valor exato que o navegador inclui no clientDataJSON do WebAuthn
+  const originHeader = request.headers.get("origin");
+  if (originHeader) {
+    try {
+      const url = new URL(originHeader);
+      return {
+        rpID: url.hostname === "localhost" ? "localhost" : url.hostname,
+        rpName: process.env.WEBAUTHN_RP_NAME || "Fluxo Quadra",
+        origin: originHeader,
+      };
+    } catch {
+      // fall through
+    }
+  }
+
+  // 2. Fallback: x-forwarded-* headers (Caddy/proxy)
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  
-  // Fallback para Host header direto (funciona em localhost)
   const host = forwardedHost || request.headers.get("host") || "localhost:3000";
-  
-  // Remover porta para o rpID (WebAuthn não usa porta)
   const hostname = host.split(":")[0];
-  
-  // Construir origin completo (com porta se não for padrão)
+
   let origin: string;
   if (host.includes(":")) {
     const port = host.split(":")[1];
-    const isDefault = (forwardedProto === "https" && port === "443") || (forwardedProto === "http" && port === "80");
-    origin = isDefault ? `${forwardedProto}://${hostname}` : `${forwardedProto}://${host}`;
+    const isDefault =
+      (forwardedProto === "https" && port === "443") ||
+      (forwardedProto === "http" && port === "80");
+    origin = isDefault
+      ? `${forwardedProto}://${hostname}`
+      : `${forwardedProto}://${host}`;
   } else {
     origin = `${forwardedProto}://${hostname}`;
   }
-  
-  // rpID: para localhost, usar "localhost"; senão usar o hostname
-  const rpID = hostname === "localhost" ? "localhost" : hostname;
-  
+
   return {
-    rpID,
+    rpID: hostname === "localhost" ? "localhost" : hostname,
     rpName: process.env.WEBAUTHN_RP_NAME || "Fluxo Quadra",
     origin,
   };
 }
 
-// Fallback para compatibilidade (APIs que ainda não recebem request)
+// Fallback para compatibilidade
 export function getRPConfig() {
   const origin = process.env.NEXT_PUBLIC_APP_URL || "";
   if (origin) {
@@ -57,10 +69,9 @@ export function getRPConfig() {
         origin: process.env.WEBAUTHN_ORIGIN || origin,
       };
     } catch {
-      // Fall through
+      // fall through
     }
   }
-  // Fallback seguro para quando não há env var — as rotas devem usar getRPConfigFromRequest
   return {
     rpID: "localhost",
     rpName: "Fluxo Quadra",
@@ -69,20 +80,11 @@ export function getRPConfig() {
 }
 
 /**
- * Decodifica um credential ID (base64url ou base64) para Uint8Array.
- */
-function decodeCredentialID(credentialID: string): Uint8Array {
-  // WebAuthn usa base64url sem padding
-  let base64 = credentialID.replace(/-/g, "+").replace(/_/g, "/");
-  // Adicionar padding se necessário
-  while (base64.length % 4 !== 0) base64 += "=";
-  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-}
-
-/**
  * Gera opções de registro WebAuthn para um novo passkey.
+ * NOTA: Na v13 do @simplewebauthn, generateRegistrationOptions é async
+ * e excludeCredentials[].id deve ser string base64url.
  */
-export function buildRegistrationOptions(
+export async function buildRegistrationOptions(
   userId: string,
   userEmail: string,
   existingCredentials: { credentialID: string }[],
@@ -95,14 +97,12 @@ export function buildRegistrationOptions(
     origin,
     userName: userEmail,
     userID: new TextEncoder().encode(userId),
-    // Excluir credenciais já registradas
+    // Na v13, excludeCredentials[].id deve ser string base64url
     excludeCredentials: existingCredentials.map((c) => ({
-      id: decodeCredentialID(c.credentialID),
+      id: c.credentialID,
       type: "public-key" as const,
     })),
     authenticatorSelection: {
-      // Não especificar authenticatorAttachment para permitir que o navegador
-      // escolha o melhor método disponível (biometria, PIN, chave de segurança)
       userVerification: "preferred",
       residentKey: "preferred",
     },
@@ -111,9 +111,10 @@ export function buildRegistrationOptions(
 }
 
 /**
- * Verifica a resposta de registro do navegador e retorna os dados prontos para salvar.
+ * Verifica a resposta de registro do navegador.
+ * Na v13, verifyRegistrationResponse é async.
  */
-export function verifyRegistration(
+export async function verifyRegistration(
   registrationResponse: {
     id: string;
     rawId: string;
@@ -125,7 +126,7 @@ export function verifyRegistration(
   },
   expectedChallenge: string,
   rpConfig?: { rpID: string; origin: string }
-): VerifiedRegistrationResponse {
+): Promise<VerifiedRegistrationResponse> {
   const { rpID, origin } = rpConfig || getRPConfig();
   return verifyRegistrationResponse({
     response: registrationResponse as any,
@@ -138,16 +139,18 @@ export function verifyRegistration(
 
 /**
  * Gera opções de autenticação WebAuthn (challenge para login).
+ * Na v13, generateAuthenticationOptions é async.
  */
-export function buildAuthOptions(
+export async function buildAuthOptions(
   credentials: { credentialID: string; transports?: string[] }[],
   rpConfig?: { rpID: string; origin: string }
 ) {
-  const { rpID, origin } = rpConfig || getRPConfig();
+  const { rpID } = rpConfig || getRPConfig();
   return generateAuthenticationOptions({
     rpID,
+    // Na v13, allowCredentials[].id deve ser string base64url
     allowCredentials: credentials.map((c) => ({
-      id: decodeCredentialID(c.credentialID),
+      id: c.credentialID,
       type: "public-key" as const,
       transports: (c.transports as any[]) || undefined,
     })),
@@ -161,8 +164,12 @@ export const buildAuthenticationOptions = buildAuthOptions;
 
 /**
  * Verifica a resposta de autenticação do navegador.
+ * Na v13:
+ *   - verifyAuthenticationResponse é async
+ *   - credential.id é string base64url
+ *   - credential.publicKey é COSEKey object (da v13 verifyRegistration)
  */
-export function verifyAuthentication(
+export async function verifyAuthentication(
   authenticationResponse: {
     id: string;
     rawId: string;
@@ -176,11 +183,11 @@ export function verifyAuthentication(
   expectedChallenge: string,
   credential: {
     credentialID: string;
-    publicKey: string;
+    publicKey: any;
     counter: number;
   },
   rpConfig?: { rpID: string; origin: string }
-): VerifiedAuthenticationResponse {
+): Promise<VerifiedAuthenticationResponse> {
   const { rpID, origin } = rpConfig || getRPConfig();
   return verifyAuthenticationResponse({
     response: authenticationResponse as any,
@@ -188,8 +195,8 @@ export function verifyAuthentication(
     expectedOrigin: origin,
     expectedRPID: rpID,
     authenticator: {
-      credentialID: decodeCredentialID(credential.credentialID),
-      publicKey: Uint8Array.from(atob(credential.publicKey), (c) => c.charCodeAt(0)),
+      id: credential.credentialID,
+      publicKey: credential.publicKey,
       counter: credential.counter,
     },
     requireUserVerification: false,
@@ -198,7 +205,7 @@ export function verifyAuthentication(
 
 // ─── Store em memória para challenges (TTL de 5 min) ───
 const challengeStore = new Map<string, { challenge: string; expires: number }>();
-const CHALLENGE_TTL = 5 * 60 * 1000; // 5 minutos
+const CHALLENGE_TTL = 5 * 60 * 1000;
 
 function cleanupChallenges() {
   const now = Date.now();

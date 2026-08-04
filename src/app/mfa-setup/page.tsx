@@ -126,10 +126,13 @@ export default function MfaSetupPage() {
         setWebauthnError(d.error || "Falha no registro");
       }
     } catch (err: any) {
+      console.error('WebAuthn register error:', err);
       if (err?.name === "NotAllowedError") {
         setWebauthnError("Operação cancelada ou biometria não disponível neste navegador.");
+      } else if (err?.name === "SecurityError") {
+        setWebauthnError("WebAuthn requer conexão segura (HTTPS). Verifique se o site usa HTTPS.");
       } else {
-        setWebauthnError("Erro ao registrar passkey. Tente novamente.");
+        setWebauthnError(err?.message || "Erro ao registrar passkey. Tente novamente.");
       }
     } finally { setWebauthnLoading(false); }
   };
