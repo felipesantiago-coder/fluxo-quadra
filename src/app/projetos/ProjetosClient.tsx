@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Building2, ArrowRight, LogOut, MapPin, Shield } from "lucide-react";
+import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Region = string;
@@ -45,6 +45,11 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
   const [projects, setProjects] = useState<EmpreendimentoDB[]>([]);
 
+  // MFA banner state
+  const [showMfaBanner, setShowMfaBanner] = useState(false);
+  const [mfaBannerExpanded, setMfaBannerExpanded] = useState(false);
+  const [mfaChecked, setMfaChecked] = useState(false);
+
   // Buscar todos os empreendimentos do banco
   useEffect(() => {
     async function fetchEmpreendimentos() {
@@ -75,6 +80,42 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
     await createClient().auth.signOut();
     router.push("/");
     router.refresh();
+  };
+
+  // Verificar se o usuário tem MFA configurado
+  useEffect(() => {
+    async function checkMfa() {
+      // Verificar se o usuário já dispensou o aviso recentemente (7 dias)
+      const dismissed = localStorage.getItem("mfa_banner_dismissed");
+      if (dismissed) {
+        const dismissedAt = new Date(dismissed).getTime();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - dismissedAt < sevenDays) {
+          setMfaChecked(true);
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch("/api/mfa/status");
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.mfa_enabled) {
+            setShowMfaBanner(true);
+          }
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setMfaChecked(true);
+      }
+    }
+    checkMfa();
+  }, []);
+
+  const dismissMfaBanner = () => {
+    setShowMfaBanner(false);
+    localStorage.setItem("mfa_banner_dismissed", new Date().toISOString());
   };
 
   const isAdminSistema = userRole === "admin_sistema";
@@ -124,6 +165,106 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
           </div>
         </div>
       </header>
+
+      {/* MFA Security Banner */}
+      {showMfaBanner && mfaChecked && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="border-b border-amber-200 bg-gradient-to-r from-amber-50 via-amber-50/80 to-orange-50/60"
+        >
+          <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-3">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldAlert className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Proteja sua conta com autenticação em duas etapas
+                    </p>
+                    <button
+                      onClick={dismissMfaBanner}
+                      className="p-1 text-amber-400 hover:text-amber-600 rounded-lg hover:bg-amber-100/60 transition-colors shrink-0"
+                      title="Dispensar aviso"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-amber-700/80 mt-0.5">
+                    Sua conta ainda não possui segurança adicional. Configure agora em poucos passos.
+                  </p>
+
+                  {/* Tutorial expandido */}
+                  {mfaBannerExpanded && (
+                    <div className="mt-3 space-y-2.5">
+                      <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
+                        <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800">Acesse as configurações de segurança</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            Clique no botão <span className="font-semibold text-gray-700">"Segurança"</span> no canto superior direito desta página.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
+                        <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800">Escolha seu método preferido</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            <span className="inline-flex items-center gap-1 font-medium text-gray-600"><QrCode className="w-3 h-3" /> App Autenticador</span> — escaneie o QR Code com Google Authenticator ou Authy. Ou
+                            <span className="inline-flex items-center gap-1 font-medium text-gray-600 ml-1"><Fingerprint className="w-3 h-3" /> Biometria</span> — use impressão digital ou Face ID do celular.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
+                        <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</div>
+                        <div>
+                          <p className="text-xs font-semibold text-gray-800">Confirme e pronto!</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            Para o app autenticador, digite o código de 6 dígitos. Para biometria, basta confirmar na tela. Após isso, seu login estará protegido.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <a
+                          href="/mfa-setup"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors shadow-sm"
+                        >
+                          <Shield className="w-4 h-4" />
+                          Configurar agora
+                        </a>
+                        <button
+                          onClick={dismissMfaBanner}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium text-amber-700 hover:bg-amber-100/60 transition-colors"
+                        >
+                          Talvez depois
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Botão expandir/recolher */}
+                  {!mfaBannerExpanded && (
+                    <button
+                      onClick={() => setMfaBannerExpanded(true)}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900 transition-colors"
+                    >
+                      Como configurar?
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main content */}
       <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-8 sm:py-12">
