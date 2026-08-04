@@ -25,7 +25,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. Garantir que o admin pode ver e atualizar perfis de outros usuários
 -- (a policy profiles_admin_sistema_full já existe e cobre ALL, mas garantir)
-CREATE POLICY IF NOT EXISTS "profiles_admin_sistema_full" ON public.profiles
+DO $$ BEGIN
+  DROP POLICY IF EXISTS "profiles_admin_sistema_full" ON public.profiles;
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+
+CREATE POLICY "profiles_admin_sistema_full" ON public.profiles
   FOR ALL USING (
     EXISTS (
       SELECT 1 FROM public.profiles
