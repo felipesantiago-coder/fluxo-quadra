@@ -18,9 +18,27 @@ import {
   AlertCircle,
   Loader2,
   Shield,
+  Users,
+  UserPlus,
+  Copy,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+
+type AdminTab = "empreendimentos" | "usuarios";
+
+interface UserProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  role: string;
+  must_change_password: boolean;
+  must_setup_mfa: boolean;
+  mfa_enabled: boolean;
+  created_at: string;
+}
 
 interface Empreendimento {
   id: string;
@@ -64,6 +82,18 @@ export default function AdminSistemaClient() {
   const [uploadingExcel, setUploadingExcel] = useState<Record<string, boolean>>({});
   const [migrating, setMigrating] = useState(false);
 
+  // Tab
+  const [activeTab, setActiveTab] = useState<AdminTab>("empreendimentos");
+
+  // Usuários
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({ email: "", displayName: "", role: "coordenador" as "coordenador" | "admin_sistema" });
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createdUserPassword, setCreatedUserPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -101,10 +131,28 @@ export default function AdminSistemaClient() {
     }
   }, [addToast]);
 
+  // ─── Fetch usuários ──────────────────────────────────────────────
+  const fetchUsers = useCallback(async () => {
+    try {
+      setUsersLoading(true);
+      const res = await fetch("/api/admin-sistema/users");
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setUsers(json.users || []);
+    } catch {
+      addToast("error", "Erro ao carregar usuários");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [addToast]);
+
   useEffect(() => {
-    // Primeiro migra os projetos legacy, depois busca todos
-    migrateLegacy().then(() => fetchEmpreendimentos());
-  }, [migrateLegacy, fetchEmpreendimentos]);
+    if (activeTab === "empreendimentos") {
+      migrateLegacy().then(() => fetchEmpreendimentos());
+    } else {
+      fetchUsers();
+    }
+  }, [activeTab, migrateLegacy, fetchEmpreendimentos, fetchUsers]);
 
   // ─── Create empreendimento ─────────────────────────────────────────────────
   const handleCreate = async () => {
@@ -307,6 +355,34 @@ export default function AdminSistemaClient() {
 
       {/* ── Main ───────────────────────────────────────────────────────── */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab("empreendimentos")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === "empreendimentos"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            Empreendimentos
+          </button>
+          <button
+            onClick={() => setActiveTab("usuarios")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === "usuarios"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Usuários
+          </button>
+        </div>
+
+        {/* ═══ TAB: Empreendimentos ═══ */}
+        {activeTab === "empreendimentos" && (<>
         {/* Title + action */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -491,6 +567,128 @@ export default function AdminSistemaClient() {
             </AnimatePresence>
           </div>
         )}
+        </>)}
+
+        {/* ═══ TAB: Usuários ═══ */}
+        {activeTab === "usuarios" && (
+          <div className="space-y-6">
+            {/* Title + action */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Usuários</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {usersLoading ? "Carregando..." : `${users.length} usuário${users.length !== 1 ? "s" : ""} cadastrado${users.length !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+              <Button
+                onClick={() => { setShowCreateUserModal(true); setCreatedUserPassword(""); setCreateUserForm({ email: "", displayName: "", role: "coordenador" }); }}
+                className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
+              >
+                <UserPlus className="w-4 h-4" />
+                Novo Usuário
+              </Button>
+            </div>
+
+            {/* Loading */}
+            {usersLoading && (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white rounded-xl p-4 border border-gray-100 animate-pulse">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-48" />
+                        <div className="h-3 bg-gray-100 rounded w-32" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Users table */}
+            {!usersLoading && users.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/50">
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Role</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Segurança</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Criado em</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {users.map((u) => (
+                        <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500">
+                                {(u.display_name || u.email)[0].toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-gray-900 truncate">{u.display_name || u.email.split("@")[0]}</p>
+                                <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              u.role === "admin_sistema"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {u.role === "admin_sistema" ? "Admin" : "Coordenador"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-1.5">
+                              {u.mfa_enabled ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                  <Shield className="w-3 h-3" /> 2FA
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                                  Sem 2FA
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className="text-xs text-gray-500">
+                              {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {u.must_change_password ? (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Trocar senha</span>
+                            ) : u.must_setup_mfa ? (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Configurar 2FA</span>
+                            ) : (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ativo</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {!usersLoading && users.length === 0 && (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-5">
+                  <Users className="w-8 h-8 text-gray-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-400">Nenhum usuário</h3>
+                <p className="text-sm text-gray-300 mt-1.5">Clique em "Novo Usuário" para começar</p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
@@ -502,7 +700,7 @@ export default function AdminSistemaClient() {
         </div>
       </footer>
 
-      {/* ── Create Modal ───────────────────────────────────────────────── */}
+      {/* ── Create Empreendimento Modal ─────────────────────────────────── */}
       <AnimatePresence>
         {showCreateModal && (
           <motion.div
@@ -521,7 +719,6 @@ export default function AdminSistemaClient() {
               className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center">
@@ -532,84 +729,28 @@ export default function AdminSistemaClient() {
                     <p className="text-xs text-gray-400">Preencha os campos abaixo</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                >
+                <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Modal body */}
               <div className="px-6 py-5 space-y-4">
-                {/* Nome */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Nome <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.nome}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: Quattre Istambul"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Nome <span className="text-red-400">*</span></label>
+                  <input type="text" value={createForm.nome} onChange={(e) => setCreateForm((prev) => ({ ...prev, nome: e.target.value }))} placeholder="Ex: Quattre Istambul" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400" />
                 </div>
-
-                {/* Região */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Região <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.regiao}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, regiao: e.target.value }))}
-                    placeholder="Ex: Sobradinho, DF"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Região <span className="text-red-400">*</span></label>
+                  <input type="text" value={createForm.regiao} onChange={(e) => setCreateForm((prev) => ({ ...prev, regiao: e.target.value }))} placeholder="Ex: Sobradinho, DF" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400" />
                 </div>
-
-                {/* Descrição */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Descrição
-                  </label>
-                  <input
-                    type="text"
-                    value={createForm.descricao}
-                    onChange={(e) => setCreateForm((prev) => ({ ...prev, descricao: e.target.value }))}
-                    placeholder="Breve descrição do empreendimento (opcional)"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Descrição</label>
+                  <input type="text" value={createForm.descricao} onChange={(e) => setCreateForm((prev) => ({ ...prev, descricao: e.target.value }))} placeholder="Breve descrição (opcional)" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 placeholder:text-gray-400" />
                 </div>
               </div>
-
-              {/* Modal footer */}
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={creating}
-                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={creating || !createForm.nome.trim() || !createForm.regiao.trim()}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {creating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Criando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Criar Empreendimento
-                    </>
-                  )}
+                <button onClick={() => setShowCreateModal(false)} disabled={creating} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50">Cancelar</button>
+                <button onClick={handleCreate} disabled={creating || !createForm.nome.trim() || !createForm.regiao.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  {creating ? (<><Loader2 className="w-4 h-4 animate-spin" /> Criando...</>) : (<><Check className="w-4 h-4" /> Criar Empreendimento</>)}
                 </button>
               </div>
             </motion.div>
@@ -681,6 +822,173 @@ export default function AdminSistemaClient() {
                     </>
                   )}
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Create User Modal ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showCreateUserModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setShowCreateUserModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900">Novo Usuário</h3>
+                </div>
+                <button onClick={() => setShowCreateUserModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4">
+                {!createdUserPassword ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">E-mail</label>
+                      <input
+                        type="email"
+                        value={createUserForm.email}
+                        onChange={(e) => setCreateUserForm((f) => ({ ...f, email: e.target.value }))}
+                        placeholder="usuario@email.com"
+                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Nome de exibição (opcional)</label>
+                      <input
+                        type="text"
+                        value={createUserForm.displayName}
+                        onChange={(e) => setCreateUserForm((f) => ({ ...f, displayName: e.target.value }))}
+                        placeholder="Nome do usuário"
+                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Função</label>
+                      <select
+                        value={createUserForm.role}
+                        onChange={(e) => setCreateUserForm((f) => ({ ...f, role: e.target.value as "coordenador" | "admin_sistema" }))}
+                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+                      >
+                        <option value="coordenador">Coordenador</option>
+                        <option value="admin_sistema">Administrador do Sistema</option>
+                      </select>
+                    </div>
+                    <p className="text-xs text-gray-500 bg-blue-50 p-3 rounded-xl border border-blue-100">
+                      Uma senha temporária será gerada automaticamente. O usuário deverá definiu sua própria senha no primeiro acesso, além de configurar a autenticação em duas etapas.
+                    </p>
+                  </>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto">
+                      <Check className="w-7 h-7 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">Usuário criado com sucesso!</h4>
+                      <p className="text-xs text-gray-500 mt-1">Compartilhe a senha temporária com o usuário:</p>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-gray-900 rounded-xl justify-center">
+                      <code className={`text-white font-mono text-lg tracking-wider ${showPassword ? "" : "blur-sm select-none"}`}>
+                        {createdUserPassword}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { navigator.clipboard.writeText(createdUserPassword); addToast("success", "Senha copiada!"); }}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-amber-600 font-medium">
+                      Esta senha será exibida apenas uma vez.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
+                {createdUserPassword ? (
+                  <button
+                    onClick={() => { setShowCreateUserModal(false); fetchUsers(); }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md"
+                  >
+                    Concluir
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setShowCreateUserModal(false)}
+                      disabled={creatingUser}
+                      className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!createUserForm.email.includes("@")) {
+                          addToast("error", "E-mail inválido");
+                          return;
+                        }
+                        setCreatingUser(true);
+                        try {
+                          const res = await fetch("/api/admin-sistema/users/create", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              email: createUserForm.email,
+                              displayName: createUserForm.displayName || undefined,
+                              role: createUserForm.role,
+                            }),
+                          });
+                          if (!res.ok) {
+                            const json = await res.json();
+                            throw new Error(json.error || "Erro ao criar usuário");
+                          }
+                          const json = await res.json();
+                          setCreatedUserPassword(json.user.tempPassword);
+                          addToast("success", `Usuário ${createUserForm.email} criado!`);
+                        } catch (err) {
+                          addToast("error", (err as Error).message);
+                        } finally {
+                          setCreatingUser(false);
+                        }
+                      }}
+                      disabled={creatingUser || !createUserForm.email.includes("@")}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creatingUser ? <><Loader2 className="w-4 h-4 animate-spin" /> Criando...</> : <><Check className="w-4 h-4" /> Criar Usuário</>}
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>

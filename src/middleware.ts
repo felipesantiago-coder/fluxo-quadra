@@ -10,6 +10,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Rotas públicas ou auto-gerenciadas (nunca interceptar)
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname === "/change-password" ||
+    pathname === "/mfa-onboarding" ||
+    pathname === "/mfa-verify" ||
+    pathname === "/mfa-setup";
+
+  const isApiRoute = pathname.startsWith("/api/");
+
+  if (isPublicRoute || isApiRoute) {
+    return NextResponse.next({ request });
+  }
+
   // Rotas protegidas
   const isProtectedRoute =
     pathname.startsWith("/admin") ||
@@ -21,11 +35,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/projetos" ||
     pathname === "/vitta";
 
-  // Rotas que NÃO devem ser interceptadas (são públicas ou auto-gerenciadas)
-  const isMfaRoute = pathname === "/mfa-verify" || pathname === "/mfa-setup";
-  const isApiRoute = pathname.startsWith("/api/");
-
-  if (!isProtectedRoute || isMfaRoute || isApiRoute) {
+  if (!isProtectedRoute) {
     return NextResponse.next({ request });
   }
 
@@ -44,12 +54,30 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 2. Verificar MFA: se cookie mfa_pending existe, o usuário precisa verificar
+    // 2. Fluxo de primeiro acesso — verificar cookie first_login_step
+    const firstLoginStep = allCookies.find((c) => c.name === "first_login_step");
+
+    if (firstLoginStep) {
+      const step = firstLoginStep.value;
+
+      if (step === "change_password" && pathname !== "/change-password") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/change-password";
+        return NextResponse.redirect(url);
+      }
+
+      if (step === "setup_mfa" && pathname !== "/mfa-onboarding") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/mfa-onboarding";
+        return NextResponse.redirect(url);
+      }
+    }
+
+    // 3. Verificar MFA: se cookie mfa_pending existe, o usuário precisa verificar
     const mfaPending = allCookies.some((c) => c.name === "mfa_pending");
     const mfaVerified = allCookies.some((c) => c.name === "mfa_verified");
 
     if (mfaPending && !mfaVerified) {
-      // Redirecionar para verificação MFA, preservando a URL original
       const url = request.nextUrl.clone();
       url.pathname = "/mfa-verify";
       url.searchParams.set("redirect", pathname);
@@ -73,5 +101,7 @@ export const config = {
     "/projetos",
     "/vitta",
     "/mfa-setup",
+    "/change-password",
+    "/mfa-onboarding",
   ],
 };

@@ -42,18 +42,31 @@ function LoginForm() {
 
       if (data.user) {
         const isAdminEmail = data.user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
-        const redirectPath = isAdminEmail ? "/admin-sistema" : "/projetos";
 
-        // Verificar role do usuário e MFA
         try {
           const supabase = createClient();
-          const { data: profile, error: profileError } = await supabase
+          const { data: profile } = await supabase
             .from("profiles")
-            .select("role, mfa_enabled")
+            .select("role, mfa_enabled, must_change_password, must_setup_mfa")
             .eq("id", data.user.id)
             .maybeSingle();
 
-          // Verificar se tem TOTP verificado ou passkeys
+          // ── Fluxo de primeiro acesso ──────────────────────
+          if (profile?.must_change_password) {
+            document.cookie = "first_login_step=change_password; path=/; max-age=3600; SameSite=Lax";
+            router.push("/change-password");
+            router.refresh();
+            return;
+          }
+
+          if (profile?.must_setup_mfa) {
+            document.cookie = "first_login_step=setup_mfa; path=/; max-age=3600; SameSite=Lax";
+            router.push("/mfa-onboarding");
+            router.refresh();
+            return;
+          }
+
+          // ── Verificar MFA ────────────────────────────────
           let hasMfa = profile?.mfa_enabled ?? false;
           if (!hasMfa) {
             const { data: totp } = await supabase
@@ -74,20 +87,18 @@ function LoginForm() {
 
           // Determinar redirect baseado no role
           const finalRedirect =
-            (!profileError && profile?.role === "admin_sistema") || isAdminEmail
+            (!profile && isAdminEmail) || profile?.role === "admin_sistema"
               ? "/admin-sistema"
               : "/projetos";
 
           if (hasMfa) {
-            // Redirecionar para verificação MFA
-            // Define cookie mfa_pending para o middleware interceptar futuras requisições
             document.cookie = "mfa_pending=1; path=/; max-age=300; SameSite=Lax";
             router.push(`/mfa-verify?redirect=${encodeURIComponent(finalRedirect)}`);
           } else {
             router.push(finalRedirect);
           }
         } catch {
-          // Em caso de erro, seguir sem MFA
+          const redirectPath = isAdminEmail ? "/admin-sistema" : "/projetos";
           router.push(redirectPath);
         }
         router.refresh();
