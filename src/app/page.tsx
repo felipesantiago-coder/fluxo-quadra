@@ -48,6 +48,7 @@ function LoginForm() {
 
           // Query resiliente: o Supabase client NÃO lança exceção quando colunas não existem,
           // ele retorna { data: null, error: {...} }. Verificamos pelo error object.
+          // Estratégia: tenta query completa → fallback com apenas 'role' (sempre existe)
           let profile: Record<string, unknown> | null = null;
 
           const { data: pFull, error: errFull } = await supabase
@@ -59,13 +60,14 @@ function LoginForm() {
           if (!errFull && pFull) {
             profile = pFull as Record<string, unknown> | null;
           } else {
-            // Colunas must_change_password / must_setup_mfa ainda não existem, fallback
-            const { data: pBase } = await supabase
+            // Algumas colunas ainda não existem (mfa_enabled, must_change_password, must_setup_mfa)
+            // Fallback: buscar apenas 'role' que sempre existe no schema base
+            const { data: pBase, error: errBase } = await supabase
               .from("profiles")
-              .select("role, mfa_enabled")
+              .select("role")
               .eq("id", data.user.id)
               .maybeSingle();
-            profile = pBase as Record<string, unknown> | null;
+            if (!errBase) profile = pBase as Record<string, unknown> | null;
           }
 
           // ── Fluxo de primeiro acesso ──────────────────────
