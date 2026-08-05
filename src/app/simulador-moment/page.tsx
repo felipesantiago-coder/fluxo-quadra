@@ -155,7 +155,7 @@ function SimulatorContent() {
     const deliveryDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH, 1));
     let totalMonths = monthsBetween(dpDate, deliveryDate);
     totalMonths = Math.max(0, totalMonths);
-    const maxMonthlyInstallments = totalMonths;
+    const maxMonthlyInstallments = totalMonths + 1; // Incluir o mês da entrega
     const maxSemesterInstallments = Math.floor(totalMonths / 6);
     const DECORATION_INSTALLMENTS = 10;
     const decorationInstallmentValue = DECORATION_FEE / DECORATION_INSTALLMENTS;
@@ -175,7 +175,7 @@ function SimulatorContent() {
     const monthlyRows: InstallmentRow[] = [];
     const semesterRows: InstallmentRow[] = [];
 
-    for (let month = 1; month <= totalMonths; month++) {
+    for (let month = 1; month <= maxMonthlyInstallments; month++) {
       if (month <= maxMonthlyInstallments) {
         saldo -= monthlyVal;
         monthlyPaid += monthlyVal;
