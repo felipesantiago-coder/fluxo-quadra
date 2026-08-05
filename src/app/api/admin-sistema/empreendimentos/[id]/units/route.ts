@@ -9,7 +9,8 @@ async function getUserAndRole() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }), user: null, role: null };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile, error: profileErr } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  // Se profile não existe ou query falhou, role fica null (acesso negado via caller)
   return { supabase, error: null, user, role: profile?.role || null };
 }
 

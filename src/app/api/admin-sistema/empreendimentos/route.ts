@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminSistema } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
-
-async function requireAdminSistema() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }), user: null };
-
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || profile.role !== "admin_sistema") {
-    return { supabase, error: NextResponse.json({ error: "Acesso restrito ao administrador do sistema" }, { status: 403 }), user: null };
-  }
-  return { supabase, error: null, user };
-}
 
 export async function GET() {
   try {
@@ -54,7 +40,7 @@ function generateSlug(nome: string): string {
   return nome
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 }

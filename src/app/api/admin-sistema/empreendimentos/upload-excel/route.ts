@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireAdminSistema } from "@/lib/admin-auth";
 import * as XLSX from "xlsx";
 
 export const dynamic = "force-dynamic";
-
-async function requireAdminSistema() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }) };
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || profile.role !== "admin_sistema") {
-    return { supabase, error: NextResponse.json({ error: "Acesso restrito" }, { status: 403 }) };
-  }
-  return { supabase, error: null };
-}
 
 // ─── Normalização de colunas ───────────────────────────────────────────────────
 // Converte um cabeçalho Excel para uma chave normalizada usada no COLUMN_MAP.

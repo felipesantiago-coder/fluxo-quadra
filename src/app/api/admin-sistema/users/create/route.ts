@@ -1,30 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminSistema } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateTempPassword, validatePassword } from "@/lib/password-validation";
+import { generateTempPassword } from "@/lib/password-validation";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar se o solicitante é admin_sistema
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.role !== "admin_sistema") {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-    }
+    const { error } = await requireAdminSistema();
+    if (error) return error;
 
     const body = await request.json();
     const { email, displayName, role } = body as {
