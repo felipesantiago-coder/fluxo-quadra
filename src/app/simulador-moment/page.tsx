@@ -16,7 +16,7 @@ import {
 // ─── Constants ───
 const DELIVERY_YEAR = 2028;
 const DELIVERY_MONTH = 1;
-const DECORATION_FEE = 19505.00;
+const DECORATION_FEE = 20065.00;
 
 // ─── Utility Functions ───
 function formatBRL(value: number): string {
@@ -155,7 +155,7 @@ function SimulatorContent() {
     const deliveryDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH, 1));
     let totalMonths = monthsBetween(dpDate, deliveryDate);
     totalMonths = Math.max(0, totalMonths);
-    const maxMonthlyInstallments = totalMonths + 1; // Incluir o mês da entrega
+    const maxMonthlyInstallments = totalMonths;
     const maxSemesterInstallments = Math.floor(totalMonths / 6);
     const DECORATION_INSTALLMENTS = 10;
     const decorationInstallmentValue = DECORATION_FEE / DECORATION_INSTALLMENTS;
