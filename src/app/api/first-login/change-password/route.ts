@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 import { validatePassword } from "@/lib/password-validation";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Atualizar senha do usuário logado
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error: updateError } = await supabase.auth.updateUser({
       password: newPassword,
     });
