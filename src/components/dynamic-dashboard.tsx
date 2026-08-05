@@ -886,7 +886,7 @@ export default function DynamicDashboard({
   // ─── Auto-detect which filters to show ───
   const showTipologiaFilter = availableTipologias.length > 1;
   const showSolarFilter = availableSolarPosicoes.length > 1;
-  const showBlocoFilter = availableBlocos.length > 1;
+  const showBlocoFilter = availableBlocos.length >= 1;
   const showAndarFilter = availableAndares.length > 1;
 
   // ─── Filter & sort ───
