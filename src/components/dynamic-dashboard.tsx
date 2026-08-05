@@ -15,6 +15,7 @@ import {
   LogOut,
   Sun,
   BedDouble,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ interface DynamicDashboardProps {
   empreendimentoNome: string;
   isAdmin: boolean;
   hideHeader?: boolean;
+  simuladorUrl?: string;
 }
 
 // ─── Color palette ───
@@ -387,10 +389,12 @@ function ExpandedCard({
   unit,
   onClose,
   empreendimentoNome,
+  simuladorUrl,
 }: {
   unit: ProjetoUnit;
   onClose: () => void;
   empreendimentoNome: string;
+  simuladorUrl?: string;
 }) {
   const colors = getTipologiaColor(unit.tipologia || "Padrão");
   const status = getStatusColor(unit.status);
@@ -619,6 +623,22 @@ function ExpandedCard({
               </div>
             )}
           </div>
+
+          {/* Simular button */}
+          {simuladorUrl && (
+            <a
+              href={`${simuladorUrl}?valor=${unit.valor_venda || 0}&unidade=${unit.unidade}&area=${unit.area_str || unit.area || ""}&andar=${unit.andar ?? ""}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (!unit.valor_venda) { e.preventDefault(); return; }
+              }}
+              className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valor_venda ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+            >
+              <Calculator className="w-4 h-4" />
+              Simular Financiamento
+            </a>
+          )}
         </div>
       </motion.div>
     </motion.div>
@@ -820,6 +840,7 @@ export default function DynamicDashboard({
   empreendimentoNome,
   isAdmin,
   hideHeader = false,
+  simuladorUrl,
 }: DynamicDashboardProps) {
   const router = useRouter();
   const [units, setUnits] = useState<ProjetoUnit[]>([]);
@@ -1442,6 +1463,7 @@ export default function DynamicDashboard({
             unit={selectedUnit}
             onClose={handleCloseExpanded}
             empreendimentoNome={empreendimentoNome}
+            simuladorUrl={simuladorUrl}
           />
         )}
       </AnimatePresence>

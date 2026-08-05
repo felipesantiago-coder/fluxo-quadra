@@ -39,11 +39,15 @@ export default async function EmpreendimentoPage({
     }
   }
 
+  // Construir URL do simulador a partir do slug (se existir página correspondente)
+  const simuladorUrl = emp.slug ? `/simulador-${emp.slug}` : undefined;
+
   return (
     <DynamicDashboard
       empreendimentoId={id}
       empreendimentoNome={emp.nome}
       isAdmin={!!isAdmin}
+      simuladorUrl={simuladorUrl}
     />
   );
 }
