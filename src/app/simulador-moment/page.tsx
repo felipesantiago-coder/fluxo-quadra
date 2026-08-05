@@ -153,7 +153,7 @@ function SimulatorContent() {
       parseInt(downPaymentDate.split("-")[2])
     ));
     const deliveryDate = new Date(Date.UTC(DELIVERY_YEAR, DELIVERY_MONTH, 1));
-    let totalMonths = monthsBetween(dpDate, deliveryDate) - 1;
+    let totalMonths = monthsBetween(dpDate, deliveryDate);
     totalMonths = Math.max(0, totalMonths);
     const maxMonthlyInstallments = totalMonths;
     const maxSemesterInstallments = Math.floor(totalMonths / 6);
