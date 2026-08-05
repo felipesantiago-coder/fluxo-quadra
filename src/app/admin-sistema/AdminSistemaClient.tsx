@@ -93,6 +93,8 @@ export default function AdminSistemaClient() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [createdUserPassword, setCreatedUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -145,6 +147,12 @@ export default function AdminSistemaClient() {
       setUsersLoading(false);
     }
   }, [addToast]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setCurrentUserId(data.user.id);
+    });
+  }, [supabase.auth]);
 
   useEffect(() => {
     if (activeTab === "empreendimentos") {
@@ -285,6 +293,34 @@ export default function AdminSistemaClient() {
       }
     };
     input.click();
+  };
+
+  // ─── Alterar role de usuário ─────────────────────────────────────────
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setUpdatingRole((prev) => ({ ...prev, [userId]: true }));
+    try {
+      const res = await fetch("/api/admin-sistema/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Erro ao alterar função");
+      }
+      const json = await res.json();
+      // Atualizar o usuário na lista local
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: json.user.role } : u))
+      );
+      addToast("success", `Função de ${json.user.email || "usuário"} alterada para ${newRole === "admin_sistema" ? "Admin" : newRole === "coordenador" ? "Coordenador" : "Comum"}`);
+    } catch (err) {
+      addToast("error", (err as Error).message);
+      // Reverter o select visual
+      fetchUsers();
+    } finally {
+      setUpdatingRole((prev) => ({ ...prev, [userId]: false }));
+    }
   };
 
   // ─── Logout ────────────────────────────────────────────────────────────────
@@ -635,13 +671,30 @@ export default function AdminSistemaClient() {
                             </div>
                           </td>
                           <td className="px-4 py-3 hidden sm:table-cell">
-                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              u.role === "admin_sistema"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}>
-                              {u.role === "admin_sistema" ? "Admin" : u.role === "coordenador" ? "Coordenador" : "Comum"}
-                            </span>
+                            {updatingRole[u.id] ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-500">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Salvando...
+                              </span>
+                            ) : (
+                              <select
+                                value={u.role}
+                                onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                disabled={u.id === currentUserId}
+                                title={u.id === currentUserId ? "Você não pode alterar sua própria função" : `Alterar função de ${u.email}`}
+                                className={`text-xs font-semibold rounded-full px-2.5 py-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-900/20 ${
+                                  u.role === "admin_sistema"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : u.role === "coordenador"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-gray-100 text-gray-600"
+                                } ${u.id === currentUserId ? "opacity-60 cursor-not-allowed" : "hover:opacity-80"}`}
+                              >
+                                <option value="comum">Usuário Comum</option>
+                                <option value="coordenador">Coordenador</option>
+                                <option value="admin_sistema">Administrador</option>
+                              </select>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
