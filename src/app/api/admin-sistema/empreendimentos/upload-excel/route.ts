@@ -198,40 +198,45 @@ const DEDICATED_TABLE_MAP: Record<string, {
   table: string;
   matchColumns: string[];      // colunas usadas no WHERE (ex: ["unidade"] ou ["bloco","unidade"])
   castUnidadeToInt: boolean;   // tabelas legadas usam INTEGER, não TEXT
+  validSyncFields: string[];   // apenas estas colunas do commonFields serão sincronizadas
 }> = {
   moment: {
     table: "moment_units",
     matchColumns: ["unidade"],
     castUnidadeToInt: true,
+    validSyncFields: ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "posicao_solar", "tipologia", "is_cobertura"],
   },
   "villa-bianco": {
     table: "villa_bianco_units",
     matchColumns: ["bloco", "unidade"],
     castUnidadeToInt: true,
+    validSyncFields: ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "posicao_solar", "tipologia", "is_cobertura"],
   },
   vitta: {
     table: "vitta_units",
     matchColumns: ["bloco", "unidade"],
     castUnidadeToInt: true,
+    // vitta_units NÃO possui: quartos, vagas, posicao_solar, is_cobertura, is_garden
+    validSyncFields: ["valor_venda", "status", "andar", "area", "area_str", "tipologia"],
   },
   "quattre-istambul": {
     table: "units",
     matchColumns: ["unidade"],
     castUnidadeToInt: true,
+    validSyncFields: ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "posicao_solar", "tipologia"],
   },
 };
 
 // ─── Sincronização com tabela dedicada ────────────────────────────────────
 async function syncToDedicatedTable(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  config: { table: string; matchColumns: string[]; castUnidadeToInt: boolean },
+  config: { table: string; matchColumns: string[]; castUnidadeToInt: boolean; validSyncFields: string[] },
   partial: Record<string, unknown>,
   matchData: Record<string, unknown>,
 ) {
-  // Construir update com apenas os campos presentes no partial (dados do Excel)
+  // Construir update com apenas os campos presentes no partial E permitidos na tabela dedicada
   const updates: Record<string, unknown> = {};
-  const commonFields = ["valor_venda", "status", "andar", "area", "area_str", "quartos", "vagas", "tipologia", "posicao_solar", "is_cobertura", "is_garden"];
-  for (const field of commonFields) {
+  for (const field of config.validSyncFields) {
     if (partial[field] !== undefined) {
       updates[field] = partial[field];
     }
