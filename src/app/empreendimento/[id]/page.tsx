@@ -33,7 +33,7 @@ export default async function EmpreendimentoPage({
         .select("role")
         .eq("id", user.id)
         .single();
-      if (profile?.role === "admin_sistema") isAdmin = true;
+      if (profile?.role === "admin_sistema" || profile?.role === "coordenador") isAdmin = true;
     } catch {
       // Tabela profiles pode não existir — isAdmin já foi definido pelo email check
     }
