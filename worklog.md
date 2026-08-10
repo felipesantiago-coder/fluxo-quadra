@@ -1,20 +1,18 @@
 ---
-Task ID: 1
+Task ID: 2
 Agent: main
-Task: Investigar e corrigir ausência do andar Térreo (unidades garden) no espelho de vendas do Vitta
+Task: Investigar por que o admin não consegue substituir a imagem de empreendimentos existentes
 
 Work Log:
-- Analisado vitta-dashboard.tsx, vitta-data.ts, /api/vitta-units, upload-excel/route.ts, seed-vitta.sql, schema-vitta.sql, CSV original
-- Identificada causa raiz: UNIQUE(bloco, unidade) na tabela vitta_units impede inserção das 5 unidades garden do Térreo (A, 1-5) pois conflitam com Lojas (A, 1-6)
-- O seed SQL usa ON CONFLICT DO NOTHING, silenciando o conflito
-- Alterada constraint UNIQUE para (bloco, andar_num, unidade) no schema
-- Regenerado seed-vitta.sql com ON CONFLICT correto
-- Atualizado PATCH /api/vitta-units para incluir andar no WHERE
-- Atualizado vitta-dashboard.tsx para enviar andar nas mudanças de status
-- Criado SQL de migração (supabase/migration-vitta-unique-constraint.sql)
-- Build e push realizados com sucesso
+- Analisado upload-image/route.ts, admin-auth.ts, supabase/admin.ts, setup-storage/route.ts
+- Identificada causa raiz: faltava política UPDATE no storage.objects para o bucket 'empreendimentos'
+- Primeiro upload (INSERT) funcionava; substituição (UPDATE via upsert) falhava por falta de política
+- As políticas de storage foram criadas via exec_sql RPC que provavelmente não existe (erro silenciado com .catch)
+- Corrigido upload-image/route.ts: usa createAdminClient() (service_role, bypass RLS) com fallback para anon client
+- Adicionado cache-busting (?t=timestamp) na URL da imagem para evitar cache do navegador
+- Criado migration-storage-rls-fix.sql com DROP + CREATE das 4 políticas de storage (SELECT, INSERT, UPDATE com USING+WITH_CHECK, DELETE)
 
 Stage Summary:
-- Causa raiz: conflito de UNIQUE constraint entre Lojas e Térreo garden
-- Código corrigido e deployado
-- **AÇÃO NECESSÁRIA**: Rodar migration-vitta-unique-constraint.sql no Supabase SQL Editor para corrigir o banco em produção
+- Causa raiz: política UPDATE ausente em storage.objects para o bucket 'empreendimentos'
+- Código corrigido com duas camadas de proteção (admin client bypass + SQL migration)
+- **AÇÃO NECESSÁRIA**: Rodar migration-storage-rls-fix.sql no Supabase SQL Editor

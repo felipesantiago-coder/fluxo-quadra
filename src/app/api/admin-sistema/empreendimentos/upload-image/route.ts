@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import path from "path";
 
 export const dynamic = "force-dynamic";
@@ -17,10 +18,26 @@ function getExtFromMime(mime: string): string {
 
 const BUCKET_NAME = "empreendimentos";
 
+/**
+ * Tenta criar o admin client (service_role, bypass RLS).
+ * Se a env var não estiver configurada, retorna null para usar fallback com anon client.
+ */
+function tryAdminClient() {
+  try {
+    return createAdminClient();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    // Verificação de autenticação/autorização
+    const { supabase: anonClient, error: authError } = await requireAdminSistema();
+    if (authError) return authError;
+
+    // Tentar admin client (bypass RLS); fallback para anon client
+    const db = tryAdminClient() ?? anonClient;
 
     const formData = await request.formData();
     const empreendimentoId = formData.get("empreendimentoId") as string;
@@ -54,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Upload para o Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { error: uploadErr } = await supabase.storage
+    const { error: uploadErr } = await db.storage
       .from(BUCKET_NAME)
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -64,10 +81,10 @@ export async function POST(request: NextRequest) {
     if (uploadErr) {
       const msg = uploadErr.message || "";
 
-      // Se o bucket não existe, tentar criar via insert na tabela
+      // Se o bucket não existe, tentar criar
       if (msg.includes("bucket") || msg.includes("Bucket") || msg.includes("not found")) {
         try {
-          const { error: bucketErr } = await supabase
+          const { error: bucketErr } = await db
             .from("storage.buckets")
             .insert({
               id: BUCKET_NAME,
@@ -78,16 +95,16 @@ export async function POST(request: NextRequest) {
 
           // Se criou o bucket, tentar o upload novamente
           if (!bucketErr || bucketErr.code === "23505") {
-            const retry = await supabase.storage
+            const retry = await db.storage
               .from(BUCKET_NAME)
               .upload(fileName, buffer, {
                 contentType: file.type,
                 upsert: true,
               });
             if (!retry.error) {
-              const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-              const imagemUrl = urlData.publicUrl;
-              await supabase
+              const { data: urlData } = db.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+              const imagemUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+              await db
                 .from("empreendimentos")
                 .update({ imagem_url: imagemUrl })
                 .eq("id", empreendimentoId);
@@ -106,12 +123,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obter URL pública
-    const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-    const imagemUrl = urlData.publicUrl;
+    // Obter URL pública com cache-busting
+    const { data: urlData } = db.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+    const imagemUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
     // Atualizar URL no banco
-    const { err } = await supabase
+    const { err } = await db
       .from("empreendimentos")
       .update({ imagem_url: imagemUrl })
       .eq("id", empreendimentoId);
