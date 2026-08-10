@@ -8,9 +8,13 @@ export async function GET() {
     const { supabase, error } = await requireAdminSistema();
     if (error) return error;
 
+    // Query única com aggregate — evita N+1 queries separadas por empreendimento
     const { data, err } = await supabase
       .from("empreendimentos")
-      .select("*")
+      .select(`
+        *,
+        projeto_units(count)
+      `)
       .order("created_at", { ascending: true });
 
     if (err) {
@@ -18,16 +22,12 @@ export async function GET() {
       return NextResponse.json({ error: "Erro ao buscar empreendimentos" }, { status: 500 });
     }
 
-    // Buscar contagem de unidades para cada empreendimento
-    const enriched = await Promise.all(
-      (data || []).map(async (emp) => {
-        const { count } = await supabase
-          .from("projeto_units")
-          .select("*", { count: "exact", head: true })
-          .eq("empreendimento_id", emp.id);
-        return { ...emp, unit_count: count || 0 };
-      })
-    );
+    // Mapear aggregate count para unit_count
+    const enriched = (data || []).map((emp: Record<string, unknown>) => ({
+      ...emp,
+      projeto_units: undefined, // remover dados embedded
+      unit_count: (emp.projeto_units as { count: number }[] | null)?.[0]?.count ?? 0,
+    }));
 
     return NextResponse.json({ empreendimentos: enriched, total: enriched.length });
   } catch (err) {

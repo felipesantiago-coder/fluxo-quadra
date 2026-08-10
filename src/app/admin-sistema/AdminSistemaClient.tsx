@@ -80,7 +80,6 @@ export default function AdminSistemaClient() {
   // Upload states keyed by empreendimento id
   const [uploadingImage, setUploadingImage] = useState<Record<string, boolean>>({});
   const [uploadingExcel, setUploadingExcel] = useState<Record<string, boolean>>({});
-  const [migrating, setMigrating] = useState(false);
 
   // Tab
   const [activeTab, setActiveTab] = useState<AdminTab>("empreendimentos");
@@ -105,15 +104,12 @@ export default function AdminSistemaClient() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
   }, []);
 
-  // ─── Auto-migrate legacy projects ────────────────────────────────────────
+  // ─── Auto-migrate legacy projects (roda em background, não bloqueia carregamento) ─
   const migrateLegacy = useCallback(async () => {
     try {
-      setMigrating(true);
       await fetch("/api/admin-sistema/migrate-legacy", { method: "POST" });
     } catch {
       // Silently fail — os projetos podem já estar migrados
-    } finally {
-      setMigrating(false);
     }
   }, []);
 
@@ -154,9 +150,15 @@ export default function AdminSistemaClient() {
     });
   }, [supabase.auth]);
 
+  // Buscar dados imediatamente; migrar legacy em background sem bloquear
+  const hasMigrated = React.useRef(false);
   useEffect(() => {
     if (activeTab === "empreendimentos") {
-      migrateLegacy().then(() => fetchEmpreendimentos());
+      fetchEmpreendimentos();
+      if (!hasMigrated.current) {
+        hasMigrated.current = true;
+        migrateLegacy(); // fire-and-forget, não bloqueia o fetch
+      }
     } else {
       fetchUsers();
     }
@@ -503,6 +505,7 @@ export default function AdminSistemaClient() {
                       <img
                         src={emp.imagem_url}
                         alt={emp.nome}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     ) : (
