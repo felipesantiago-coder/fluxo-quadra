@@ -9,36 +9,28 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-    // MFA status: verificar tanto profiles.mfa_enabled quanto a existência de credenciais
-    // (profiles.mfa_enabled pode estar desatualizado se a RLS bloqueou o update)
-    let profileMfa = false;
-    try {
-      const { data: profile } = await supabase
+    // Buscar profile, totp e passkeys em PARALELO
+    const [profileRes, totpRes, passkeysRes] = await Promise.all([
+      supabase
         .from("profiles")
         .select("mfa_enabled")
         .eq("id", user.id)
-        .single();
-      profileMfa = profile?.mfa_enabled ?? false;
-    } catch {
-      // Se falhar, determinar pelo estado real das credenciais
-    }
+        .single()
+        .then(r => ({ data: r.data, error: r.error })),
+      supabase
+        .from("user_totp")
+        .select("id, verified, created_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("user_passkeys")
+        .select("id, device_name, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
+    ]);
 
-    // TOTP
-    const { data: totp } = await supabase
-      .from("user_totp")
-      .select("id, verified, created_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    // Passkeys
-    const { data: passkeys } = await supabase
-      .from("user_passkeys")
-      .select("id, device_name, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    // MFA está ativo se o perfil diz OU se existem credenciais verificadas
-    const hasVerifiedCredential = !!totp?.verified || (passkeys && passkeys.length > 0);
+    const profileMfa = profileRes.data?.mfa_enabled ?? false;
+    const hasVerifiedCredential = !!totpRes.data?.verified || (passkeysRes.data && passkeysRes.data.length > 0);
     const mfaEnabled = profileMfa || hasVerifiedCredential;
 
     // Se as credenciais existem mas o perfil não reflete, tentar corrigir
@@ -54,10 +46,10 @@ export async function GET() {
 
     return NextResponse.json({
       mfa_enabled: mfaEnabled,
-      hasTotp: !!totp?.verified,
-      totp_configured: !!totp,
-      totp_verified: !!totp?.verified,
-      passkeys: passkeys || [],
+      hasTotp: !!totpRes.data?.verified,
+      totp_configured: !!totpRes.data,
+      totp_verified: !!totpRes.data?.verified,
+      passkeys: passkeysRes.data || [],
     });
   } catch {
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

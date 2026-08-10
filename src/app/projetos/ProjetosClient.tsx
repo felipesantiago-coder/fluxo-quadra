@@ -21,7 +21,6 @@ interface EmpreendimentoDB {
 }
 
 // Mapeamento de slug para rota legada
-// Projetos com rota especial usam a rota mapeada; os demais usam /empreendimento/[id]
 const SLUG_ROUTE_MAP: Record<string, string> = {
   "quattre-istambul": "/espelho",
   "villa-bianco": "/villa-bianco",
@@ -36,22 +35,44 @@ function getProjectHref(emp: EmpreendimentoDB): string {
   return `/empreendimento/${emp.id}`;
 }
 
-interface ProjetosClientProps {
-  userRole: string;
+// Skeleton loading card
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+      <div className="h-48 sm:h-56 bg-gray-200 animate-pulse" />
+      <div className="p-5 sm:p-6 space-y-3">
+        <div className="h-6 bg-gray-200 rounded-lg animate-pulse w-3/4" />
+        <div className="h-4 bg-gray-100 rounded-lg animate-pulse w-1/2" />
+        <div className="h-4 bg-gray-100 rounded-lg animate-pulse w-2/3" />
+        <div className="pt-2 flex justify-between items-center">
+          <div className="h-4 bg-gray-100 rounded-lg animate-pulse w-1/3" />
+          <div className="w-8 h-8 rounded-lg bg-gray-100 animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default function ProjetosClient({ userRole }: ProjetosClientProps) {
+interface ProjetosClientProps {
+  userRole: string;
+  initialEmpreendimentos: EmpreendimentoDB[];
+  initialMfaEnabled: boolean;
+}
+
+export default function ProjetosClient({ userRole, initialEmpreendimentos, initialMfaEnabled }: ProjetosClientProps) {
   const router = useRouter();
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
-  const [projects, setProjects] = useState<EmpreendimentoDB[]>([]);
+  const [projects, setProjects] = useState<EmpreendimentoDB[]>(initialEmpreendimentos);
 
   // MFA banner state
   const [showMfaBanner, setShowMfaBanner] = useState(false);
   const [mfaBannerExpanded, setMfaBannerExpanded] = useState(false);
   const [mfaChecked, setMfaChecked] = useState(false);
 
-  // Buscar todos os empreendimentos do banco
+  // Dados já vieram do servidor — não precisa de fetch
+  // Mas se os dados vieram vazios (tabela não populada), faz fetch como fallback
   useEffect(() => {
+    if (initialEmpreendimentos.length > 0) return;
     async function fetchEmpreendimentos() {
       try {
         const res = await fetch("/api/empreendimentos");
@@ -64,7 +85,30 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
       }
     }
     fetchEmpreendimentos();
-  }, []);
+  }, [initialEmpreendimentos.length]);
+
+  // MFA check: usa o valor do servidor (sem chamada extra)
+  useEffect(() => {
+    if (initialMfaEnabled) {
+      setMfaChecked(true);
+      return;
+    }
+
+    // Verificar se o usuário já dispensou o aviso recentemente (7 dias)
+    const dismissed = localStorage.getItem("mfa_banner_dismissed");
+    if (dismissed) {
+      const dismissedAt = new Date(dismissed).getTime();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      if (Date.now() - dismissedAt < sevenDays) {
+        setMfaChecked(true);
+        return;
+      }
+    }
+
+    // MFA não habilitado — mostrar banner
+    setShowMfaBanner(true);
+    setMfaChecked(true);
+  }, [initialMfaEnabled]);
 
   const allRegions = useMemo(
     () => Array.from(new Set(projects.map((p) => p.regiao))),
@@ -82,43 +126,13 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
     router.refresh();
   };
 
-  // Verificar se o usuário tem MFA configurado
-  useEffect(() => {
-    async function checkMfa() {
-      // Verificar se o usuário já dispensou o aviso recentemente (7 dias)
-      const dismissed = localStorage.getItem("mfa_banner_dismissed");
-      if (dismissed) {
-        const dismissedAt = new Date(dismissed).getTime();
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
-        if (Date.now() - dismissedAt < sevenDays) {
-          setMfaChecked(true);
-          return;
-        }
-      }
-
-      try {
-        const res = await fetch("/api/mfa/status");
-        if (res.ok) {
-          const data = await res.json();
-          if (!data.mfa_enabled) {
-            setShowMfaBanner(true);
-          }
-        }
-      } catch {
-        // Silently fail
-      } finally {
-        setMfaChecked(true);
-      }
-    }
-    checkMfa();
-  }, []);
-
   const dismissMfaBanner = () => {
     setShowMfaBanner(false);
     localStorage.setItem("mfa_banner_dismissed", new Date().toISOString());
   };
 
   const isAdminSistema = userRole === "admin_sistema";
+  const isLoading = projects.length === 0 && initialEmpreendimentos.length === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -197,7 +211,6 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                     Sua conta ainda não possui segurança adicional. Configure agora em poucos passos.
                   </p>
 
-                  {/* Tutorial expandido */}
                   {mfaBannerExpanded && (
                     <div className="mt-3 space-y-2.5">
                       <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
@@ -209,7 +222,6 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
                         <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
                         <div>
@@ -220,7 +232,6 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-start gap-2.5 p-3 bg-white/70 rounded-xl border border-amber-100">
                         <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</div>
                         <div>
@@ -230,7 +241,6 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                           </p>
                         </div>
                       </div>
-
                       <div className="flex flex-col sm:flex-row gap-2 pt-1">
                         <a
                           href="/mfa-setup"
@@ -249,7 +259,6 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
                     </div>
                   )}
 
-                  {/* Botão expandir/recolher */}
                   {!mfaBannerExpanded && (
                     <button
                       onClick={() => setMfaBannerExpanded(true)}
@@ -336,85 +345,86 @@ export default function ProjetosClient({ userRole }: ProjetosClientProps) {
 
           {/* Project cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <AnimatePresence mode="popLayout">
-              {filteredProjects.map((project, index) => {
-                const href = getProjectHref(project);
-                const description = project.descricao
-                  || (project.unit_count > 0 ? `${project.unit_count} unidades` : "Empreendimento");
+            {isLoading ? (
+              // Skeleton loading
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {filteredProjects.map((project, index) => {
+                  const href = getProjectHref(project);
+                  const description = project.descricao
+                    || (project.unit_count > 0 ? `${project.unit_count} unidades` : "Empreendimento");
 
-                return (
-                  <motion.div
-                    key={project.id}
-                    layout
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    transition={{ duration: 0.35, delay: 0.05 * index }}
-                  >
-                    <a
-                      href={href}
-                      className="group block bg-white rounded-2xl shadow-md hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                  return (
+                    <motion.div
+                      key={project.id}
+                      layout
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.35, delay: 0.05 * index }}
                     >
-                      {/* Preview image */}
-                      <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
-                        {project.imagem_url ? (
-                          <Image
-                            src={project.imagem_url}
-                            alt={`Preview ${project.nome}`}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                            priority={index < 2}
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
-                            <Building2 className="w-12 h-12 text-gray-400" />
+                      <a
+                        href={href}
+                        className="group block bg-white rounded-2xl shadow-md hover:shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                      >
+                        <div className="relative h-48 sm:h-56 overflow-hidden bg-gray-100">
+                          {project.imagem_url ? (
+                            <Image
+                              src={project.imagem_url}
+                              alt={`Preview ${project.nome}`}
+                              fill
+                              className="object-cover transition-transform duration-500 group-hover:scale-105"
+                              priority={index < 2}
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+                              <Building2 className="w-12 h-12 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                          <div className="absolute bottom-3 left-3">
+                            <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
+                              Espelho de Vendas
+                            </span>
                           </div>
-                        )}
-                        {/* Overlay gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-                        {/* Project badge on image */}
-                        <div className="absolute bottom-3 left-3">
-                          <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
-                            Espelho de Vendas
-                          </span>
+                          <div className="absolute top-3 right-3">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-black/40 text-white backdrop-blur-sm">
+                              <MapPin className="w-3 h-3" />
+                              {project.regiao}
+                            </span>
+                          </div>
                         </div>
-                        {/* Region badge on image */}
-                        <div className="absolute top-3 right-3">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full bg-black/40 text-white backdrop-blur-sm">
-                            <MapPin className="w-3 h-3" />
-                            {project.regiao}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Card content */}
-                      <div className="p-5 sm:p-6">
-                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors">
-                          {project.nome}
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-1.5">{project.regiao}</p>
-                        <p className="text-sm text-gray-400 mt-1">{description}</p>
-
-                        {/* Access button */}
-                        <div className="mt-4 flex items-center justify-between">
-                          <span className="text-sm font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
-                            Acessar espelho
-                          </span>
-                          <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-gray-900 transition-all duration-300">
-                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-                          </span>
+                        <div className="p-5 sm:p-6">
+                          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight group-hover:text-gray-700 transition-colors">
+                            {project.nome}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1.5">{project.regiao}</p>
+                          <p className="text-sm text-gray-400 mt-1">{description}</p>
+                          <div className="mt-4 flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
+                              Acessar espelho
+                            </span>
+                            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-gray-900 transition-all duration-300">
+                              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </a>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                      </a>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            )}
           </div>
 
           {/* Empty state */}
-          {filteredProjects.length === 0 && (
+          {!isLoading && filteredProjects.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

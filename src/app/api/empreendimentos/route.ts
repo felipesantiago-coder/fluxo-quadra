@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Endpoint público: qualquer usuário autenticado pode listar empreendimentos ativos
+// Endpoint otimizado: busca empreendimentos + contagem de unidades em 2 queries
+// (antes: N+1 — uma query COUNT por empreendimento)
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -15,34 +16,40 @@ export async function GET() {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const { data, err } = await supabase
+    // Query 1: Buscar empreendimentos ativos
+    const { data: emps, err } = await supabase
       .from("empreendimentos")
       .select("id, nome, slug, regiao, imagem_url, descricao, ativo, created_at")
       .eq("ativo", true)
       .order("created_at", { ascending: true });
 
-    if (err) {
-      // Tabela pode não existir ainda — retornar lista vazia em vez de erro
-      return NextResponse.json({ empreendimentos: [], total: 0 });
+    if (err || !emps || emps.length === 0) {
+      return NextResponse.json({ empreendimentos: [], total: 0, mfa_enabled: false });
     }
 
-    // Buscar contagem de unidades para cada empreendimento
-    const enriched = await Promise.all(
-      (data || []).map(async (emp) => {
-        try {
-          const { count } = await supabase
-            .from("projeto_units")
-            .select("*", { count: "exact", head: true })
-            .eq("empreendimento_id", emp.id);
-          return { ...emp, unit_count: count || 0 };
-        } catch {
-          return { ...emp, unit_count: 0 };
-        }
-      })
-    );
+    // Query 2: Buscar contagem de unidades em LOTE (uma única query)
+    const empIds = emps.map(e => e.id);
+    const { data: counts } = await supabase
+      .from("projeto_units")
+      .select("empreendimento_id")
+      .in("empreendimento_id", empIds);
 
-    return NextResponse.json({ empreendimentos: enriched, total: enriched.length });
+    // Agrupar contagem por empreendimento_id
+    const countMap = new Map<string, number>();
+    if (counts) {
+      for (const c of counts) {
+        const id = c.empreendimento_id as string;
+        countMap.set(id, (countMap.get(id) || 0) + 1);
+      }
+    }
+
+    const enriched = emps.map(emp => ({
+      ...emp,
+      unit_count: countMap.get(emp.id) || 0,
+    }));
+
+    return NextResponse.json({ empreendimentos: enriched, total: enriched.length, mfa_enabled: false });
   } catch {
-    return NextResponse.json({ empreendimentos: [], total: 0 });
+    return NextResponse.json({ empreendimentos: [], total: 0, mfa_enabled: false });
   }
 }

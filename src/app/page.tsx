@@ -85,23 +85,23 @@ function LoginForm() {
             return;
           }
 
-          // ── Verificar MFA ────────────────────────────────
+          // ── Verificar MFA (totp e passkeys em paralelo) ──
           let hasMfa = profile?.mfa_enabled ?? false;
           if (!hasMfa) {
-            const { data: totp } = await supabase
-              .from("user_totp")
-              .select("id")
-              .eq("user_id", data.user.id)
-              .eq("verified", true)
-              .maybeSingle();
-            if (totp) hasMfa = true;
-          }
-          if (!hasMfa) {
-            const { count } = await supabase
-              .from("user_passkeys")
-              .select("*", { count: "exact", head: true })
-              .eq("user_id", data.user.id);
-            if (count && count > 0) hasMfa = true;
+            const [totpRes, passkeyRes] = await Promise.all([
+              supabase
+                .from("user_totp")
+                .select("id")
+                .eq("user_id", data.user.id)
+                .eq("verified", true)
+                .maybeSingle(),
+              supabase
+                .from("user_passkeys")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", data.user.id),
+            ]);
+            if (totpRes.data) hasMfa = true;
+            if (!hasMfa && passkeyRes.count && passkeyRes.count > 0) hasMfa = true;
           }
 
           // Determinar redirect baseado no role
