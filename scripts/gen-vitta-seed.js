@@ -23,6 +23,6 @@ const values = data.map(u => {
 
 console.log('INSERT INTO vitta_units (bloco, andar, andar_num, unidade, area, area_str, valor_venda, tipologia, status) VALUES');
 console.log(values.join(',\n') + ';');
-console.log('ON CONFLICT (bloco, unidade) DO NOTHING;');
+console.log('ON CONFLICT (bloco, andar_num, unidade) DO NOTHING;');
 console.log('');
 console.log('-- Total rows:', data.length);

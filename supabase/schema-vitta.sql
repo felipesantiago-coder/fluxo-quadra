@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS vitta_units (
   status VARCHAR(20) NOT NULL DEFAULT 'disponivel' CHECK (status IN ('disponivel', 'reservado', 'vendido')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(bloco, unidade)
+  UNIQUE(bloco, andar_num, unidade)
 );
 
 -- 2. Habilitar Realtime

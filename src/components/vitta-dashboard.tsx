@@ -96,7 +96,7 @@ function UnitCard({
   onSelect: (unit: VittaUnit) => void;
   isBackground: boolean;
   isAdmin?: boolean;
-  onStatusChange?: (unidade: number, bloco: string, newStatus: VittaUnit["status"]) => void;
+  onStatusChange?: (unidade: number, bloco: string, andar: string, newStatus: VittaUnit["status"]) => void;
 }) {
   const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 quarto"];
   const status = statusLabels[unit.status];
@@ -174,7 +174,7 @@ function UnitCard({
                       onClick={(e) => {
                         e.stopPropagation();
                         setShowStatusMenu(false);
-                        if (onStatusChange && s.value !== unit.status) onStatusChange(unit.unidade, unit.bloco, s.value);
+                        if (onStatusChange && s.value !== unit.status) onStatusChange(unit.unidade, unit.bloco, unit.andar, s.value);
                       }}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
                         s.value === unit.status ? "bg-gray-50 text-gray-400" : "hover:bg-gray-50 text-gray-700"
@@ -368,7 +368,7 @@ function FloorSection({
   isCollapsed: boolean;
   onToggle: () => void;
   isAdmin?: boolean;
-  onStatusChange?: (unidade: number, bloco: string, newStatus: VittaUnit["status"]) => void;
+  onStatusChange?: (unidade: number, bloco: string, andar: string, newStatus: VittaUnit["status"]) => void;
 }) {
   const tiposInFloor = [...new Set(floorUnits.map((u) => u.tipo))];
   const totalInFloor = floorUnits.length;
@@ -503,10 +503,10 @@ export default function VittaDashboard({ isAdmin = false, hideHeader = false }: 
   const handleSelectUnit = useCallback((unit: VittaUnit) => setSelectedUnit(unit), []);
   const handleCloseExpanded = useCallback(() => setSelectedUnit(null), []);
 
-  const handleLocalStatusChange = useCallback(async (unidade: number, bloco: string, newStatus: VittaUnit["status"]) => {
+  const handleLocalStatusChange = useCallback(async (unidade: number, bloco: string, andar: string, newStatus: VittaUnit["status"]) => {
     // Otimistic update
-    setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade) ? { ...u, status: newStatus } : u));
-    setSelectedUnit((prev) => prev && prev.bloco === bloco && prev.unidade === unidade ? { ...prev, status: newStatus } : prev);
+    setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade && u.andar === andar) ? { ...u, status: newStatus } : u));
+    setSelectedUnit((prev) => prev && prev.bloco === bloco && prev.unidade === unidade && prev.andar === andar ? { ...prev, status: newStatus } : prev);
 
     // Persistir no banco
     try {
@@ -514,13 +514,13 @@ export default function VittaDashboard({ isAdmin = false, hideHeader = false }: 
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bloco, unidade, status: newStatus }),
+        body: JSON.stringify({ bloco, unidade, andar, status: newStatus }),
       });
       if (!res.ok) {
         const json = await res.json();
         console.error("Erro ao salvar status:", json.error);
         // Reverter em caso de erro
-        setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade) ? { ...u, status: "disponivel" } : u));
+        setUnits((prev) => prev.map((u) => (u.bloco === bloco && u.unidade === unidade && u.andar === andar) ? { ...u, status: "disponivel" } : u));
       }
     } catch (err) {
       console.error("Erro ao salvar status:", err);

@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { bloco, unidade, status, valor_venda } = body;
+    const { bloco, unidade, andar, status, valor_venda } = body;
 
     if (!bloco || unidade === undefined) {
       return NextResponse.json(
@@ -88,13 +88,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("vitta_units")
       .update(updates)
       .eq("bloco", bloco)
-      .eq("unidade", unidade)
-      .select()
-      .single();
+      .eq("unidade", unidade);
+
+    // andar é necessário quando a mesma unidade existe em andares diferentes
+    // (ex: Loja 1 e Garden Térreo 1 no Bloco A)
+    if (andar) {
+      query = query.eq("andar", andar) as any;
+    }
+
+    const { data, error } = await query.select().single();
 
     if (error) {
       console.error("Erro ao atualizar unidade Vitta:", error.message);
