@@ -736,6 +736,7 @@ function SimulatorContent() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={propertyValueInput}
                     onChange={handleCurrencyInput(setPropertyValueInput)}
                     placeholder="Ex: R$ 500.000,00"
@@ -781,6 +782,7 @@ function SimulatorContent() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={downPaymentInput}
                     onChange={handleCurrencyInput(setDownPaymentInput)}
                     placeholder="Deixe em branco para 10% do valor final"
@@ -826,6 +828,7 @@ function SimulatorContent() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={monthlyValueInput}
                     onChange={handleCurrencyInput(setMonthlyValueInput)}
                     placeholder="Ex: R$ 1.500,00"
@@ -845,6 +848,7 @@ function SimulatorContent() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={semesterValueInput}
                     onChange={handleCurrencyInput(setSemesterValueInput)}
                     placeholder="Ex: R$ 10.000,00"
@@ -894,6 +898,7 @@ function SimulatorContent() {
                   </label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     value={unicaValueInput}
                     onChange={handleCurrencyInput(setUnicaValueInput)}
                     placeholder="Informe o valor (opcional)"
