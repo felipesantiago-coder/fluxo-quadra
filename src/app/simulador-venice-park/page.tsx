@@ -662,6 +662,24 @@ function SimulatorContent() {
     }
   }, [result, unitName, initialArea, initialAndar, propertyValue, inccMode, inccMonthlyRate, downPaymentDate]);
 
+  // Build result rows for table and mobile cards
+  const resultRows = useMemo(() => {
+    const rows: { description: string; value: string; percent: string; note: string; bold: boolean; isHighlight: boolean; isIncc: boolean }[] = [
+      { description: "Sinal", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent.toFixed(2), note: "Ate 2 parcelas com INCC", bold: false, isHighlight: false, isIncc: false },
+      { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent.toFixed(2), note: `${result.monthlyInstallments} de ${maxMonthly} parcelas`, bold: false, isHighlight: false, isIncc: false },
+      { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent.toFixed(2), note: `${result.semesterInstallments} de ${maxSemester} parcelas`, bold: false, isHighlight: false, isIncc: false },
+    ];
+    if (result.unicaValue > 0) {
+      rows.push({ description: "Unica", value: formatBRL(result.unicaValue), percent: result.unicaPercent.toFixed(2), note: `1 parcela em ${result.unicaDate}`, bold: false, isHighlight: true, isIncc: false });
+    }
+    rows.push({ description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent.toFixed(2), note: "Saldo mensais + semestrais + final", bold: false, isHighlight: false, isIncc: false });
+    if (inccMode !== "none" && result.inccAccumulatedPercent > 0) {
+      rows.push({ description: "Financiamento (projecao INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00", note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false, isIncc: true });
+    }
+    rows.push({ description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: "100", note: "", bold: true, isHighlight: false, isIncc: false });
+    return rows;
+  }, [result, inccMode, inccMonthlyRate, maxMonthly, maxSemester]);
+
   // ─── Render ───
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -677,7 +695,7 @@ function SimulatorContent() {
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight">
                   Venice <span className="text-gray-400 font-normal">Park</span>
                 </h1>
-                <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Simulador de Fluxo de Pagamento</p>
+                <p className="text-xs text-gray-400 font-medium hidden sm:block">Simulador de Fluxo de Pagamento</p>
               </div>
             </div>
             <a
@@ -701,12 +719,12 @@ function SimulatorContent() {
         <div className="flex items-center justify-center mb-10">
           {["Dados Basicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
             <div key={step} className="flex items-center">
-              {i > 0 && <div className="w-8 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
+              {i > 0 && <div className="w-4 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
               <div className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
                   {i < 4 ? "\u2713" : i + 1}
                 </div>
-                <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
+                <span className="text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
               </div>
             </div>
           ))}
@@ -723,7 +741,7 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Informacoes do Imovel</h3>
                 </div>
               </div>
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-5">
                 {/* Auto calc indicator */}
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
                   <RotateCcw className="w-4 h-4" />
@@ -747,7 +765,7 @@ function SimulatorContent() {
                     value={propertyValueInput}
                     onChange={handleCurrencyInput(setPropertyValueInput)}
                     placeholder="Ex: R$ 500.000,00"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
                 </div>
 
@@ -764,7 +782,7 @@ function SimulatorContent() {
                     max="100"
                     step="0.01"
                     placeholder="Ex: 5"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
                 </div>
 
@@ -778,7 +796,7 @@ function SimulatorContent() {
                     value={unitName}
                     onChange={(e) => setUnitName(e.target.value)}
                     placeholder="Ex: Apartamento 1201"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
                 </div>
 
@@ -793,9 +811,9 @@ function SimulatorContent() {
                     value={downPaymentInput}
                     onChange={handleCurrencyInput(setDownPaymentInput)}
                     placeholder="Deixe em branco para 10% do valor final"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">Padrao: 10% do valor final do imovel</p>
+                  <p className="text-xs text-gray-400 mt-1">Padrao: 10% do valor final do imovel</p>
                 </div>
 
                 {/* Down Payment Date */}
@@ -808,9 +826,9 @@ function SimulatorContent() {
                     value={downPaymentDate}
                     min={getTodayISO()}
                     onChange={(e) => setDownPaymentDate(e.target.value)}
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">Nao e permitido selecionar datas anteriores</p>
+                  <p className="text-xs text-gray-400 mt-1">Nao e permitido selecionar datas anteriores</p>
                 </div>
 
                 {/* Down Payment Installments */}
@@ -821,7 +839,7 @@ function SimulatorContent() {
                   <select
                     value={downPaymentInstallments}
                     onChange={(e) => setDownPaymentInstallments(e.target.value)}
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   >
                     <option value="1">1 parcela</option>
                     <option value="2">2 parcelas</option>
@@ -839,7 +857,7 @@ function SimulatorContent() {
                     value={monthlyValueInput}
                     onChange={handleCurrencyInput(setMonthlyValueInput)}
                     placeholder="Ex: R$ 1.500,00"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
                   {monthlyVal > 0 && (
                     <div className="mt-2 p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
@@ -859,7 +877,7 @@ function SimulatorContent() {
                     value={semesterValueInput}
                     onChange={handleCurrencyInput(setSemesterValueInput)}
                     placeholder="Ex: R$ 10.000,00"
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
                   {semesterVal > 0 && (
                     <div className="mt-2 p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
@@ -876,7 +894,7 @@ function SimulatorContent() {
                   <select
                     value={maxMonthly}
                     onChange={(e) => setMaxMonthly(e.target.value)}
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   >
                     <option value="48">48 parcelas</option>
                     <option value="36">36 parcelas</option>
@@ -891,7 +909,7 @@ function SimulatorContent() {
                   <select
                     value={maxSemester}
                     onChange={(e) => setMaxSemester(e.target.value)}
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   >
                     <option value="6">6 parcelas</option>
                     <option value="4">4 parcelas</option>
@@ -909,9 +927,9 @@ function SimulatorContent() {
                     value={unicaTouched ? unicaValueInput : (finalPropertyValue > 0 ? formatBRL(finalPropertyValue * DEFAULT_UNICA_PERCENT / 100) : "")}
                     onChange={handleUnicaInput}
                     placeholder={`Padrao: ${DEFAULT_UNICA_PERCENT}% do valor final`}
-                    className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">Paga no mes anterior a entrega ({DELIVERY_MONTH_LABEL.toLowerCase()} de {DELIVERY_YEAR}). Padrao: {DEFAULT_UNICA_PERCENT}% do valor final. Compoem a captacao da obra.</p>
+                  <p className="text-xs text-gray-400 mt-1">Paga no mes anterior a entrega ({DELIVERY_MONTH_LABEL.toLowerCase()} de {DELIVERY_YEAR}). Padrao: {DEFAULT_UNICA_PERCENT}% do valor final. Compoem a captacao da obra.</p>
                 </div>
 
                 {/* INCC Correction */}
@@ -931,28 +949,28 @@ function SimulatorContent() {
                   </button>
 
                   {inccMode !== "none" && (
-                    <div className="pl-4 space-y-2">
-                      <label className="block">
+                    <div className="pl-4 space-y-3">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
                         <span className="text-sm text-gray-600">Sem correcao</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Media ultimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Media ultimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
                         <span className="text-sm text-gray-600">Projecao de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
-                          <p className="text-[10px] text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
+                          <p className="text-xs text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
                         )}
                       </label>
                       {inccData.lastUpdate && (
-                        <p className="text-[10px] text-gray-400">Dados atualizados em {inccData.lastUpdate} — {inccData.isFallback ? "valores de referencia" : "fonte: FGV IBRE"}</p>
+                        <p className="text-xs text-gray-400">Dados atualizados em {inccData.lastUpdate} — {inccData.isFallback ? "valores de referencia" : "fonte: FGV IBRE"}</p>
                       )}
                     </div>
                   )}
@@ -1033,8 +1051,26 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Detalhamento do Fluxo de Pagamento</h3>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="overflow-x-auto">
+              <div className="p-4 sm:p-6">
+                {/* Mobile card layout */}
+                <div className="sm:hidden space-y-2">
+                  {resultRows.map((row, i) => (
+                    <div key={i} className="bg-gray-50 rounded-xl p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900 text-sm">{row.description}</span>
+                        {row.bold && <span className="text-base font-bold text-gray-900">{row.value}</span>}
+                      </div>
+                      {!row.bold && <span className="text-base font-bold text-gray-900">{row.value}</span>}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {row.percent && <span className="text-xs text-gray-500">{row.percent}%</span>}
+                        {row.note && <span className="text-xs text-gray-400">· {row.note}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table layout */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-900 text-white">
@@ -1045,52 +1081,14 @@ function SimulatorContent() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Sinal</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">Ate 2 parcelas com INCC</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Parcelas Mensais</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaid)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">{result.monthlyInstallments} de {maxMonthly} parcelas</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Parcelas Semestrais</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaid)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">{result.semesterInstallments} de {maxSemester} parcelas</td>
-                      </tr>
-                      {result.unicaValue > 0 && (
-                        <tr className="border-b border-gray-100">
-                          <td className="py-3 px-4 font-medium text-blue-700">Unica</td>
-                          <td className="py-3 px-4 text-right font-semibold text-blue-700">{formatBRL(result.unicaValue)}</td>
-                          <td className="py-3 px-4 text-right text-gray-500">{result.unicaPercent.toFixed(2)}%</td>
-                          <td className="py-3 px-4 text-blue-600 text-xs">1 parcela em {result.unicaDate}</td>
+                      {resultRows.map((row, i) => (
+                        <tr key={i} className={row.bold ? "bg-emerald-50" : row.isIncc ? "border-b border-gray-100 bg-amber-50" : "border-b border-gray-100"}>
+                          <td className={`py-3 px-4 ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-medium text-amber-900" : row.isHighlight ? "font-medium text-blue-700" : "font-medium"}`}>{row.description}</td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-semibold text-amber-900" : row.isHighlight ? "font-semibold text-blue-700" : "font-semibold"}`}>{row.value}</td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-700" : "text-gray-500"}`}>{row.percent}%</td>
+                          <td className={`py-3 px-4 ${row.isIncc ? "text-amber-600" : row.isHighlight ? "text-blue-600" : "text-gray-400"} text-xs`}>{row.note}</td>
                         </tr>
-                      )}
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Financiamento</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.habiteseAmount)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">Saldo mensais + semestrais + final</td>
-                      </tr>
-                      {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50">
-                          <td className="py-3 px-4 font-medium text-amber-900">Financiamento (projecao INCC)*</td>
-                          <td className="py-3 px-4 text-right font-semibold text-amber-900">{formatBRL(result.habiteseCorrected)}</td>
-                          <td className="py-3 px-4 text-right text-amber-700">{result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00"}%</td>
-                          <td className="py-3 px-4 text-amber-600 text-xs">INCC +{result.inccAccumulatedPercent.toFixed(2)}% ({inccMonthlyRate.toFixed(3)}% a.m.)</td>
-                        </tr>
-                      )}
-                      <tr className="bg-emerald-50">
-                        <td className="py-3 px-4 font-bold text-emerald-900">Valor Total</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-900">{formatBRL(result.finalPropertyValue)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-700">100%</td>
-                        <td className="py-3 px-4"></td>
-                      </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -1109,12 +1107,12 @@ function SimulatorContent() {
                 {showResults && (
                   <div className="mt-6">
                     <h4 className="text-lg font-bold text-gray-900 mb-3">Cronograma de Pagamento</h4>
-                    <div className="flex border-b border-gray-200">
+                    <div className="flex overflow-x-auto border-b border-gray-200">
                       {(["sinal", "mensal", "semestral", "unica", "habitese"] as const).map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setActiveTab(tab)}
-                          className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors ${
+                          className={`flex-shrink-0 px-4 py-3 text-sm font-medium capitalize transition-colors ${
                             activeTab === tab
                               ? "text-gray-900 border-b-2 border-gray-900"
                               : "text-gray-400 hover:text-gray-600"
@@ -1280,7 +1278,7 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Informacoes Importantes</h3>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="p-4 rounded-xl bg-gray-50 border-l-4 border-amber-400 text-sm text-gray-600 space-y-2">
                   <ul className="space-y-2">
                     <li>O sinal pode ser dividido em ate 2 vezes com correcao de INCC</li>

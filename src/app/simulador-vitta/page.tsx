@@ -588,6 +588,18 @@ function SimulatorContent() {
     }
   }, [result, unitName, initialArea, propertyValue, inccMode, inccMonthlyRate]);
 
+  const resultRows = [
+    { description: "Sinal", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent, note: "Pagamento à vista", bold: false, isHighlight: false },
+    { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent, note: `${MAX_MONTHLY_INSTALLMENTS} parcelas (${result.paidMonthlyCount} durante a obra + ${result.remainingMonthlyCount} pós-entrega)`, bold: false, isHighlight: false },
+    { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent, note: `${MAX_SEMESTER_INSTALLMENTS} parcelas durante a obra`, bold: false, isHighlight: false },
+    { description: "Parcela Única", value: formatBRL(result.unicaValue), percent: result.unicaPercent, note: "Paga na entrega", bold: false, isHighlight: false },
+    { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false },
+    ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [{
+      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false,
+    }] : []),
+    { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true },
+  ];
+
   // ─── Render ───
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -603,7 +615,7 @@ function SimulatorContent() {
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight">
                   Espelho de <span className="text-gray-400 font-normal">Vendas</span>
                 </h1>
-                <p className="text-[11px] text-gray-400 font-medium hidden sm:block">Simulador Residencial Vitta</p>
+                <p className="text-xs text-gray-400 font-medium hidden sm:block">Simulador Residencial Vitta</p>
               </div>
             </div>
             <a href="/vitta" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
@@ -622,12 +634,12 @@ function SimulatorContent() {
         <div className="flex items-center justify-center mb-10">
           {["Dados Básicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
             <div key={step} className="flex items-center">
-              {i > 0 && <div className="w-8 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
+              {i > 0 && <div className="w-4 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
               <div className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
                   {i < 4 ? "✓" : i + 1}
                 </div>
-                <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
+                <span className="text-xs sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
               </div>
             </div>
           ))}
@@ -643,7 +655,7 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Informações do Imóvel</h3>
                 </div>
               </div>
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-5">
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
                   <RotateCcw className="w-4 h-4" />
                   <span className="font-medium">Cálculo automático em tempo real</span>
@@ -656,39 +668,39 @@ function SimulatorContent() {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Imóvel (R$)</label>
-                  <input type="text" inputMode="numeric" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 400.000,00" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="text" inputMode="numeric" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 400.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Percentual de Desconto (%)</label>
-                  <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} min="0" max="100" step="0.01" placeholder="Ex: 5" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} min="0" max="100" step="0.01" placeholder="Ex: 5" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Unidade Escolhida</label>
-                  <input type="text" value={unitName} onChange={(e) => setUnitName(e.target.value)} placeholder="Ex: A-101" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="text" value={unitName} onChange={(e) => setUnitName(e.target.value)} placeholder="Ex: A-101" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Sinal (R$)</label>
-                  <input type="text" inputMode="numeric" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 6% do valor final do imóvel. Pagamento à vista.</p>
+                  <input type="text" inputMode="numeric" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <p className="text-xs text-gray-400 mt-1">Padrão: 6% do valor final do imóvel. Pagamento à vista.</p>
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Data do Pagamento do Sinal</label>
-                  <input type="date" value={downPaymentDate} min={getTodayISO()} onChange={(e) => setDownPaymentDate(e.target.value)} className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="date" value={downPaymentDate} min={getTodayISO()} onChange={(e) => setDownPaymentDate(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                 </div>
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Mensal (R$)</label>
-                  <input type="text" inputMode="numeric" value={monthlyValueInput} onChange={handleCurrencyInput(setMonthlyValueInput)} placeholder="Ex: R$ 1.000,00" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="text" inputMode="numeric" value={monthlyValueInput} onChange={handleCurrencyInput(setMonthlyValueInput)} placeholder="Ex: R$ 1.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                   {monthlyVal > 0 && (
                     <div className="mt-2 space-y-1">
                       <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
                         <span className="font-medium">Total mensal: {formatBRL(monthlyVal * MAX_MONTHLY_INSTALLMENTS)} ({MAX_MONTHLY_INSTALLMENTS}x)</span>
                       </div>
-                      <p className="text-[11px] text-amber-600">
+                      <p className="text-xs text-amber-600">
                         {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} pós-entrega (captação)
                       </p>
                     </div>
@@ -697,13 +709,13 @@ function SimulatorContent() {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Semestral (R$)</label>
-                  <input type="text" inputMode="numeric" value={semesterValueInput} onChange={handleCurrencyInput(setSemesterValueInput)} placeholder="Ex: R$ 8.000,00" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <input type="text" inputMode="numeric" value={semesterValueInput} onChange={handleCurrencyInput(setSemesterValueInput)} placeholder="Ex: R$ 8.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
                   {semesterVal > 0 && (
                     <div className="mt-2 space-y-1">
                       <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
                         <span className="font-medium">Total semestral: {formatBRL(semesterVal * MAX_SEMESTER_INSTALLMENTS)} ({MAX_SEMESTER_INSTALLMENTS}x)</span>
                       </div>
-                      <p className="text-[11px] text-amber-600">
+                      <p className="text-xs text-amber-600">
                         {result.paidSemesterCount} parcelas durante a obra + {result.remainingSemesterCount} para o financiamento
                       </p>
                     </div>
@@ -712,8 +724,8 @@ function SimulatorContent() {
 
                 <div>
                   <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor da Parcela Única (R$)</label>
-                  <input type="text" inputMode="numeric" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-[11px] text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês de entrega. Compõe a captação da obra.</p>
+                  <input type="text" inputMode="numeric" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <p className="text-xs text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês de entrega. Compõe a captação da obra.</p>
                 </div>
 
                 {/* INCC Correction */}
@@ -733,28 +745,28 @@ function SimulatorContent() {
                   </button>
 
                   {inccMode !== "none" && (
-                    <div className="pl-4 space-y-2">
-                      <label className="block">
+                    <div className="pl-4 space-y-3">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
                         <span className="text-sm text-gray-600">Sem correção</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="block">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
                         <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
-                          <p className="text-[10px] text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
+                          <p className="text-xs text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
                         )}
                       </label>
                       {inccData.lastUpdate && (
-                        <p className="text-[10px] text-gray-400">Dados atualizados em {inccData.lastUpdate} &mdash; {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>
+                        <p className="text-xs text-gray-400">Dados atualizados em {inccData.lastUpdate} &mdash; {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>
                       )}
                     </div>
                   )}
@@ -820,8 +832,31 @@ function SimulatorContent() {
                     <h3 className="font-semibold">Detalhamento do Fluxo de Pagamento</h3>
                   </div>
               </div>
-              <div className="p-6">
-                <div className="overflow-x-auto">
+              <div className="p-4 sm:p-6">
+                {/* Mobile card layout */}
+                <div className="sm:hidden space-y-2">
+                  {resultRows.map((row, i) => (
+                    <div key={i} className={`rounded-xl p-3 ${row.isHighlight ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`font-medium text-sm ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.description}</span>
+                        {row.bold && <span className={`text-base font-bold ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
+                      </div>
+                      {!row.bold && <span className={`text-base font-bold block mt-0.5 ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
+                      <div className="flex items-center gap-2 mt-1">
+                        {row.percent != null && <span className={`text-xs ${row.isHighlight ? 'text-gray-300' : 'text-gray-500'}`}>{row.percent.toFixed(2)}%</span>}
+                        {row.note && <span className="text-xs text-gray-400">· {row.note}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {result.remainingMonthlyCount > 0 && (
+                  <div className="sm:hidden flex items-start gap-2 p-3 bg-blue-50 rounded-xl text-sm text-blue-800 mt-2">
+                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação e podem ser pagas diretamente à construtora após a entrega ou integradas ao financiamento bancário.</span>
+                  </div>
+                )}
+                {/* Desktop table */}
+                <div className="hidden sm:block overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-900 text-white">
@@ -856,7 +891,7 @@ function SimulatorContent() {
                 {/* Tabs for schedules */}
                 {showResults && propertyValue > 0 && (
                   <div className="mt-6">
-                    <div className="flex border-b border-gray-200">
+                    <div className="flex overflow-x-auto border-b border-gray-200">
                       {[
                         { key: "sinal", label: "Sinal" },
                         { key: "mensal", label: `Mensais (${result.monthlyRows.length})` },
@@ -865,7 +900,7 @@ function SimulatorContent() {
                         { key: "habitese", label: "Financiamento" },
                       ].map((tab) => (
                         <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                          className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.key ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+                          className={`flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.key ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
                           {tab.label}
                         </button>
                       ))}
@@ -916,7 +951,7 @@ function SimulatorContent() {
                         <div className="space-y-3">
                           <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <h4 className="font-semibold text-gray-900 mb-3">Composição do Financiamento</h4>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
                               {result.remainingSemesterCount > 0 && (
                                 <div className="flex justify-between text-sm pl-4 border-l-2 border-amber-300"><span className="text-gray-500">{result.remainingSemesterCount}x semestrais remanescentes</span><span className="font-medium text-amber-700">{formatBRL(result.remainingSemesterValue)}</span></div>
@@ -937,7 +972,7 @@ function SimulatorContent() {
                               <h4 className="font-semibold text-orange-700 mb-2">Projeção INCC</h4>
                               <div className="flex justify-between text-sm"><span className="text-gray-600">Financiamento projetado</span><span className="font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</span></div>
                               <div className="flex justify-between text-sm mt-1"><span className="text-gray-500">Impacto estimado</span><span className="font-medium text-orange-600">+{formatBRL(result.habiteseCorrected - result.habiteseAmount)}</span></div>
-                              <p className="text-[10px] text-orange-500 mt-2">* Valores estimados. O INCC é variável e não pode ser previsto com certeza.</p>
+                              <p className="text-xs text-orange-500 mt-2">* Valores estimados. O INCC é variável e não pode ser previsto com certeza.</p>
                             </div>
                           )}
                         </div>
