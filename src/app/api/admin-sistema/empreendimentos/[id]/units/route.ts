@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+/** Verifica se o usuário é coordenador ou admin_sistema */
 async function getUserAndRole() {
   const supabase = await createClient();
   const {
@@ -10,7 +11,6 @@ async function getUserAndRole() {
   } = await supabase.auth.getUser();
   if (!user) return { supabase, error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }), user: null, role: null };
   const { data: profile, error: profileErr } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  // Se profile não existe ou query falhou, role fica null (acesso negado via caller)
   return { supabase, error: null, user, role: profile?.role || null };
 }
 
@@ -19,12 +19,28 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error } = await getUserAndRole();
+    const { supabase, error, role } = await getUserAndRole();
     if (error) return error;
+
+    // Apenas coordenador ou admin podem acessar dados de unidades por empreendimento
+    if (!role || (role !== "coordenador" && role !== "admin_sistema")) {
+      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
+    }
 
     const { id } = await params;
 
-    const { data, err } = await supabase
+    // Validar que o empreendimento existe
+    const { data: emp, error: empErr } = await supabase
+      .from("empreendimentos")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (empErr || !emp) {
+      return NextResponse.json({ error: "Empreendimento não encontrado" }, { status: 404 });
+    }
+
+    const { data, error: queryErr } = await supabase
       .from("projeto_units")
       .select("*")
       .eq("empreendimento_id", id)
@@ -32,8 +48,8 @@ export async function GET(
       .order("andar", { ascending: true })
       .order("unidade", { ascending: true });
 
-    if (err) {
-      console.error("Erro ao buscar unidades:", err.message);
+    if (queryErr) {
+      console.error("Erro ao buscar unidades:", queryErr.message);
       return NextResponse.json({ error: "Erro ao buscar unidades" }, { status: 500 });
     }
 
@@ -52,7 +68,6 @@ export async function PATCH(
     const { supabase, error, role } = await getUserAndRole();
     if (error) return error;
 
-    // Coordenador ou admin_sistema podem alterar status
     if (!role || (role !== "coordenador" && role !== "admin_sistema")) {
       return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
     }
@@ -70,7 +85,18 @@ export async function PATCH(
       return NextResponse.json({ error: `Status inválido. Valores: ${validStatuses.join(", ")}` }, { status: 400 });
     }
 
-    const { data, err } = await supabase
+    // Validar que o empreendimento existe antes de alterar
+    const { data: emp, error: empErr } = await supabase
+      .from("empreendimentos")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (empErr || !emp) {
+      return NextResponse.json({ error: "Empreendimento não encontrado" }, { status: 404 });
+    }
+
+    const { data, error: updateErr } = await supabase
       .from("projeto_units")
       .update({ status })
       .eq("empreendimento_id", id)
@@ -78,8 +104,8 @@ export async function PATCH(
       .select()
       .single();
 
-    if (err) {
-      console.error("Erro ao atualizar status:", err.message);
+    if (updateErr) {
+      console.error("Erro ao atualizar status:", updateErr.message);
       return NextResponse.json({ error: "Erro ao atualizar unidade" }, { status: 500 });
     }
 

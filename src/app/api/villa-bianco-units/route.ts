@@ -13,7 +13,7 @@ async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Prom
     console.error("[isAdmin] Erro ao obter usuário:", error?.message);
     return false;
   }
-  if (ADMIN_EMAILS.length === 0) return true; // Sem restrição se não configurado
+  if (ADMIN_EMAILS.length === 0) return false; // Negar acesso se ADMIN_EMAILS não configurado (fail-closed)
   const isAuthorized = ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
   if (!isAuthorized) {
     console.warn(`[isAdmin] E-mail não autorizado: ${user.email}`);

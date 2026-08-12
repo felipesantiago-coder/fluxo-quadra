@@ -10,6 +10,10 @@ import { recordLoginEvent } from "@/lib/mfa/email";
 
 export const dynamic = "force-dynamic";
 
+function isValidRedirect(url: string): boolean {
+  return typeof url === "string" && url.startsWith("/") && !url.startsWith("//");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -137,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      redirect: redirectUrl || "/projetos",
+      redirect: isValidRedirect(redirectUrl || "") ? redirectUrl : "/projetos",
     });
   } catch (err) {
     console.error("Erro ao finalizar autenticação WebAuthn:", err);

@@ -10,7 +10,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
 async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return false;
-  if (ADMIN_EMAILS.length === 0) return true;
+  if (ADMIN_EMAILS.length === 0) return false; // Negar acesso se ADMIN_EMAILS não configurado (fail-closed)
   return ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
 }
 

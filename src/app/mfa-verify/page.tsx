@@ -9,7 +9,8 @@ import { ShieldCheck, Smartphone, Keyboard, Loader2, Fingerprint, AlertCircle } 
 function MfaVerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/projetos";
+  const rawRedirect = searchParams.get("redirect") || "/projetos";
+  const redirectUrl = (rawRedirect.startsWith("/") && !rawRedirect.startsWith("//")) ? rawRedirect : "/projetos";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

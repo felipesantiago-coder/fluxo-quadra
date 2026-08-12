@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdminSistema } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_EMAIL = "prosperosdirecional@gmail.com";
-const ADMIN_PASSWORD = "@DminS1St3m@";
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "prosperosdirecional@gmail.com";
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "";
 
-export async function POST() {
+export async function POST(_request: NextRequest) {
+  // Apenas admin_sistema pode executar o seed
+  const adminCheck = await requireAdminSistema();
+  if (adminCheck) return adminCheck;
+
+  if (!ADMIN_PASSWORD) {
+    return NextResponse.json(
+      { error: "Senha de admin não configurada. Defina SEED_ADMIN_PASSWORD no ambiente." },
+      { status: 500 }
+    );
+  }
+
   try {
-    const supabase = await createClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const supabase = createAdminClient();
 
     // Verificar se admin já existe
     const { data: existingProfile } = await supabase
@@ -18,7 +30,6 @@ export async function POST() {
       .single();
 
     if (existingProfile) {
-      // Atualizar role se necessário
       if (existingProfile.role !== "admin_sistema") {
         await supabase
           .from("profiles")
@@ -29,41 +40,35 @@ export async function POST() {
       return NextResponse.json({ message: "Administrador do sistema já existe" });
     }
 
-    // Criar usuário via signUp
-    const { data, error } = await supabase.auth.signUp({
+    // Criar usuário via signUp com service_role
+    const { data, error } = await supabase.auth.admin.createUser({
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
-      options: {
-        data: {
-          display_name: "Administrador do Sistema",
-        },
-      },
+      email_confirm: true,
+      user_metadata: { display_name: "Administrador do Sistema" },
     });
 
     if (error) {
-      // Se o usuário já existe no auth mas não no profiles
       if (error.message.includes("already registered") || error.message.includes("already been registered")) {
         return NextResponse.json({
-          message: "Usuário já existe no sistema de autenticação. Execute a query SQL manualmente para atualizar o perfil.",
-          sql: `UPDATE public.profiles SET role = 'admin_sistema' WHERE email = '${ADMIN_EMAIL}';`,
+          message: "Usuário já existe no auth. Atualize o perfil manualmente via SQL.",
         });
       }
       console.error("Erro ao criar admin:", error.message);
-      return NextResponse.json({ error: "Erro ao criar administrador: " + error.message }, { status: 500 });
+      return NextResponse.json({ error: "Erro ao criar administrador" }, { status: 500 });
     }
 
     if (data.user) {
-      // Atualizar role do perfil recém-criado
       await supabase
         .from("profiles")
         .update({ role: "admin_sistema" })
         .eq("id", data.user.id);
     }
 
+    // NUNCA retornar a senha no response
     return NextResponse.json({
       message: "Administrador do sistema criado com sucesso",
       email: ADMIN_EMAIL,
-      password: ADMIN_PASSWORD,
     });
   } catch (err) {
     console.error("Erro no seed admin:", err);
