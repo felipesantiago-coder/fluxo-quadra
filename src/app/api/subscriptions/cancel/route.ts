@@ -4,8 +4,8 @@ import { cancelMpSubscription } from '@/lib/mercadopago';
 
 /**
  * POST /api/subscriptions/cancel
- * Cancela a assinatura ativa do usuário.
- * Também cancela no Mercado Pago se houver subscription_id.
+ * Cancela a assinatura ativa do usuario.
+ * Cancela no Mercado Pago PRIMEIRO — so cancela localmente se o MP confirmar.
  */
 export async function POST() {
   try {
@@ -13,7 +13,7 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+      return NextResponse.json({ error: 'Nao autenticado.' }, { status: 401 });
     }
 
     // Buscar assinatura ativa
@@ -31,7 +31,8 @@ export async function POST() {
       );
     }
 
-    // Cancelar no Mercado Pago (se tiver ID)
+    // Cancelar no Mercado Pago PRIMEIRO
+    // Se falhar, nao cancelar localmente — retornar erro para o usuario
     if (assinatura.mercadopago_subscription_id) {
       try {
         await cancelMpSubscription(assinatura.mercadopago_subscription_id);
@@ -40,17 +41,21 @@ export async function POST() {
           '[POST /api/subscriptions/cancel] Erro ao cancelar no MP:',
           mpErr
         );
-        // Continuar mesmo se falhar no MP — o registro local será cancelado
+        return NextResponse.json(
+          { error: 'Nao foi possivel cancelar no Mercado Pago. Tente novamente em alguns instantes.' },
+          { status: 502 }
+        );
       }
     }
 
-    // Atualizar no banco
+    // So cancelar localmente se o MP foi cancelado com sucesso
     const { error: updateErr } = await supabase
       .from('assinaturas')
       .update({
         status: 'cancelled_by_user',
         cancelado_em: new Date().toISOString(),
-        motivo_cancelamento: 'Cancelado pelo usuário via painel',
+        motivo_cancelamento: 'Cancelado pelo usuario via painel',
+        proximo_ciclo_em: null,
       })
       .eq('id', assinatura.id);
 

@@ -2,9 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAdminSistema } from '@/lib/admin-auth';
 
+// Maquina de estados: transicoes validas
+const VALID_TRANSITIONS: Record<string, Set<string>> = {
+  pending: new Set(['pending', 'active', 'cancelled', 'expired', 'paused']),
+  active: new Set(['active', 'cancelled', 'paused', 'expired', 'cancelled_by_user']),
+  paused: new Set(['paused', 'active', 'cancelled', 'expired', 'cancelled_by_user']),
+  cancelled: new Set(['cancelled']),
+  cancelled_by_user: new Set(['cancelled_by_user']),
+  expired: new Set(['expired']),
+};
+
+function isTransitionValid(current: string, target: string): boolean {
+  const allowed = VALID_TRANSITIONS[current];
+  if (!allowed) return false;
+  return allowed.has(target);
+}
+
 /**
  * GET /api/admin-sistema/assinaturas
- * Admin lista todas as assinaturas com dados do usuário e plano.
+ * Admin lista todas as assinaturas com dados do usuario e plano.
  */
 export async function GET() {
   try {
@@ -48,6 +64,8 @@ export async function GET() {
 /**
  * PATCH /api/admin-sistema/assinaturas
  * Admin pode alterar manualmente o status de uma assinatura.
+ * Valida transicao de estado e requer justificativa para status 'active'.
+ *
  * Body: { assinaturaId: string, status: string, motivo?: string }
  */
 export async function PATCH(request: NextRequest) {
@@ -67,14 +85,41 @@ export async function PATCH(request: NextRequest) {
 
     if (!assinaturaId || !status) {
       return NextResponse.json(
-        { error: 'assinaturaId e status são obrigatórios.' },
+        { error: 'assinaturaId e status sao obrigatorios.' },
         { status: 400 }
       );
     }
 
     const validStatuses = ['pending', 'active', 'cancelled', 'paused', 'expired', 'cancelled_by_user'];
     if (!validStatuses.includes(status)) {
-      return NextResponse.json({ error: 'Status inválido.' }, { status: 400 });
+      return NextResponse.json({ error: 'Status invalido.' }, { status: 400 });
+    }
+
+    // Se admin quer ativar, exigir motivo obrigatoria
+    if (status === 'active' && (!motivo || motivo.trim().length < 10)) {
+      return NextResponse.json(
+        { error: 'Para ativar uma assinatura manualmente, forneca um motivo detalhado (minimo 10 caracteres) justificando a acao.' },
+        { status: 400 }
+      );
+    }
+
+    // Buscar status atual para validar transicao
+    const { data: currentAss, error: fetchErr } = await supabase
+      .from('assinaturas')
+      .select('id, status')
+      .eq('id', assinaturaId)
+      .maybeSingle();
+
+    if (fetchErr || !currentAss) {
+      return NextResponse.json({ error: 'Assinatura nao encontrada.' }, { status: 404 });
+    }
+
+    // Validar transicao de estado
+    if (!isTransitionValid(currentAss.status, status)) {
+      return NextResponse.json(
+        { error: `Transicao invalida: nao e possivel mudar de "${currentAss.status}" para "${status}".` },
+        { status: 409 }
+      );
     }
 
     const updateData: Record<string, unknown> = {

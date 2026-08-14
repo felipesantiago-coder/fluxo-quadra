@@ -102,17 +102,34 @@ export async function POST(request: NextRequest) {
 
     if (!nome || !periodo_meses || preco === undefined) {
       return NextResponse.json(
-        { error: 'nome, periodo_meses e preco são obrigatórios.' },
+        { error: 'nome, periodo_meses e preco sao obrigatorios.' },
         { status: 400 }
       );
     }
 
-    if (periodo_meses < 1) {
-      return NextResponse.json({ error: 'periodo_meses deve ser >= 1.' }, { status: 400 });
+    // Validacao de entradas
+    const trimmedNome = typeof nome === 'string' ? nome.trim().slice(0, 100) : '';
+    const trimmedDescricao = typeof descricao === 'string' ? descricao.trim().slice(0, 500) : '';
+
+    if (!trimmedNome) {
+      return NextResponse.json({ error: 'nome nao pode estar vazio.' }, { status: 400 });
     }
 
-    if (preco < 0) {
-      return NextResponse.json({ error: 'preco deve ser >= 0.' }, { status: 400 });
+    if (periodo_meses < 1 || periodo_meses > 36) {
+      return NextResponse.json({ error: 'periodo_meses deve estar entre 1 e 36.' }, { status: 400 });
+    }
+
+    if (preco < 0 || preco > 99999.99) {
+      return NextResponse.json({ error: 'preco deve estar entre 0 e 99999.99.' }, { status: 400 });
+    }
+
+    // Validar features: array de strings com max 20 itens
+    let validatedFeatures: string[] = [];
+    if (Array.isArray(features)) {
+      validatedFeatures = features
+        .filter((f) => typeof f === 'string')
+        .map((f) => f.trim().slice(0, 200))
+        .slice(0, 20);
     }
 
     // Buscar maior ordem atual
@@ -126,11 +143,11 @@ export async function POST(request: NextRequest) {
     const { data: novoPlano, error: insertErr } = await supabase
       .from('planos')
       .insert({
-        nome: nome.trim(),
-        descricao: (descricao || '').trim(),
+        nome: trimmedNome,
+        descricao: trimmedDescricao,
         periodo_meses,
         preco,
-        features: Array.isArray(features) ? features : [],
+        features: validatedFeatures,
         popular: popular ?? false,
         ativo: ativo ?? true,
         ordem: ordem ?? ((maxOrdem?.ordem || 0) + 1),

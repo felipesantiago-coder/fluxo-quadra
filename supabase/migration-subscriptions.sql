@@ -169,7 +169,38 @@ CREATE POLICY "pagamentos_admin_insert" ON public.pagamentos
   );
 
 -- ─────────────────────────────────────────────────────────────
--- 4. Índices para performance
+-- 4. Tabela de eventos de webhook (idempotencia)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.webhook_events (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id          TEXT NOT NULL,
+  event_type        TEXT NOT NULL DEFAULT 'unknown',
+  action            TEXT,
+  mp_resource_id    TEXT,
+  processed_at      TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_id ON public.webhook_events(event_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_processed_at ON public.webhook_events(processed_at);
+
+-- Limpar eventos antigos (manter 30 dias)
+CREATE OR REPLACE FUNCTION public.cleanup_old_webhook_events()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM public.webhook_events WHERE processed_at < now() - interval '30 days';
+END;
+$$ LANGUAGE plpgsql;
+
+-- ─────────────────────────────────────────────────────────────
+-- 5. Partial Unique Index: impede assinaturas duplicadas ativas/pendentes
+-- ─────────────────────────────────────────────────────────────
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_sub_per_user
+  ON public.assinaturas(user_id)
+  WHERE status IN ('active', 'pending');
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. Indices para performance
 -- ─────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_assinaturas_user_id ON public.assinaturas(user_id);
 CREATE INDEX IF NOT EXISTS idx_assinaturas_status ON public.assinaturas(status);
@@ -182,7 +213,7 @@ CREATE INDEX IF NOT EXISTS idx_pagamentos_mp_payment ON public.pagamentos(mercad
 CREATE INDEX IF NOT EXISTS idx_planos_ativo ON public.planos(ativo);
 
 -- ─────────────────────────────────────────────────────────────
--- 5. Seed: Planos iniciais
+-- 7. Seed: Planos iniciais
 -- ─────────────────────────────────────────────────────────────
 INSERT INTO public.planos (nome, descricao, periodo_meses, preco, features, popular, ativo, ordem) VALUES
 (

@@ -10,28 +10,36 @@ import { verifyWebhookSignature, getMpPayment, getMpSubscription } from '@/lib/m
  *  - Pagamentos aprovados/rejeitados
  *  - Assinaturas ativadas/canceladas/pausadas
  *
- * SEGURANÇA: Verifica assinatura HMAC-SHA256 do x-signature.
+ * SEGURANCA: Verifica assinatura HMAC-SHA256 do x-signature.
+ * NUNCA desabilita verificacao de assinatura, mesmo em dev.
  */
 export async function POST(request: NextRequest) {
   try {
+    // 0. Verificar se webhook secret esta configurado
+    if (!process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+      console.error('[Webhook MP] MERCADOPAGO_WEBHOOK_SECRET nao configurado. Webhook desabilitado.');
+      return NextResponse.json(
+        { error: 'Webhook nao configurado. Configure MERCADOPAGO_WEBHOOK_SECRET.' },
+        { status: 503 }
+      );
+    }
+
     const bodyText = await request.text();
     let body: Record<string, unknown>;
 
     try {
       body = JSON.parse(bodyText);
     } catch {
-      return NextResponse.json({ error: 'JSON inválido.' }, { status: 400 });
+      return NextResponse.json({ error: 'JSON invalido.' }, { status: 400 });
     }
 
-    // 1. Verificar assinatura do webhook
+    // 1. Verificar assinatura do webhook — OBRIGATORIO, sem bypass
     const xSignature = request.headers.get('x-signature');
     const isValid = await verifyWebhookSignature(xSignature, bodyText);
 
-    // Em modo de desenvolvimento, permitir sem verificação (quando não há secret configurado)
-    const isDev = !process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    if (!isValid && !isDev) {
-      console.warn('[Webhook MP] Assinatura inválida.');
-      return NextResponse.json({ error: 'Assinatura inválida.' }, { status: 401 });
+    if (!isValid) {
+      console.warn('[Webhook MP] Assinatura HMAC invalida. Requisicao rejeitada.');
+      return NextResponse.json({ error: 'Assinatura invalida.' }, { status: 401 });
     }
 
     const action = body.action as string | undefined;
@@ -39,28 +47,67 @@ export async function POST(request: NextRequest) {
     const data = body.data as Record<string, string> | undefined;
 
     if (!data?.id) {
-      console.warn('[Webhook MP] Evento sem data.id:', body);
       return NextResponse.json({ received: true });
     }
 
-    console.log(`[Webhook MP] Evento: type=${type}, action=${action}, id=${data.id}`);
+    // Montar event_id para idempotencia
+    const eventId = `${type || 'unknown'}:${data.id}`;
 
     const supabase = createAdminClient();
 
-    // ── Processar por tipo de evento ──
+    // 2. Idempotencia: verificar se este evento ja foi processado
+    const { data: existingEvent } = await supabase
+      .from('webhook_events')
+      .select('id')
+      .eq('event_id', eventId)
+      .maybeSingle();
+
+    if (existingEvent) {
+      // Evento ja processado — retornar 200 silenciosamente
+      return NextResponse.json({ received: true, idempotent: true });
+    }
+
+    // 3. Processar por tipo de evento
     if (type === 'payment') {
       await handlePaymentEvent(supabase, data.id);
     } else if (type === 'preapproval') {
       await handlePreapprovalEvent(supabase, data.id, action);
     } else {
-      console.log(`[Webhook MP] Tipo não tratado: ${type}`);
+      // Tipo nao tratado — registrar e ignorar
     }
+
+    // 4. Registrar evento como processado
+    await supabase
+      .from('webhook_events')
+      .insert({
+        event_id: eventId,
+        event_type: type || 'unknown',
+        action: action || null,
+        mp_resource_id: data.id,
+        processed_at: new Date().toISOString(),
+      });
 
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error('[Webhook MP] Erro geral:', err);
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
   }
+}
+
+// ── Maquina de Estados: transicoes validas para assinaturas ──
+const VALID_TRANSITIONS: Record<string, Set<string>> = {
+  pending: new Set(['pending', 'active', 'cancelled', 'rejected', 'expired']),
+  active: new Set(['active', 'cancelled', 'paused', 'expired', 'cancelled_by_user']),
+  paused: new Set(['paused', 'active', 'cancelled', 'expired', 'cancelled_by_user']),
+  cancelled: new Set(['cancelled']),
+  cancelled_by_user: new Set(['cancelled_by_user']),
+  expired: new Set(['expired']),
+};
+
+function isTransitionValid(currentStatus: string, newStatus: string): boolean {
+  const allowed = VALID_TRANSITIONS[currentStatus];
+  if (!allowed) return false;
+  return allowed.has(newStatus);
 }
 
 // ── Handler: Pagamentos ──────────────────────────────────────
@@ -72,20 +119,19 @@ async function handlePaymentEvent(
   try {
     // Buscar detalhes do pagamento no MP
     const payment = await getMpPayment(paymentId);
-    const paymentData = payment as Record<string, unknown>;
+    const paymentData = payment as unknown as Record<string, unknown>;
 
     const status = paymentData.status as string;
     const valor = Number(paymentData.transaction_amount) || 0;
     const metodo = paymentData.payment_method_id as string || '';
     const dateApproved = paymentData.date_approved as string | null;
-    const preapprovalId = paymentData.metadata?.preapproval_id as string | undefined;
+    const preapprovalId = (paymentData.metadata as Record<string, unknown> | undefined)?.preapproval_id as string | undefined;
 
     if (!status) {
-      console.warn(`[Webhook MP] Pagamento ${paymentId} sem status.`);
       return;
     }
 
-    // Mapear método de pagamento
+    // Mapear metodo de pagamento
     let metodoNorm = 'pix';
     if (metodo.includes('credit_card')) metodoNorm = 'credit_card';
     else if (metodo.includes('debit_card')) metodoNorm = 'debit_card';
@@ -108,7 +154,7 @@ async function handlePaymentEvent(
       }
     }
 
-    // Se não achou por preapproval, buscar por mercadopago_payment_id
+    // Se nao achou por preapproval, buscar por mercadopago_payment_id
     if (!userId) {
       const { data: existingPayment } = await supabase
         .from('pagamentos')
@@ -123,7 +169,6 @@ async function handlePaymentEvent(
     }
 
     if (!userId) {
-      console.warn(`[Webhook MP] Pagamento ${paymentId}: não foi possível encontrar o usuário.`);
       return;
     }
 
@@ -131,7 +176,7 @@ async function handlePaymentEvent(
     const validStatuses = ['pending', 'approved', 'rejected', 'refunded', 'cancelled', 'in_process'];
     const normalizedStatus = validStatuses.includes(status) ? status : 'pending';
 
-    // Upsert pagamento
+    // Upsert pagamento (sem dados pessoais do payer)
     const { error: upsertErr } = await supabase
       .from('pagamentos')
       .upsert(
@@ -148,9 +193,6 @@ async function handlePaymentEvent(
             mp_status: status,
             payment_method_id: metodo,
             date_created: paymentData.date_created,
-            payer: paymentData.payer
-              ? { email: (paymentData.payer as Record<string, unknown>).email, id: (paymentData.payer as Record<string, unknown>).id }
-              : null,
           },
         },
         { onConflict: 'mercadopago_payment_id' }
@@ -162,27 +204,56 @@ async function handlePaymentEvent(
 
     // Se pagamento aprovado, atualizar assinatura como ativa
     if (normalizedStatus === 'approved' && assinaturaId) {
-      const agora = new Date().toISOString();
-
-      // Buscar plano para calcular data fim
+      // Buscar assinatura com status atual e plano (uma unica query)
       const { data: assinatura } = await supabase
         .from('assinaturas')
-        .select('plano_id, plano:planos(periodo_meses)')
+        .select('id, status, data_inicio, plano_id, plano:planos(preco, periodo_meses)')
         .eq('id', assinaturaId)
         .single();
 
+      if (!assinatura) return;
+
+      // Validar transicao de estado: so ativar se esta em pending ou paused
+      if (!isTransitionValid(assinatura.status, 'active')) {
+        console.warn(
+          `[Webhook MP] Transicao invalida: ${assinatura.status} -> active. Assinatura ${assinaturaId}. Ignorando.`
+        );
+        return;
+      }
+
+      // Validar valor cobrado vs preco do plano (tolerancia de 5%)
+      const plano = assinatura.plano as unknown as Record<string, unknown> | null;
+      if (plano) {
+        const precoPlano = Number(plano.preco) || 0;
+        if (precoPlano > 0) {
+          const diff = Math.abs(valor - precoPlano) / precoPlano;
+          if (diff > 0.05) {
+            console.error(
+              `[Webhook MP] ALERTA: Valor pago (R$${valor}) diverge do plano (R$${precoPlano}) em ${Math.round(diff * 100)}%. ` +
+              `Assinatura ${assinaturaId}, Pagamento ${paymentId}. Requerer intervencao manual.`
+            );
+            // Nao ativar automaticamente — requerer confirmacao do admin
+            return;
+          }
+        }
+      }
+
+      const agora = new Date().toISOString();
+
+      // Calcular data fim com meses calendario reais
       let dataFim: string | null = null;
-      if (assinatura?.plano) {
-        const plano = assinatura.plano as Record<string, number>;
-        const meses = plano.periodo_meses || 1;
-        dataFim = new Date(Date.now() + meses * 30 * 24 * 60 * 60 * 1000).toISOString();
+      if (plano) {
+        const meses = Number(plano.periodo_meses) || 1;
+        const fim = new Date();
+        fim.setMonth(fim.getMonth() + meses);
+        dataFim = fim.toISOString();
       }
 
       await supabase
         .from('assinaturas')
         .update({
           status: 'active',
-          data_inicio: dataFim && !assinatura?.data_inicio ? agora : undefined,
+          data_inicio: dataFim && !assinatura.data_inicio ? agora : undefined,
           data_fim: dataFim,
           ultimo_pagamento_em: agora,
           proximo_ciclo_em: dataFim,
@@ -205,24 +276,12 @@ async function handlePreapprovalEvent(
   try {
     // Buscar detalhes da assinatura no MP
     const subscription = await getMpSubscription(subscriptionId);
-    const subData = subscription as Record<string, unknown>;
+    const subData = subscription as unknown as Record<string, unknown>;
 
     const mpStatus = subData.status as string;
     const payerId = (subData.payer_id as string) || null;
 
-    // Buscar assinatura local
-    const { data: assinatura, error: assErr } = await supabase
-      .from('assinaturas')
-      .select('id, user_id, plano_id')
-      .eq('mercadopago_subscription_id', subscriptionId)
-      .maybeSingle();
-
-    if (assErr || !assinatura) {
-      console.warn(`[Webhook MP] Assinatura ${subscriptionId} não encontrada localmente.`);
-      return;
-    }
-
-    // Mapear status MP → nosso status
+    // Mapear status MP -> nosso status
     const statusMap: Record<string, string> = {
       authorized: 'active',
       active: 'active',
@@ -231,9 +290,33 @@ async function handlePreapprovalEvent(
       paused: 'paused',
     };
 
-    const ourStatus = statusMap[mpStatus] || assinatura.status;
+    const ourStatus = statusMap[mpStatus];
+    if (!ourStatus) {
+      console.warn(`[Webhook MP] Status MP nao mapeado: ${mpStatus} para assinatura ${subscriptionId}`);
+      return;
+    }
 
-    // Atualizar no banco
+    // Buscar assinatura local com status atual
+    const { data: assinatura, error: assErr } = await supabase
+      .from('assinaturas')
+      .select('id, user_id, plano_id, status')
+      .eq('mercadopago_subscription_id', subscriptionId)
+      .maybeSingle();
+
+    if (assErr || !assinatura) {
+      console.warn(`[Webhook MP] Assinatura ${subscriptionId} nao encontrada localmente.`);
+      return;
+    }
+
+    // Validar transicao de estado
+    if (!isTransitionValid(assinatura.status, ourStatus)) {
+      console.warn(
+        `[Webhook MP] Transicao invalida: ${assinatura.status} -> ${ourStatus}. Assinatura ${assinatura.id}. Ignorando.`
+      );
+      return;
+    }
+
+    // Montar dados de atualizacao
     const updateData: Record<string, unknown> = {
       status: ourStatus,
     };
@@ -242,15 +325,12 @@ async function handlePreapprovalEvent(
       updateData.mercadopago_payer_id = payerId;
     }
 
-    // Se cancelada
     if (mpStatus === 'cancelled') {
       updateData.cancelado_em = new Date().toISOString();
       updateData.motivo_cancelamento = `Cancelada via Mercado Pago (action: ${action || 'unknown'})`;
-      // Limpar próxima cobrança
       updateData.proximo_ciclo_em = null;
     }
 
-    // Se pausada
     if (mpStatus === 'paused') {
       updateData.proximo_ciclo_em = null;
     }
@@ -259,10 +339,6 @@ async function handlePreapprovalEvent(
       .from('assinaturas')
       .update(updateData)
       .eq('id', assinatura.id);
-
-    console.log(
-      `[Webhook MP] Assinatura ${subscriptionId} → ${ourStatus} (MP: ${mpStatus})`
-    );
   } catch (err) {
     console.error(`[Webhook MP] Erro ao processar assinatura ${subscriptionId}:`, err);
   }

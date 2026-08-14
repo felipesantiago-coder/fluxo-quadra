@@ -80,3 +80,26 @@ Stage Summary:
   3. Configurar MERCADOPAGO_WEBHOOK_SECRET no .env
   4. No painel admin → tab Assinaturas → sincronizar cada plano com MP
   5. Configurar webhook no painel do Mercado Pago apontando para /api/webhooks/mercadopago
+
+---
+Task ID: 5
+Agent: main
+Task: Auditoria completa de segurança, confiabilidade, integridade e performance - Integração Mercado Pago
+
+Work Log:
+- Lidos todos os 9 arquivos de código da integração MP (mercadopago.ts, 7 API routes, 1 migration SQL)
+- Lidos 3 arquivos de frontend (PlanosClient, AssinaturaClient, AdminSistemaClient)
+- Lidos admin-auth.ts, middleware.ts, supabase/admin.ts
+- Identificados 2 vulnerabilidades CRÍTICAS, 5 ALTAS, 7 MÉDIAS, 5 BAIXAS/INFORMATIVAS
+- Gerado relatório PDF completo com 14 seções (auditoria-mercadopago-seguranca.pdf)
+- Correções implementadas no código:
+  - webhooks/mercadopago/route.ts: Removido bypass isDev, adicionado idempotência via webhook_events, máquina de estados, validação de valor, remoção de payer.email dos detalhes, calculo de data_fim com meses reais
+  - subscriptions/cancel/route.ts: Cancelamento atômico (só cancela local se MP confirmar)
+  - admin-sistema/assinaturas/route.ts: Máquina de estados no PATCH, exigência de motivo para ativar
+  - admin-sistema/planos/route.ts: Validação de entradas (comprimento, tipo, limites)
+  - migration-subscriptions.sql: Tabela webhook_events + partial unique index idx_one_active_sub_per_user + índices
+
+Stage Summary:
+- Veredicto: NÃO APROVADO PARA PRODUÇÃO (bloqueadores P0 precisam de execução de migration SQL)
+- Correções P0+P1 implementadas no código
+- **AÇÕES NECESSÁRIAS**: Re-executar migration-subscriptions.sql atualizado no Supabase (inclui webhook_events + partial unique index)
