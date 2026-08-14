@@ -33,8 +33,9 @@ export async function GET() {
 
 /**
  * POST /api/admin-sistema/planos
- * Admin cria ou sincroniza um plano com o Mercado Pago.
- * Body: { planoId?: string } — se passado, sincroniza o plano existente com o MP.
+ * Dois comportamentos:
+ *   - Body com planoId: sincroniza plano existente com o Mercado Pago
+ *   - Body com nome, preco, etc.: cria um NOVO plano
  */
 export async function POST(request: NextRequest) {
   try {
@@ -45,54 +46,104 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient();
     const body = await request.json();
-    const { planoId } = body as { planoId?: string };
 
-    if (!planoId) {
-      return NextResponse.json({ error: 'planoId é obrigatório.' }, { status: 400 });
-    }
+    // ── Sincronizar plano existente com MP ──
+    if (body.planoId && !body.nome) {
+      const { data: plano, error: planoErr } = await supabase
+        .from('planos')
+        .select('*')
+        .eq('id', body.planoId)
+        .single();
 
-    // Buscar plano local
-    const { data: plano, error: planoErr } = await supabase
-      .from('planos')
-      .select('*')
-      .eq('id', planoId)
-      .single();
+      if (planoErr || !plano) {
+        return NextResponse.json({ error: 'Plano não encontrado.' }, { status: 404 });
+      }
 
-    if (planoErr || !plano) {
-      return NextResponse.json({ error: 'Plano não encontrado.' }, { status: 404 });
-    }
+      if (plano.mercadopago_plan_id) {
+        return NextResponse.json({
+          message: 'Plano já sincronizado.',
+          mercadopago_plan_id: plano.mercadopago_plan_id,
+        });
+      }
 
-    // Se já tem MP plan ID, retornar
-    if (plano.mercadopago_plan_id) {
+      const mpPlanId = await createMpPlan({
+        planoId: plano.id,
+        nome: plano.nome,
+        periodoMeses: plano.periodo_meses,
+        preco: Number(plano.preco),
+      });
+
+      const { error: updateErr } = await supabase
+        .from('planos')
+        .update({ mercadopago_plan_id: mpPlanId, updated_at: new Date().toISOString() })
+        .eq('id', body.planoId);
+
+      if (updateErr) {
+        return NextResponse.json({ error: 'Erro ao salvar ID do plano.' }, { status: 500 });
+      }
+
       return NextResponse.json({
-        message: 'Plano já sincronizado.',
-        mercadopago_plan_id: plano.mercadopago_plan_id,
+        message: 'Plano criado no Mercado Pago com sucesso.',
+        mercadopago_plan_id: mpPlanId,
       });
     }
 
-    // Criar plano no Mercado Pago
-    const mpPlanId = await createMpPlan({
-      planoId: plano.id,
-      nome: plano.nome,
-      periodoMeses: plano.periodo_meses,
-      preco: Number(plano.preco),
-    });
+    // ── Criar novo plano ──
+    const { nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
+      nome?: string;
+      descricao?: string;
+      periodo_meses?: number;
+      preco?: number;
+      features?: string[];
+      popular?: boolean;
+      ativo?: boolean;
+      ordem?: number;
+    };
 
-    // Salvar ID do MP no plano
-    const { error: updateErr } = await supabase
-      .from('planos')
-      .update({ mercadopago_plan_id: mpPlanId, updated_at: new Date().toISOString() })
-      .eq('id', planoId);
-
-    if (updateErr) {
-      console.error('[POST /api/admin-sistema/planos] Erro ao atualizar:', updateErr);
-      return NextResponse.json({ error: 'Erro ao salvar ID do plano.' }, { status: 500 });
+    if (!nome || !periodo_meses || preco === undefined) {
+      return NextResponse.json(
+        { error: 'nome, periodo_meses e preco são obrigatórios.' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({
-      message: 'Plano criado no Mercado Pago com sucesso.',
-      mercadopago_plan_id: mpPlanId,
-    });
+    if (periodo_meses < 1) {
+      return NextResponse.json({ error: 'periodo_meses deve ser >= 1.' }, { status: 400 });
+    }
+
+    if (preco < 0) {
+      return NextResponse.json({ error: 'preco deve ser >= 0.' }, { status: 400 });
+    }
+
+    // Buscar maior ordem atual
+    const { data: maxOrdem } = await supabase
+      .from('planos')
+      .select('ordem')
+      .order('ordem', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { data: novoPlano, error: insertErr } = await supabase
+      .from('planos')
+      .insert({
+        nome: nome.trim(),
+        descricao: (descricao || '').trim(),
+        periodo_meses,
+        preco,
+        features: Array.isArray(features) ? features : [],
+        popular: popular ?? false,
+        ativo: ativo ?? true,
+        ordem: ordem ?? ((maxOrdem?.ordem || 0) + 1),
+      })
+      .select()
+      .single();
+
+    if (insertErr || !novoPlano) {
+      console.error('[POST /api/admin-sistema/planos] Erro ao criar:', insertErr);
+      return NextResponse.json({ error: 'Erro ao criar plano.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ plano: novoPlano, message: 'Plano criado com sucesso.' }, { status: 201 });
   } catch (err) {
     console.error('[POST /api/admin-sistema/planos] Erro:', err);
     const msg = err instanceof Error ? err.message : '';
@@ -102,6 +153,169 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-    return NextResponse.json({ error: 'Erro ao sincronizar plano.' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao criar/sincronizar plano.' }, { status: 500 });
+  }
+}
+
+/**
+ * PUT /api/admin-sistema/planos
+ * Atualiza os dados de um plano existente.
+ * Body: { id, nome?, descricao?, periodo_meses?, preco?, features?, popular?, ativo?, ordem? }
+ *
+ * Se o plano já estiver sincronizado com o MP e o preço ou período mudarem,
+ * o mercadopago_plan_id será removido (precisa re-sincronizar).
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id, nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
+      id?: string;
+      nome?: string;
+      descricao?: string;
+      periodo_meses?: number;
+      preco?: number;
+      features?: string[];
+      popular?: boolean;
+      ativo?: boolean;
+      ordem?: number;
+    };
+
+    if (!id) {
+      return NextResponse.json({ error: 'id é obrigatório.' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+
+    // Buscar plano atual para comparar mudanças
+    const { data: planoAtual, error: fetchErr } = await supabase
+      .from('planos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !planoAtual) {
+      return NextResponse.json({ error: 'Plano não encontrado.' }, { status: 404 });
+    }
+
+    // Montar objeto de atualização apenas com campos fornecidos
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+    if (nome !== undefined) updates.nome = nome.trim();
+    if (descricao !== undefined) updates.descricao = descricao.trim();
+    if (periodo_meses !== undefined) {
+      if (periodo_meses < 1) {
+        return NextResponse.json({ error: 'periodo_meses deve ser >= 1.' }, { status: 400 });
+      }
+      updates.periodo_meses = periodo_meses;
+    }
+    if (preco !== undefined) {
+      if (preco < 0) {
+        return NextResponse.json({ error: 'preco deve ser >= 0.' }, { status: 400 });
+      }
+      updates.preco = preco;
+    }
+    if (features !== undefined) updates.features = Array.isArray(features) ? features : [];
+    if (popular !== undefined) updates.popular = popular;
+    if (ativo !== undefined) updates.ativo = ativo;
+    if (ordem !== undefined) updates.ordem = ordem;
+
+    // Se preço ou período mudou e o plano tem ID do MP, limpar o ID
+    // pois o plano no MP precisa ser recriado com os novos valores
+    const precoChanged = preco !== undefined && Number(preco) !== Number(planoAtual.preco);
+    const periodoChanged = periodo_meses !== undefined && periodo_meses !== planoAtual.periodo_meses;
+    if ((precoChanged || periodoChanged) && planoAtual.mercadopago_plan_id) {
+      updates.mercadopago_plan_id = null;
+      updates._mp_cleared = true; // flag para avisar o frontend
+    }
+
+    delete updates._mp_cleared; // não salva no banco
+
+    const { data: planoAtualizado, error: updateErr } = await supabase
+      .from('planos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateErr || !planoAtualizado) {
+      console.error('[PUT /api/admin-sistema/planos] Erro:', updateErr);
+      return NextResponse.json({ error: 'Erro ao atualizar plano.' }, { status: 500 });
+    }
+
+    const response: Record<string, unknown> = { plano: planoAtualizado, message: 'Plano atualizado com sucesso.' };
+
+    if (precoChanged || periodoChanged) {
+      if (planoAtual.mercadopago_plan_id) {
+        response.mp_plan_cleared = true;
+        response.mp_warning = 'Preço ou período alterado. O plano precisa ser re-sincronizado com o Mercado Pago.';
+      }
+    }
+
+    return NextResponse.json(response);
+  } catch (err) {
+    console.error('[PUT /api/admin-sistema/planos] Erro:', err);
+    return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/admin-sistema/planos
+ * Remove um plano. Só permite se não houver assinaturas ativas vinculadas.
+ * Body: { id: string }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id } = body as { id?: string };
+
+    if (!id) {
+      return NextResponse.json({ error: 'id é obrigatório.' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+
+    // Verificar se existem assinaturas ativas ou pendentes vinculadas
+    const { count, error: countErr } = await supabase
+      .from('assinaturas')
+      .select('id', { count: 'exact', head: true })
+      .eq('plano_id', id)
+      .in('status', ['active', 'pending']);
+
+    if (countErr) {
+      console.error('[DELETE /api/admin-sistema/planos] Erro ao verificar:', countErr);
+      return NextResponse.json({ error: 'Erro ao verificar assinaturas.' }, { status: 500 });
+    }
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: `Não é possível excluir: existem ${count} assinatura(s) ativa(s)/pendente(s) vinculada(s) a este plano. Desative o plano em vez de excluí-lo.` },
+        { status: 409 }
+      );
+    }
+
+    const { error: deleteErr } = await supabase
+      .from('planos')
+      .delete()
+      .eq('id', id);
+
+    if (deleteErr) {
+      console.error('[DELETE /api/admin-sistema/planos] Erro:', deleteErr);
+      return NextResponse.json({ error: 'Erro ao excluir plano.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Plano excluído com sucesso.' });
+  } catch (err) {
+    console.error('[DELETE /api/admin-sistema/planos] Erro:', err);
+    return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
   }
 }

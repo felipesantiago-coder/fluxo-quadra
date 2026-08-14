@@ -23,6 +23,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Pencil,
   Crown,
   RefreshCw,
   CreditCard,
@@ -104,6 +105,10 @@ export default function AdminSistemaClient() {
   const [statusChangeDialog, setStatusChangeDialog] = useState<{ id: string; currentStatus: string } | null>(null);
   const [newStatus, setNewStatus] = useState("");
   const [statusMotivo, setStatusMotivo] = useState("");
+  // Plano CRUD
+  const [savingPlano, setSavingPlano] = useState(false);
+  const [deletingPlano, setDeletingPlano] = useState<string | null>(null);
+  const [togglingPlano, setTogglingPlano] = useState<string | null>(null);
 
   // Usuários
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -230,6 +235,81 @@ export default function AdminSistemaClient() {
       setChangingStatus(null);
     }
   }, [statusChangeDialog, newStatus, statusMotivo, addToast, fetchAssinaturas]);
+
+  // ─── Plano CRUD ─────────────────────────────────────────────────
+  const handleSavePlano = useCallback(async (data: Record<string, unknown>) => {
+    setSavingPlano(true);
+    try {
+      const isEdit = !!data.id;
+      const method = isEdit ? "PUT" : "POST";
+      const res = await fetch("/api/admin-sistema/planos", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", isEdit ? "Plano atualizado!" : "Plano criado!");
+        if (json.mp_plan_cleared) {
+          addToast("error", "Preço/período alterado — re-sincronize com o MP.");
+        }
+        await fetchPlanosAdmin();
+        return json;
+      } else {
+        addToast("error", json.error || "Erro ao salvar plano.");
+        return null;
+      }
+    } catch {
+      addToast("error", "Erro ao salvar plano.");
+      return null;
+    } finally {
+      setSavingPlano(false);
+    }
+  }, [addToast, fetchPlanosAdmin]);
+
+  const handleDeletePlano = useCallback(async (planoId: string) => {
+    setDeletingPlano(planoId);
+    try {
+      const res = await fetch("/api/admin-sistema/planos", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: planoId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", "Plano excluído.");
+        await fetchPlanosAdmin();
+      } else {
+        addToast("error", json.error || "Erro ao excluir.");
+      }
+    } catch {
+      addToast("error", "Erro ao excluir plano.");
+    } finally {
+      setDeletingPlano(null);
+    }
+  }, [addToast, fetchPlanosAdmin]);
+
+  const handleTogglePlano = useCallback(async (planoId: string, currentAtivo: boolean) => {
+    setTogglingPlano(planoId);
+    try {
+      const res = await fetch("/api/admin-sistema/planos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: planoId, ativo: !currentAtivo }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", !currentAtivo ? "Plano ativado." : "Plano desativado.");
+        await fetchPlanosAdmin();
+      } else {
+        addToast("error", json.error || "Erro ao alterar plano.");
+      }
+    } catch {
+      addToast("error", "Erro ao alterar plano.");
+    } finally {
+      setTogglingPlano(null);
+    }
+  }, [addToast, fetchPlanosAdmin]);
 
   // ─── Fetch usuários ──────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
@@ -1178,6 +1258,9 @@ export default function AdminSistemaClient() {
         statusChangeDialog={statusChangeDialog}
         newStatus={newStatus}
         statusMotivo={statusMotivo}
+        savingPlano={savingPlano}
+        deletingPlano={deletingPlano}
+        togglingPlano={togglingPlano}
         addToast={addToast}
         onSyncPlano={handleSyncPlano}
         onFetchAssinaturas={fetchAssinaturas}
@@ -1187,6 +1270,9 @@ export default function AdminSistemaClient() {
         onSetStatusChangeDialog={setStatusChangeDialog}
         onSetNewStatus={setNewStatus}
         onSetStatusMotivo={setStatusMotivo}
+        onSavePlano={handleSavePlano}
+        onDeletePlano={handleDeletePlano}
+        onTogglePlano={handleTogglePlano}
       />)}
 
       {/* ── Toast Notifications ─────────────────────────────────────────── */}
@@ -1230,6 +1316,9 @@ interface AssinaturasTabProps {
   statusChangeDialog: { id: string; currentStatus: string } | null;
   newStatus: string;
   statusMotivo: string;
+  savingPlano: boolean;
+  deletingPlano: string | null;
+  togglingPlano: string | null;
   addToast: (type: "success" | "error", message: string) => void;
   onSyncPlano: (planoId: string) => Promise<void>;
   onFetchAssinaturas: () => Promise<void>;
@@ -1239,16 +1328,49 @@ interface AssinaturasTabProps {
   onSetStatusChangeDialog: (v: { id: string; currentStatus: string } | null) => void;
   onSetNewStatus: (v: string) => void;
   onSetStatusMotivo: (v: string) => void;
+  onSavePlano: (data: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+  onDeletePlano: (planoId: string) => Promise<void>;
+  onTogglePlano: (planoId: string, currentAtivo: boolean) => Promise<void>;
 }
+
+interface PlanoFormState {
+  id?: string;
+  nome: string;
+  descricao: string;
+  periodo_meses: string;
+  preco: string;
+  features: string;
+  popular: boolean;
+  ativo: boolean;
+  ordem: string;
+}
+
+const EMPTY_PLANO_FORM: PlanoFormState = {
+  nome: "",
+  descricao: "",
+  periodo_meses: "1",
+  preco: "",
+  features: "",
+  popular: false,
+  ativo: true,
+  ordem: "",
+};
 
 function AssinaturasTab({
   assinaturas, assinaturasLoading, planosAdmin, syncingPlano,
   changingStatus, statusChangeDialog, newStatus, statusMotivo,
+  savingPlano, deletingPlano, togglingPlano,
   addToast, onSyncPlano, onFetchAssinaturas, onFetchPlanos,
   onOpenStatusChange, onConfirmStatusChange,
   onSetStatusChangeDialog, onSetNewStatus, onSetStatusMotivo,
+  onSavePlano, onDeletePlano, onTogglePlano,
 }: AssinaturasTabProps) {
   const [innerTab, setInnerTab] = useState<"assinaturas" | "planos">("assinaturas");
+
+  // Plano form
+  const [showPlanoDialog, setShowPlanoDialog] = useState(false);
+  const [planoForm, setPlanoForm] = useState<PlanoFormState>(EMPTY_PLANO_FORM);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const statusLabels: Record<string, string> = {
     active: "Ativa", pending: "Pendente", cancelled: "Cancelada",
@@ -1264,6 +1386,53 @@ function AssinaturasTab({
     expired: "bg-gray-100 text-gray-500",
   };
 
+  const openCreatePlano = () => {
+    setPlanoForm(EMPTY_PLANO_FORM);
+    setShowPlanoDialog(true);
+  };
+
+  const openEditPlano = (plano: Record<string, unknown>) => {
+    const featuresArr = Array.isArray(plano.features) ? (plano.features as string[]).join(", ") : "";
+    setPlanoForm({
+      id: plano.id as string,
+      nome: plano.nome as string,
+      descricao: plano.descricao as string || "",
+      periodo_meses: String(plano.periodo_meses),
+      preco: String(plano.preco),
+      features: featuresArr,
+      popular: plano.popular as boolean || false,
+      ativo: plano.ativo as boolean ?? true,
+      ordem: plano.ordem ? String(plano.ordem) : "",
+    });
+    setShowPlanoDialog(true);
+  };
+
+  const handleSavePlanoForm = async () => {
+    if (!planoForm.nome.trim() || !planoForm.preco || !planoForm.periodo_meses) {
+      addToast("error", "Preencha nome, preço e período.");
+      return;
+    }
+    const features = planoForm.features
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean);
+
+    const payload: Record<string, unknown> = {
+      nome: planoForm.nome.trim(),
+      descricao: planoForm.descricao.trim(),
+      periodo_meses: parseInt(planoForm.periodo_meses, 10),
+      preco: parseFloat(planoForm.preco),
+      features,
+      popular: planoForm.popular,
+      ativo: planoForm.ativo,
+    };
+    if (planoForm.id) payload.id = planoForm.id;
+    if (planoForm.ordem) payload.ordem = parseInt(planoForm.ordem, 10);
+
+    const result = await onSavePlano(payload);
+    if (result) setShowPlanoDialog(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
@@ -1275,7 +1444,7 @@ function AssinaturasTab({
         </button>
       </div>
 
-      {/* Sub-tab: Assinaturas */}
+      {/* ══ Sub-tab: Assinaturas ══ */}
       {innerTab === "assinaturas" && (
         <>
           <div className="flex items-center justify-between">
@@ -1344,62 +1513,241 @@ function AssinaturasTab({
         </>
       )}
 
-      {/* Sub-tab: Planos */}
+      {/* ══ Sub-tab: Planos ══ */}
       {innerTab === "planos" && (
         <>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Planos e Mercado Pago</h2>
-              <p className="text-sm text-gray-500 mt-1">Sincronize os planos com o Mercado Pago para habilitar pagamentos.</p>
+              <p className="text-sm text-gray-500 mt-1">Gerencie os planos de assinatura.</p>
             </div>
-            <button onClick={onFetchPlanos} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onFetchPlanos} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <Button
+                onClick={openCreatePlano}
+                className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-9 px-4 text-xs font-semibold"
+              >
+                <Plus className="w-4 h-4" /> Novo Plano
+              </Button>
+            </div>
           </div>
           <div className="space-y-3">
             {planosAdmin.map((plano: Record<string, unknown>) => {
               const hasMpId = !!plano.mercadopago_plan_id;
+              const isAtivo = plano.ativo as boolean;
               return (
-                <div key={plano.id as string} className="bg-white rounded-xl p-4 sm:p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                <div key={plano.id as string} className={`bg-white rounded-xl p-4 sm:p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${!isAtivo ? "opacity-60" : ""}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-gray-900">{plano.nome as string}</p>
                       {hasMpId ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
-                          <Check className="w-3 h-3" /> Sincronizado
+                          <Check className="w-3 h-3" /> MP
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-semibold">
-                          Pendente
+                          Sem MP
                         </span>
+                      )}
+                      {isAtivo ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">Ativo</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-semibold">Inativo</span>
+                      )}
+                      {plano.popular && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold">Popular</span>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      R$ {Number(plano.preco).toFixed(2).replace(".", ",")} — {(plano.periodo_meses as number)} {"mes" + ((plano.periodo_meses as number) > 1 ? "es" : "")}
+                      R$ {Number(plano.preco).toFixed(2).replace(".", ",")} — {(plano.periodo_meses as number)}{"mes" + ((plano.periodo_meses as number) > 1 ? "es" : "")}
+                      {plano.descricao ? ` — ${plano.descricao}` : ""}
                     </p>
                     {hasMpId && (
-                      <p className="text-xs text-gray-400 mt-0.5 font-mono">
-                        MP ID: {plano.mercadopago_plan_id as string}
-                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono truncate">MP: {plano.mercadopago_plan_id as string}</p>
                     )}
                   </div>
-                  {!hasMpId && (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Toggle ativo/inativo */}
                     <button
-                      onClick={() => onSyncPlano(plano.id as string)}
-                      disabled={syncingPlano === (plano.id as string)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                      onClick={() => onTogglePlano(plano.id as string, isAtivo)}
+                      disabled={togglingPlano === (plano.id as string)}
+                      className={`p-2 rounded-lg border transition-colors text-xs ${isAtivo ? "border-red-200 text-red-500 hover:bg-red-50" : "border-emerald-200 text-emerald-500 hover:bg-emerald-50"} disabled:opacity-50`}
+                      title={isAtivo ? "Desativar" : "Ativar"}
                     >
-                      {syncingPlano === (plano.id as string) ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sincronizando...</> : "Sincronizar com MP"}
+                      {togglingPlano === (plano.id as string) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : isAtivo ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                     </button>
-                  )}
+                    {/* Editar */}
+                    <button
+                      onClick={() => openEditPlano(plano)}
+                      className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                      title="Editar"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    {/* Excluir */}
+                    <button
+                      onClick={() => setDeleteConfirm(plano.id as string)}
+                      disabled={deletingPlano === (plano.id as string)}
+                      className="p-2 rounded-lg border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50"
+                      title="Excluir"
+                    >
+                      {deletingPlano === (plano.id as string) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                    {/* Sincronizar MP */}
+                    {!hasMpId && (
+                      <button
+                        onClick={() => onSyncPlano(plano.id as string)}
+                        disabled={syncingPlano === (plano.id as string)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                      >
+                        {syncingPlano === (plano.id as string) ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sync...</> : "Sync MP"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
+            {planosAdmin.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <p className="text-sm">Nenhum plano cadastrado.</p>
+                <Button onClick={openCreatePlano} variant="outline" className="mt-3 rounded-xl text-xs">Criar primeiro plano</Button>
+              </div>
+            )}
           </div>
         </>
       )}
 
-      {/* Dialog alterar status */}
+      {/* ══ Dialog: Criar/Editar Plano ══ */}
+      <Dialog open={showPlanoDialog} onOpenChange={setShowPlanoDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{planoForm.id ? "Editar Plano" : "Novo Plano"}</DialogTitle>
+            <DialogDescription>
+              {planoForm.id ? "Altere os dados do plano abaixo." : "Preencha os dados para criar um novo plano."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700">Nome *</label>
+                <input
+                  value={planoForm.nome}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, nome: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                  placeholder="Ex: Mensal, Trimestral..."
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Preço (R$) *</label>
+                <input
+                  type="number" step="0.01" min="0" inputMode="decimal"
+                  value={planoForm.preco}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, preco: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                  placeholder="49.90"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Período (meses) *</label>
+                <input
+                  type="number" min="1" step="1" inputMode="numeric"
+                  value={planoForm.periodo_meses}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, periodo_meses: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                  placeholder="1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Ordem</label>
+                <input
+                  type="number" min="0" step="1" inputMode="numeric"
+                  value={planoForm.ordem}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, ordem: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                  placeholder="Auto"
+                />
+              </div>
+              <div className="flex items-end gap-4">
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    checked={planoForm.popular}
+                    onChange={(e) => setPlanoForm((p) => ({ ...p, popular: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Popular</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    checked={planoForm.ativo}
+                    onChange={(e) => setPlanoForm((p) => ({ ...p, ativo: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Ativo</span>
+                </label>
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700">Descrição</label>
+                <textarea
+                  value={planoForm.descricao}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, descricao: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  rows={2}
+                  placeholder="Descrição breve do plano..."
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium text-gray-700">Features (separadas por vírgula)</label>
+                <textarea
+                  value={planoForm.features}
+                  onChange={(e) => setPlanoForm((p) => ({ ...p, features: e.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  rows={3}
+                  placeholder="Espelho de vendas, Todos os empreendimentos, Suporte..."
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowPlanoDialog(false)} className="flex-1 rounded-xl" disabled={savingPlano}>Cancelar</Button>
+            <Button
+              onClick={handleSavePlanoForm}
+              disabled={savingPlano || !planoForm.nome.trim() || !planoForm.preco || !planoForm.periodo_meses}
+              className="flex-1 rounded-xl bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {savingPlano ? <Loader2 className="w-4 h-4 animate-spin" /> : planoForm.id ? "Salvar alterações" : "Criar plano"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ Dialog: Confirmar exclusão ══ */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir plano?</DialogTitle>
+            <DialogDescription>
+              Esta ação não pode ser desfeita. Se houver assinaturas ativas, a exclusão será bloqueada.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)} className="flex-1 rounded-xl">Cancelar</Button>
+            <Button
+              onClick={() => { if (deleteConfirm) { onDeletePlano(deleteConfirm); setDeleteConfirm(null); } }}
+              disabled={!deleteConfirm || deletingPlano !== null}
+              variant="destructive"
+              className="flex-1 rounded-xl"
+            >
+              {deletingPlano ? <Loader2 className="w-4 h-4 animate-spin" /> : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ Dialog: Alterar status da assinatura ══ */}
       <Dialog open={!!statusChangeDialog} onOpenChange={(open) => !open && onSetStatusChangeDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
