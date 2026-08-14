@@ -1380,6 +1380,9 @@ function AssinaturasTab({
   const [activateLoading, setActivateLoading] = useState(false);
   const [activateFetchingUsers, setActivateFetchingUsers] = useState(false);
 
+  // Correcao de usuarios legados
+  const [fixLegacyLoading, setFixLegacyLoading] = useState(false);
+
   const statusLabels: Record<string, string> = {
     active: "Ativa", pending: "Pendente", cancelled: "Cancelada",
     paused: "Pausada", expired: "Expirada", cancelled_by_user: "Cancelada (user)",
@@ -1415,6 +1418,38 @@ function AssinaturasTab({
       } finally {
         setActivateFetchingUsers(false);
       }
+    }
+  };
+
+  const handleFixLegacy = async () => {
+    setFixLegacyLoading(true);
+    try {
+      const res = await fetch("/api/admin-sistema/assinaturas/fix-legacy", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (res.ok) {
+        const parts: string[] = [];
+        if (json.fixed_no_subscription?.length > 0) {
+          parts.push(`${json.fixed_no_subscription.length} sem assinatura corrigidos`);
+        }
+        if (json.fixed_expired?.length > 0) {
+          parts.push(`${json.fixed_expired.length} expirados`);
+        }
+        const msg = parts.length > 0
+          ? `Correcao concluida: ${parts.join(", ")}.`
+          : "Nenhum usuario precisava de correcao.";
+        addToast("success", msg);
+        if (json.total_fixed > 0) {
+          await onFetchAssinaturas();
+        }
+      } else {
+        addToast("error", json.error || "Erro ao corrigir usuarios legados.");
+      }
+    } catch {
+      addToast("error", "Erro ao corrigir usuarios legados.");
+    } finally {
+      setFixLegacyLoading(false);
     }
   };
 
@@ -1516,6 +1551,14 @@ function AssinaturasTab({
               <button onClick={onFetchAssinaturas} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
                 <RefreshCw className="w-4 h-4" />
               </button>
+              <Button
+                onClick={handleFixLegacy}
+                disabled={fixLegacyLoading}
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white shadow-md rounded-xl h-9 px-4 text-xs font-semibold"
+              >
+                {fixLegacyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                {fixLegacyLoading ? "Corrigindo..." : "Corrigir legados"}
+              </Button>
               <Button
                 onClick={handleOpenActivateDialog}
                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md rounded-xl h-9 px-4 text-xs font-semibold"

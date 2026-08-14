@@ -220,23 +220,43 @@ export async function createMpPlan(params: {
 }): Promise<string> {
   const client = getPreApprovalPlanClient();
 
-  const response = await client.create({
-    reason: params.nome,
-    auto_recurring: {
-      frequency: params.periodoMeses,
-      frequency_type: 'months' as const,
-      transaction_amount: params.preco,
-      currency_id: 'BRL',
-    },
-    back_url: getBackUrl('/assinatura'),
-    status: 'active',
-  });
-
-  if (!response.id) {
-    throw new Error('Mercado Pago não retornou ID do plano.');
+  const backUrl = getBackUrl('/assinatura');
+  if (!backUrl.startsWith('http')) {
+    throw new Error(
+      `NEXT_PUBLIC_APP_URL não configurada. Valor atual: "${process.env.NEXT_PUBLIC_APP_URL || '(vazio)'}". ` +
+      `Defina esta variável no painel do Vercel (ex: https://seudominio.com).`
+    );
   }
 
-  return response.id;
+  try {
+    const response = await client.create({
+      reason: params.nome,
+      auto_recurring: {
+        frequency: params.periodoMeses,
+        frequency_type: 'months' as const,
+        transaction_amount: params.preco,
+        currency_id: 'BRL',
+      },
+      back_url: backUrl,
+      status: 'active',
+    });
+
+    if (!response.id) {
+      throw new Error('Mercado Pago não retornou ID do plano.');
+    }
+
+    return response.id;
+  } catch (err: unknown) {
+    // Capturar erro detalhado da API do Mercado Pago
+    const mpErr = err as { message?: string; response?: { data?: { message?: string; error?: string; cause?: string[] }; status?: number } };
+    const detail = mpErr?.response?.data?.message
+      || mpErr?.response?.data?.error
+      || (Array.isArray(mpErr?.response?.data?.cause) ? mpErr.response.data.cause.join('; ') : null)
+      || mpErr?.message
+      || 'Erro desconhecido';
+    const status = mpErr?.response?.status;
+    throw new Error(`Mercado Pago API (${status || 'sem status'}): ${detail}`);
+  }
 }
 
 /**

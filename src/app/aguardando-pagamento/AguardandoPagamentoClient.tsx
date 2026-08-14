@@ -251,12 +251,22 @@ export default function AguardandoPagamentoClient({
             </div>
 
             {/* Help text */}
-            <div className="mt-8 p-4 rounded-xl bg-gray-50 border border-gray-100">
-              <p className="text-xs text-gray-500">
-                <strong>Nao recebeu a confirmacao?</strong> Se o pagamento foi feito via PIX e nao foi confirmado
-                em ate 10 minutos, ou se usou cartao de credito e nao foi aprovado, entre em contato
-                com o suporte.
-              </p>
+            <div className="mt-8 space-y-3">
+              <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="text-xs text-gray-500">
+                  <strong>Nao recebeu a confirmacao?</strong> Se o pagamento foi feito via PIX e nao foi confirmado
+                  em ate 10 minutos, ou se usou cartao de credito e nao foi aprovado, entre em contato
+                  com o suporte.
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-xs text-amber-700">
+                  <strong>Ja era usuario antes da integracao com pagamentos?</strong>
+                  Se voce ja tinha acesso ao sistema e ficou preso nesta tela,
+                  entre em contato com o administrador para que sua assinatura seja
+                  reativada manualmente.
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>

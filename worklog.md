@@ -103,3 +103,26 @@ Stage Summary:
 - Veredicto: NÃO APROVADO PARA PRODUÇÃO (bloqueadores P0 precisam de execução de migration SQL)
 - Correções P0+P1 implementadas no código
 - **AÇÕES NECESSÁRIAS**: Re-executar migration-subscriptions.sql atualizado no Supabase (inclui webhook_events + partial unique index)
+
+---
+Task ID: 3
+Agent: main
+Task: Corrigir erro 500 ao sincronizar planos com MP + desbloquear usuários legados
+
+Work Log:
+- Investigado erro 500 na sincronização de planos com Mercado Pago
+- Causa provável: NEXT_PUBLIC_APP_URL ou MERCADOPAGO_ACCESS_TOKEN não configurados, ou erro da API do MP sendo engolido
+- Melhorado tratamento de erros em createMpPlan() (mercadopago.ts): captura detalhes do erro da API MP, valida back_url
+- Melhorado catch block da rota POST /api/admin-sistema/planos: retorna 503 para APP_URL faltando, 502 para erros da API MP
+- Analisado fluxo de login (page.tsx) e middleware: usuários legados com subscription_status='none' NÃO deveriam ser bloqueados
+- Migration usa DEFAULT 'none', código trata NULL→'none', middleware permite passar sem cookie
+- Criado endpoint POST /api/admin-sistema/assinaturas/fix-legacy para correção em massa de usuários bloqueados
+- Criado script SQL fix-legacy-subscriptions.sql para correção de emergência direto no Supabase
+- Adicionado botão "Corrigir legados" no painel admin (aba Assinaturas)
+- Adicionado mensagem de suporte para usuários legados na tela /aguardando-pagamento
+- Endpoint de ativação manual (/api/admin-sistema/assinaturas/activate) já existia e funciona
+
+Stage Summary:
+- Erro 500: agora retorna mensagens detalhadas (502/503) em vez de genérico 500
+- Usuários legados: 3 opções de correção disponíveis (botão admin, API fix-legacy, SQL direto)
+- Ações necessárias: configurar NEXT_PUBLIC_APP_URL e MERCADOPAGO_ACCESS_TOKEN no Vercel

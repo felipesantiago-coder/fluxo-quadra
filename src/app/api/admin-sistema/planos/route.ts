@@ -173,8 +173,20 @@ export async function POST(request: NextRequest) {
     const msg = err instanceof Error ? err.message : '';
     if (msg.includes('MERCADOPAGO_ACCESS_TOKEN')) {
       return NextResponse.json(
-        { error: 'Token do Mercado Pago não configurado.' },
+        { error: 'Token do Mercado Pago não configurado. Defina MERCADOPAGO_ACCESS_TOKEN nas variáveis de ambiente.' },
         { status: 503 }
+      );
+    }
+    if (msg.includes('NEXT_PUBLIC_APP_URL')) {
+      return NextResponse.json(
+        { error: msg },
+        { status: 503 }
+      );
+    }
+    if (msg.includes('Mercado Pago API')) {
+      return NextResponse.json(
+        { error: `Erro do Mercado Pago: ${msg}` },
+        { status: 502 }
       );
     }
     return NextResponse.json({ error: 'Erro ao criar/sincronizar plano.' }, { status: 500 });
