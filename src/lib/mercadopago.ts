@@ -230,15 +230,17 @@ export async function createMpPlan(params: {
 
   try {
     const response = await client.create({
-      reason: params.nome,
-      auto_recurring: {
-        frequency: params.periodoMeses,
-        frequency_type: 'months' as const,
-        transaction_amount: params.preco,
-        currency_id: 'BRL',
+      body: {
+        reason: params.nome,
+        auto_recurring: {
+          frequency: params.periodoMeses,
+          frequency_type: 'months',
+          transaction_amount: params.preco,
+          currency_id: 'BRL',
+        },
+        back_url: backUrl,
+        status: 'active',
       },
-      back_url: backUrl,
-      status: 'active',
     });
 
     if (!response.id) {
@@ -271,11 +273,13 @@ export async function createMpSubscription(params: {
   const client = getPreApprovalClient();
 
   const response = await client.create({
-    preapproval_plan_id: params.planoId,
-    payer_email: params.userEmail,
-    reason: `Assinatura - ${params.planoNome}`,
-    status: 'pending',
-    back_url: getBackUrl('/assinatura'),
+    body: {
+      preapproval_plan_id: params.planoId,
+      payer_email: params.userEmail,
+      reason: `Assinatura - ${params.planoNome}`,
+      status: 'pending',
+      back_url: getBackUrl('/assinatura'),
+    },
   });
 
   if (!response.init_point) {
@@ -293,7 +297,7 @@ export async function createMpSubscription(params: {
  */
 export async function cancelMpSubscription(subscriptionId: string): Promise<void> {
   const client = getPreApprovalClient();
-  await client.update({ id: subscriptionId, status: 'cancelled' });
+  await client.update({ id: subscriptionId, body: { status: 'cancelled' } });
 }
 
 /**
