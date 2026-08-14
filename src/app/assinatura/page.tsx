@@ -1,0 +1,26 @@
+export const dynamic = 'force-dynamic';
+
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import AssinaturaClient from './AssinaturaClient';
+
+export default async function AssinaturaPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect('/');
+
+  // Buscar perfil
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('display_name, role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  return (
+    <AssinaturaClient
+      userName={profile?.display_name || user.email || ''}
+      isAdmin={profile?.role === 'admin_sistema'}
+    />
+  );
+}

@@ -44,3 +44,39 @@ Stage Summary:
 - 3 open redirects corrigidos
 - Build passa sem erros
 - **AÇÃO NECESSÁRIA**: Rodar migration-security-fixes.sql no Supabase SQL Editor
+
+---
+Task ID: 4
+Agent: main
+Task: Integração completa do Mercado Pago (Pix + cartão) com sistema de assinaturas
+
+Work Log:
+- Instalado SDK mercadopago@3.4.0
+- Criado migration-subscriptions.sql com 3 tabelas (planos, assinaturas, pagamentos) + RLS + índices + seed de 4 planos
+- Criado src/lib/mercadopago.ts com integração completa (clientes MP, verificação de webhook, CRUD de planos/assinaturas)
+- Criados 7 API routes:
+  - GET /api/plans (planos ativos para usuário)
+  - POST /api/subscriptions/create (cria assinatura MP + registro local)
+  - GET /api/subscriptions/status (status + histórico do usuário)
+  - POST /api/subscriptions/cancel (cancela assinatura ativa)
+  - POST /api/webhooks/mercadopago (processa pagamentos e mudanças de status automaticamente)
+  - GET/POST /api/admin-sistema/planos (admin lista/sincroniza planos com MP)
+  - GET/PATCH /api/admin-sistema/assinaturas (admin lista/altera status de assinaturas)
+- Criada página /planos com PlanosClient (cards de planos, cálculo de economia, dialog de confirmação, redirecionamento ao checkout MP)
+- Criada página /assinatura com AssinaturaClient (status da assinatura, cancelamento, histórico de pagamentos)
+- Adicionada tab "Assinaturas" no admin-sistema com 2 sub-tabs: lista de assinaturas + sincronização de planos com MP
+- Adicionado botão "Planos" no header da página /projetos
+- Atualizado middleware para proteger /planos e /assinatura
+- Lint passa (2 erros restantes são preexistentes, não relacionados)
+
+Stage Summary:
+- Integração completa Mercado Pago implementada (SDK, API routes, páginas, admin)
+- Webhook processa automaticamente: pagamentos aprovados ativam assinaturas, status sincronizados
+- Admin pode: sincronizar planos com MP, alterar status manualmente, ver todas assinaturas
+- Usuário pode: ver planos, assinar, gerenciar/cancelar assinatura, ver histórico
+- **AÇÕES NECESSÁRIAS (manual pelo admin)**:
+  1. Rodar migration-subscriptions.sql no Supabase SQL Editor
+  2. Configurar MERCADOPAGO_ACCESS_TOKEN no .env
+  3. Configurar MERCADOPAGO_WEBHOOK_SECRET no .env
+  4. No painel admin → tab Assinaturas → sincronizar cada plano com MP
+  5. Configurar webhook no painel do Mercado Pago apontando para /api/webhooks/mercadopago

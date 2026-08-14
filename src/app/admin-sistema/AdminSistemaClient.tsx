@@ -23,11 +23,22 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Crown,
+  RefreshCw,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 
-type AdminTab = "empreendimentos" | "usuarios";
+type AdminTab = "empreendimentos" | "usuarios" | "assinaturas";
 
 interface UserProfile {
   id: string;
@@ -84,6 +95,16 @@ export default function AdminSistemaClient() {
   // Tab
   const [activeTab, setActiveTab] = useState<AdminTab>("empreendimentos");
 
+  // Assinaturas
+  const [assinaturas, setAssinaturas] = useState<Record<string, unknown>[]>([]);
+  const [assinaturasLoading, setAssinaturasLoading] = useState(false);
+  const [planosAdmin, setPlanosAdmin] = useState<Record<string, unknown>[]>([]);
+  const [syncingPlano, setSyncingPlano] = useState<string | null>(null);
+  const [changingStatus, setChangingStatus] = useState<string | null>(null);
+  const [statusChangeDialog, setStatusChangeDialog] = useState<{ id: string; currentStatus: string } | null>(null);
+  const [newStatus, setNewStatus] = useState("");
+  const [statusMotivo, setStatusMotivo] = useState("");
+
   // Usuários
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -129,6 +150,87 @@ export default function AdminSistemaClient() {
     }
   }, [addToast]);
 
+  // ─── Fetch assinaturas ──────────────────────────────────────────
+  const fetchAssinaturas = useCallback(async () => {
+    try {
+      setAssinaturasLoading(true);
+      const res = await fetch("/api/admin-sistema/assinaturas");
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setAssinaturas(json.assinaturas || []);
+    } catch {
+      addToast("error", "Erro ao carregar assinaturas");
+    } finally {
+      setAssinaturasLoading(false);
+    }
+  }, [addToast]);
+
+  // ─── Fetch planos admin ─────────────────────────────────────────
+  const fetchPlanosAdmin = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin-sistema/planos");
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setPlanosAdmin(json.planos || []);
+    } catch {
+      addToast("error", "Erro ao carregar planos");
+    }
+  }, [addToast]);
+
+  // ─── Sync plano com Mercado Pago ────────────────────────────────
+  const handleSyncPlano = useCallback(async (planoId: string) => {
+    setSyncingPlano(planoId);
+    try {
+      const res = await fetch("/api/admin-sistema/planos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planoId }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", `Plano sincronizado! MP ID: ${json.mercadopago_plan_id}`);
+        await fetchPlanosAdmin();
+      } else {
+        addToast("error", json.error || "Erro ao sincronizar plano.");
+      }
+    } catch {
+      addToast("error", "Erro ao sincronizar com Mercado Pago.");
+    } finally {
+      setSyncingPlano(null);
+    }
+  }, [addToast, fetchPlanosAdmin]);
+
+  // ─── Alterar status de assinatura ────────────────────────────────
+  const handleOpenStatusChange = useCallback((id: string, current: string) => {
+    setStatusChangeDialog({ id, currentStatus: current });
+    setNewStatus("");
+    setStatusMotivo("");
+  }, []);
+
+  const handleConfirmStatusChange = useCallback(async () => {
+    if (!statusChangeDialog || !newStatus) return;
+    setChangingStatus(statusChangeDialog.id);
+    try {
+      const res = await fetch("/api/admin-sistema/assinaturas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assinaturaId: statusChangeDialog.id, status: newStatus, motivo: statusMotivo }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", json.message || "Status atualizado.");
+        setStatusChangeDialog(null);
+        await fetchAssinaturas();
+      } else {
+        addToast("error", json.error || "Erro ao atualizar status.");
+      }
+    } catch {
+      addToast("error", "Erro ao atualizar status.");
+    } finally {
+      setChangingStatus(null);
+    }
+  }, [statusChangeDialog, newStatus, statusMotivo, addToast, fetchAssinaturas]);
+
   // ─── Fetch usuários ──────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
     try {
@@ -159,10 +261,13 @@ export default function AdminSistemaClient() {
         hasMigrated.current = true;
         migrateLegacy(); // fire-and-forget, não bloqueia o fetch
       }
+    } else if (activeTab === "assinaturas") {
+      fetchAssinaturas();
+      fetchPlanosAdmin();
     } else {
       fetchUsers();
     }
-  }, [activeTab, migrateLegacy, fetchEmpreendimentos, fetchUsers]);
+  }, [activeTab, migrateLegacy, fetchEmpreendimentos, fetchUsers, fetchAssinaturas, fetchPlanosAdmin]);
 
   // ─── Create empreendimento ─────────────────────────────────────────────────
   const handleCreate = async () => {
@@ -416,6 +521,17 @@ export default function AdminSistemaClient() {
           >
             <Users className="w-4 h-4" />
             Usuários
+          </button>
+          <button
+            onClick={() => setActiveTab("assinaturas")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === "assinaturas"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Crown className="w-4 h-4" />
+            Assinaturas
           </button>
         </div>
 
@@ -1052,6 +1168,27 @@ export default function AdminSistemaClient() {
         )}
       </AnimatePresence>
 
+      {/* ═══ TAB: Assinaturas ═══ */}
+      {activeTab === "assinaturas" && (<AssinaturasTab
+        assinaturas={assinaturas}
+        assinaturasLoading={assinaturasLoading}
+        planosAdmin={planosAdmin}
+        syncingPlano={syncingPlano}
+        changingStatus={changingStatus}
+        statusChangeDialog={statusChangeDialog}
+        newStatus={newStatus}
+        statusMotivo={statusMotivo}
+        addToast={addToast}
+        onSyncPlano={handleSyncPlano}
+        onFetchAssinaturas={fetchAssinaturas}
+        onFetchPlanos={fetchPlanosAdmin}
+        onOpenStatusChange={handleOpenStatusChange}
+        onConfirmStatusChange={handleConfirmStatusChange}
+        onSetStatusChangeDialog={setStatusChangeDialog}
+        onSetNewStatus={setNewStatus}
+        onSetStatusMotivo={setStatusMotivo}
+      />)}
+
       {/* ── Toast Notifications ─────────────────────────────────────────── */}
       <div className="fixed bottom-6 right-6 z-[400] flex flex-col gap-2 max-w-sm">
         <AnimatePresence mode="popLayout">
@@ -1078,6 +1215,238 @@ export default function AdminSistemaClient() {
           ))}
         </AnimatePresence>
       </div>
+    </div>
+  );
+}
+
+// ─── Assinaturas Tab Component ───────────────────────────────────────────────
+
+interface AssinaturasTabProps {
+  assinaturas: Record<string, unknown>[];
+  assinaturasLoading: boolean;
+  planosAdmin: Record<string, unknown>[];
+  syncingPlano: string | null;
+  changingStatus: string | null;
+  statusChangeDialog: { id: string; currentStatus: string } | null;
+  newStatus: string;
+  statusMotivo: string;
+  addToast: (type: "success" | "error", message: string) => void;
+  onSyncPlano: (planoId: string) => Promise<void>;
+  onFetchAssinaturas: () => Promise<void>;
+  onFetchPlanos: () => Promise<void>;
+  onOpenStatusChange: (id: string, current: string) => void;
+  onConfirmStatusChange: () => Promise<void>;
+  onSetStatusChangeDialog: (v: { id: string; currentStatus: string } | null) => void;
+  onSetNewStatus: (v: string) => void;
+  onSetStatusMotivo: (v: string) => void;
+}
+
+function AssinaturasTab({
+  assinaturas, assinaturasLoading, planosAdmin, syncingPlano,
+  changingStatus, statusChangeDialog, newStatus, statusMotivo,
+  addToast, onSyncPlano, onFetchAssinaturas, onFetchPlanos,
+  onOpenStatusChange, onConfirmStatusChange,
+  onSetStatusChangeDialog, onSetNewStatus, onSetStatusMotivo,
+}: AssinaturasTabProps) {
+  const [innerTab, setInnerTab] = useState<"assinaturas" | "planos">("assinaturas");
+
+  const statusLabels: Record<string, string> = {
+    active: "Ativa", pending: "Pendente", cancelled: "Cancelada",
+    paused: "Pausada", expired: "Expirada", cancelled_by_user: "Cancelada (user)",
+  };
+
+  const statusColors: Record<string, string> = {
+    active: "bg-emerald-100 text-emerald-700",
+    pending: "bg-amber-100 text-amber-700",
+    cancelled: "bg-red-100 text-red-700",
+    cancelled_by_user: "bg-red-100 text-red-700",
+    paused: "bg-gray-100 text-gray-700",
+    expired: "bg-gray-100 text-gray-500",
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+        <button onClick={() => setInnerTab("assinaturas")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${innerTab === "assinaturas" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+          <CreditCard className="w-4 h-4" /> Assinaturas
+        </button>
+        <button onClick={() => setInnerTab("planos")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${innerTab === "planos" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+          <Crown className="w-4 h-4" /> Planos / MP
+        </button>
+      </div>
+
+      {/* Sub-tab: Assinaturas */}
+      {innerTab === "assinaturas" && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Assinaturas</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {assinaturasLoading ? "Carregando..." : `${assinaturas.length} assinatura(s)`}
+              </p>
+            </div>
+            <button onClick={onFetchAssinaturas} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+          {assinaturasLoading && <div className="space-y-3">{[1,2,3].map(i => (<div key={i} className="bg-white rounded-xl p-4 border animate-pulse"><div className="h-4 bg-gray-200 rounded w-48" /></div>))}</div>}
+          {!assinaturasLoading && assinaturas.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b bg-gray-50/50 text-gray-500 text-xs uppercase">
+                    <th className="text-left px-4 py-3">Usuário</th>
+                    <th className="text-left px-4 py-3">Plano</th>
+                    <th className="text-left px-4 py-3">Status</th>
+                    <th className="text-left px-4 py-3">Método</th>
+                    <th className="text-left px-4 py-3">Início</th>
+                    <th className="text-left px-4 py-3">Ações</th>
+                  </tr></thead>
+                  <tbody>
+                    {assinaturas.map((ass: Record<string, unknown>) => {
+                      const user = (ass.user as Record<string, unknown>) || {};
+                      const plano = (ass.plano as Record<string, unknown>) || {};
+                      const status = (ass.status as string) || "pending";
+                      return (
+                        <tr key={ass.id as string} className="border-b border-gray-50 hover:bg-gray-50/50">
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-gray-900">{(user.display_name as string) || (user.email as string)?.split("@")[0]}</p>
+                            <p className="text-xs text-gray-500">{user.email as string}</p>
+                          </td>
+                          <td className="px-4 py-3 font-medium">{plano.nome as string}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[status] || "bg-gray-100 text-gray-500"}`}>
+                              {statusLabels[status] || status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 capitalize text-gray-600">{ass.metodo_pagamento as string || "—"}</td>
+                          <td className="px-4 py-3 text-gray-500">{ass.data_inicio ? new Date(ass.data_inicio as string).toLocaleDateString("pt-BR") : "—"}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => onOpenStatusChange(ass.id as string, status)}
+                              disabled={changingStatus === (ass.id as string)}
+                              className="text-xs font-semibold text-amber-600 hover:text-amber-800 disabled:opacity-50"
+                            >
+                              Alterar status
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {!assinaturasLoading && assinaturas.length === 0 && (
+            <div className="text-center py-12 text-gray-400"><p className="text-sm">Nenhuma assinatura registrada.</p></div>
+          )}
+        </>
+      )}
+
+      {/* Sub-tab: Planos */}
+      {innerTab === "planos" && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Planos e Mercado Pago</h2>
+              <p className="text-sm text-gray-500 mt-1">Sincronize os planos com o Mercado Pago para habilitar pagamentos.</p>
+            </div>
+            <button onClick={onFetchPlanos} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {planosAdmin.map((plano: Record<string, unknown>) => {
+              const hasMpId = !!plano.mercadopago_plan_id;
+              return (
+                <div key={plano.id as string} className="bg-white rounded-xl p-4 sm:p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{plano.nome as string}</p>
+                      {hasMpId ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">
+                          <Check className="w-3 h-3" /> Sincronizado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-semibold">
+                          Pendente
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      R$ {Number(plano.preco).toFixed(2).replace(".", ",")} — {(plano.periodo_meses as number)} {"mes" + ((plano.periodo_meses as number) > 1 ? "es" : "")}
+                    </p>
+                    {hasMpId && (
+                      <p className="text-xs text-gray-400 mt-0.5 font-mono">
+                        MP ID: {plano.mercadopago_plan_id as string}
+                      </p>
+                    )}
+                  </div>
+                  {!hasMpId && (
+                    <button
+                      onClick={() => onSyncPlano(plano.id as string)}
+                      disabled={syncingPlano === (plano.id as string)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {syncingPlano === (plano.id as string) ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Sincronizando...</> : "Sincronizar com MP"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Dialog alterar status */}
+      <Dialog open={!!statusChangeDialog} onOpenChange={(open) => !open && onSetStatusChangeDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alterar status da assinatura</DialogTitle>
+            <DialogDescription>Status atual: {statusChangeDialog?.currentStatus}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Novo status</label>
+              <select
+                value={newStatus}
+                onChange={(e) => onSetNewStatus(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Selecionar...</option>
+                <option value="active">Ativa</option>
+                <option value="paused">Pausada</option>
+                <option value="cancelled">Cancelada</option>
+                <option value="expired">Expirada</option>
+                <option value="pending">Pendente</option>
+              </select>
+            </div>
+            {(newStatus === "cancelled" || newStatus === "expired") && (
+              <div>
+                <label className="text-sm font-medium text-gray-700">Motivo (opcional)</label>
+                <textarea
+                  value={statusMotivo}
+                  onChange={(e) => onSetStatusMotivo(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  rows={2}
+                  placeholder="Ex: Inadimplência, solicitação do usuário..."
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => onSetStatusChangeDialog(null)} className="flex-1 rounded-xl">Cancelar</Button>
+            <Button
+              onClick={onConfirmStatusChange}
+              disabled={!newStatus || changingStatus !== null}
+              className="flex-1 rounded-xl bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              {changingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

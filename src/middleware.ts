@@ -33,7 +33,9 @@ export async function middleware(request: NextRequest) {
     pathname === "/villa-bianco" ||
     pathname === "/moment" ||
     pathname === "/projetos" ||
-    pathname === "/vitta";
+    pathname === "/vitta" ||
+    pathname === "/planos" ||
+    pathname === "/assinatura";
 
   if (!isProtectedRoute) {
     return NextResponse.next({ request });
@@ -103,5 +105,7 @@ export const config = {
     "/mfa-setup",
     "/change-password",
     "/mfa-onboarding",
+    "/planos",
+    "/assinatura",
   ],
 };

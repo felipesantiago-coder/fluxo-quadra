@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode } from "lucide-react";
+import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode, Crown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Region = string;
@@ -161,6 +161,13 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                   Administração
                 </a>
               )}
+              <a
+                href="/planos"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-semibold transition-colors border border-amber-500/20"
+              >
+                <Crown className="w-3.5 h-3.5" />
+                Planos
+              </a>
               <a
                 href="/mfa-setup"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
