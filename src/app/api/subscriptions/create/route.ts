@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verificar se há assinatura pendente para este plano
+    let currentAssinaturaId: string | null = null;
     const { data: assinaturaPendente } = await adminClient
       .from('assinaturas')
       .select('id, status, mercadopago_subscription_id')
@@ -85,6 +86,10 @@ export async function POST(request: NextRequest) {
       .eq('plano_id', planoId)
       .in('status', ['pending', 'paused'])
       .maybeSingle();
+
+    if (assinaturaPendente) {
+      currentAssinaturaId = assinaturaPendente.id;
+    }
 
     // ── 4. Validar cupom (se fornecido) ──
     let cupomValidado: Record<string, unknown> | null = null;
@@ -160,14 +165,14 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      const { error: insertErr } = await adminClient.from('assinaturas').insert({
+      const { data: newAssinatura, error: insertErr } = await adminClient.from('assinaturas').insert({
         user_id: user.id,
         plano_id: planoId,
         mercadopago_subscription_id: mpResult.subscription_id,
         status: 'pending',
         data_inicio: null,
         data_fim: null,
-      });
+      }).select('id').single();
 
       if (insertErr) {
         console.error('[POST /api/subscriptions/create] Erro ao criar assinatura:', insertErr);
@@ -179,29 +184,33 @@ export async function POST(request: NextRequest) {
         }
         return NextResponse.json({ error: 'Erro ao criar assinatura.' }, { status: 500 });
       }
+      // Capturar ID da assinatura recém-criada para vincular ao cupom_usos
+      if (newAssinatura) {
+        currentAssinaturaId = newAssinatura.id;
+      }
     }
 
-    // 7. Registrar uso do cupom e incrementar (atômico via RPC ou update condicional)
+    // 7. Registrar uso do cupom e incrementar (ATÔMICO via SQL raw)
     if (cupomValidado) {
-      // Incrementar usos_atuais com proteção contra race condition
-      const { error: incErr } = await adminClient
-        .from('cupons')
-        .update({
-          usos_atuais: (cupomValidado.usos_atuais as number) + 1,
-          updated_at: agora,
-        })
-        .eq('id', cupomValidado.id)
-        .lt('usos_atuais', cupomValidado.usos_maximos ?? 999999999);
+      // FIX SEC-001: Usar RPC atômico para evitar TOCTOU race condition.
+      // O SQL abaixo faz: UPDATE ... SET usos_atuais = usos_atuais + 1
+      // WHERE id = $1 AND (usos_maximos IS NULL OR usos_atuais < usos_maximos)
+      // Tudo em uma única operação atômica no PostgreSQL.
+      const { data: incResult, error: incErr } = await adminClient.rpc('incrementar_uso_cupom', {
+        p_cupom_id: cupomValidado.id,
+      });
 
-      if (incErr) {
-        console.error('[POST /api/subscriptions/create] Aviso: falha ao incrementar uso do cupom:', incErr);
-        // Não falhar — a assinatura já foi criada
+      if (incErr || !incResult) {
+        console.error('[POST /api/subscriptions/create] Falha ao incrementar cupom:', incErr);
+      } else if (incResult === false) {
+        console.warn('[POST /api/subscriptions/create] Cupom esgotado (race condition detectada):', cupomValidado.id);
       }
 
-      // Registrar uso detalhado
+      // Registrar uso detalhado (com assinatura_id para o webhook validar valor)
       await adminClient.from('cupom_usos').insert({
         cupom_id: cupomValidado.id,
         user_id: user.id,
+        assinatura_id: currentAssinaturaId,
         plano_id: planoId,
         valor_original: Number(plano.preco),
         valor_descontado: valorDescontado,

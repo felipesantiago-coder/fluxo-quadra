@@ -241,18 +241,32 @@ async function handlePaymentEvent(
         return true;
       }
 
-      // Validar valor cobrado vs preco do plano (tolerancia de 5%)
+      // FIX SEC-002: Validar valor cobrado vs preco esperado.
+      // Se houver cupom vinculado, usar o valor_final do cupom_usos como referencia.
+      // Caso contrario, usar preco do plano com tolerancia de 5%.
       const plano = assinatura.plano as unknown as Record<string, unknown> | null;
       if (plano) {
         const precoPlano = Number(plano.preco) || 0;
-        if (precoPlano > 0) {
-          const diff = Math.abs(valor - precoPlano) / precoPlano;
+
+        // Buscar uso de cupom para esta assinatura
+        let valorEsperado = precoPlano;
+        const { data: cupomUso } = await supabase
+          .from('cupom_usos')
+          .select('valor_final')
+          .eq('assinatura_id', assinaturaId)
+          .maybeSingle();
+
+        if (cupomUso && Number(cupomUso.valor_final) > 0) {
+          valorEsperado = Number(cupomUso.valor_final);
+        }
+
+        if (valorEsperado > 0) {
+          const diff = Math.abs(valor - valorEsperado) / valorEsperado;
           if (diff > 0.05) {
             console.error(
-              `[Webhook MP] ALERTA: Valor pago (R$${valor}) diverge do plano (R$${precoPlano}) em ${Math.round(diff * 100)}%. ` +
+              `[Webhook MP] ALERTA: Valor pago (R$${valor}) diverge do esperado (R$${valorEsperado}) em ${Math.round(diff * 100)}%. ` +
               `Assinatura ${assinaturaId}, Pagamento ${paymentId}. Requerer intervencao manual.`
             );
-            // Nao ativar automaticamente — requerer confirmacao do admin
             return false;
           }
         }

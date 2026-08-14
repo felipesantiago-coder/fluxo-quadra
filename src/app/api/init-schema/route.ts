@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
+import { requireAdminSistema } from "@/lib/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Endpoint temporário para criar a tabela profiles e popular perfis de usuários existentes
-// Deve ser chamado UMA VEZ após o deploy: POST /api/init-schema
+// Endpoint temporário para verificar se a tabela profiles existe.
+// FIX SEC-006: Agora requer admin_sistema (antes aceitava qualquer autenticado)
 export async function POST() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // Apenas usuários autenticados podem chamar (proteção básica)
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
+
+    const supabase = await createClient();
 
     // Tentar consultar a tabela profiles para verificar se existe
     const { error: checkError } = await supabase
@@ -28,7 +28,6 @@ export async function POST() {
       });
     }
 
-    // Se a tabela não existe, retorna instruções SQL para o usuário executar
     return NextResponse.json({
       message: "Tabela profiles não encontrada. Execute o SQL abaixo no Supabase SQL Editor.",
       alreadyExists: false,

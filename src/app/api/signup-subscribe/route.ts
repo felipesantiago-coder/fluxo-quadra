@@ -233,14 +233,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 9. Registrar uso do cupom e incrementar
+      // 9. Registrar uso do cupom e incrementar (ATÔMICO via RPC)
       if (cupomValidado) {
-        const agora = new Date().toISOString();
-        await adminClient
-          .from('cupons')
-          .update({ usos_atuais: (cupomValidado.usos_atuais as number) + 1, updated_at: agora })
-          .eq('id', cupomValidado.id)
-          .lt('usos_atuais', cupomValidado.usos_maximos ?? 999999999);
+        // FIX SEC-001: Usar RPC atômico para evitar TOCTOU race condition
+        const { data: incResult, error: incErr } = await adminClient.rpc('incrementar_uso_cupom', {
+          p_cupom_id: cupomValidado.id,
+        });
+
+        if (incErr || !incResult) {
+          console.error('[signup-subscribe] Falha ao incrementar cupom:', incErr);
+        } else if (incResult === false) {
+          console.warn('[signup-subscribe] Cupom esgotado (race condition):', cupomValidado.id);
+        }
 
         await adminClient.from('cupom_usos').insert({
           cupom_id: cupomValidado.id,
