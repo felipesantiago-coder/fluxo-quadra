@@ -121,7 +121,12 @@ function LoginForm() {
             const subStatus =
               (subProfile as Record<string, unknown> | null)?.subscription_status ||
               "none";
-            document.cookie = `subscription_status=${subStatus}; path=/; max-age=31536000; SameSite=Lax`;
+            // Só define o cookie se o usuário tiver uma assinatura rastreada
+            // (pending, active, cancelled). Usuários legados com 'none' ficam sem
+            // cookie, e o middleware permite passar (backwards-compatible).
+            if (subStatus !== "none") {
+              document.cookie = `subscription_status=${subStatus}; path=/; max-age=31536000; SameSite=Lax`;
+            }
           }
 
           // Determinar redirect baseado no role

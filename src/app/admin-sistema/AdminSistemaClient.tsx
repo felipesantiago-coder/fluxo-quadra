@@ -1373,6 +1373,13 @@ function AssinaturasTab({
   const [planoForm, setPlanoForm] = useState<PlanoFormState>(EMPTY_PLANO_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Ativação manual de assinatura
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [activateForm, setActivateForm] = useState({ userId: "", planoId: "", motivo: "" });
+  const [activateUsers, setActivateUsers] = useState<Record<string, unknown>[]>([]);
+  const [activateLoading, setActivateLoading] = useState(false);
+  const [activateFetchingUsers, setActivateFetchingUsers] = useState(false);
+
   const statusLabels: Record<string, string> = {
     active: "Ativa", pending: "Pendente", cancelled: "Cancelada",
     paused: "Pausada", expired: "Expirada", cancelled_by_user: "Cancelada (user)",
@@ -1390,6 +1397,56 @@ function AssinaturasTab({
   const openCreatePlano = () => {
     setPlanoForm(EMPTY_PLANO_FORM);
     setShowPlanoDialog(true);
+  };
+
+  const handleOpenActivateDialog = async () => {
+    setActivateForm({ userId: "", planoId: "", motivo: "" });
+    setShowActivateDialog(true);
+    if (activateUsers.length === 0) {
+      setActivateFetchingUsers(true);
+      try {
+        const res = await fetch("/api/admin-sistema/users");
+        if (res.ok) {
+          const json = await res.json();
+          setActivateUsers((json.users || []).filter((u: Record<string, unknown>) => u.role !== "admin_sistema"));
+        }
+      } catch {
+        addToast("error", "Erro ao buscar usuários.");
+      } finally {
+        setActivateFetchingUsers(false);
+      }
+    }
+  };
+
+  const handleActivateManual = async () => {
+    if (!activateForm.userId || !activateForm.planoId || activateForm.motivo.trim().length < 10) {
+      addToast("error", "Selecione um usuário, um plano e forneça um motivo (mín. 10 caracteres).");
+      return;
+    }
+    setActivateLoading(true);
+    try {
+      const res = await fetch("/api/admin-sistema/assinaturas/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: activateForm.userId,
+          planoId: activateForm.planoId,
+          motivo: activateForm.motivo.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", json.message || "Assinatura ativada manualmente.");
+        setShowActivateDialog(false);
+        await onFetchAssinaturas();
+      } else {
+        addToast("error", json.error || "Erro ao ativar assinatura.");
+      }
+    } catch {
+      addToast("error", "Erro ao ativar assinatura.");
+    } finally {
+      setActivateLoading(false);
+    }
   };
 
   const openEditPlano = (plano: Record<string, unknown>) => {
@@ -1455,9 +1512,17 @@ function AssinaturasTab({
                 {assinaturasLoading ? "Carregando..." : `${assinaturas.length} assinatura(s)`}
               </p>
             </div>
-            <button onClick={onFetchAssinaturas} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onFetchAssinaturas} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <Button
+                onClick={handleOpenActivateDialog}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md rounded-xl h-9 px-4 text-xs font-semibold"
+              >
+                <Check className="w-4 h-4" /> Ativar manualmente
+              </Button>
+            </div>
           </div>
           {assinaturasLoading && <div className="space-y-3">{[1,2,3].map(i => (<div key={i} className="bg-white rounded-xl p-4 border animate-pulse"><div className="h-4 bg-gray-200 rounded w-48" /></div>))}</div>}
           {!assinaturasLoading && assinaturas.length > 0 && (
@@ -1792,6 +1857,72 @@ function AssinaturasTab({
               className="flex-1 rounded-xl bg-gray-900 hover:bg-gray-800 text-white"
             >
               {changingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ Dialog: Ativar assinatura manualmente ══ */}
+      <Dialog open={showActivateDialog} onOpenChange={setShowActivateDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Ativar assinatura manualmente</DialogTitle>
+            <DialogDescription>
+              Crie uma assinatura ativa para um usuário existente sem depender do pagamento via Mercado Pago.
+              A ação é registrada com auditoria.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Usuário *</label>
+              <select
+                value={activateForm.userId}
+                onChange={(e) => setActivateForm((f) => ({ ...f, userId: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                disabled={activateFetchingUsers}
+              >
+                <option value="">{activateFetchingUsers ? "Carregando..." : "Selecionar usuário..."}</option>
+                {activateUsers.map((u) => (
+                  <option key={u.id as string} value={u.id as string}>
+                    {u.email as string}{u.display_name ? ` — ${u.display_name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Plano *</label>
+              <select
+                value={activateForm.planoId}
+                onChange={(e) => setActivateForm((f) => ({ ...f, planoId: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Selecionar plano...</option>
+                {planosAdmin.filter((p) => p.ativo).map((p) => (
+                  <option key={p.id as string} value={p.id as string}>
+                    {p.nome as string} — R$ {Number(p.preco).toFixed(2).replace(".", ",")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Motivo da ativação * <span className="text-xs text-gray-400">(mín. 10 caracteres)</span></label>
+              <textarea
+                value={activateForm.motivo}
+                onChange={(e) => setActivateForm((f) => ({ ...f, motivo: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                rows={3}
+                placeholder="Ex: Usuário pré-existente antes da integração com Mercado Pago..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowActivateDialog(false)} className="flex-1 rounded-xl" disabled={activateLoading}>Cancelar</Button>
+            <Button
+              onClick={handleActivateManual}
+              disabled={activateLoading || !activateForm.userId || !activateForm.planoId || activateForm.motivo.trim().length < 10}
+              className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {activateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ativar assinatura"}
             </Button>
           </DialogFooter>
         </DialogContent>

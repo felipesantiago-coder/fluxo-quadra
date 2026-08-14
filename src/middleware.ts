@@ -91,9 +91,10 @@ export async function middleware(request: NextRequest) {
     //    - admin_sistema: acesso livre (sem verificação de assinatura)
     //    - /assinatura: permitido para gerenciar assinatura existente
     //    - subscription_status cookie: definido no login e na página de aguardar
-    //    - Se cookie não existe: permitir (usuário existente antes da feature)
-    //    - Se cookie = 'pending' ou 'none': bloquear
-    //    - Se cookie = 'active' ou 'cancelled': permitir (cancelled = já foi cliente)
+    //    - Se cookie não existe: permitir (usuário legado antes da feature)
+    //    - Se cookie = 'none': permitir (usuário legado com coluna default)
+    //    - Se cookie = 'pending': bloquear (aguardando pagamento)
+    //    - Se cookie = 'active' ou 'cancelled': permitir
     const isAdminRoute = pathname.startsWith("/admin-sistema");
     const isAssinaturaRoute = pathname === "/assinatura";
 
@@ -102,8 +103,8 @@ export async function middleware(request: NextRequest) {
         (c) => c.name === "subscription_status"
       );
 
-      if (subCookie && subCookie.value !== "active" && subCookie.value !== "cancelled") {
-        // Usuário com assinatura pendente/none — redirecionar
+      if (subCookie && subCookie.value !== "active" && subCookie.value !== "cancelled" && subCookie.value !== "none") {
+        // Usuário com assinatura pendente — redirecionar
         const url = request.nextUrl.clone();
         url.pathname = "/aguardando-pagamento";
         return NextResponse.redirect(url);
