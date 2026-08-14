@@ -104,11 +104,40 @@ function LoginForm() {
             if (!hasMfa && passkeyRes.count && passkeyRes.count > 0) hasMfa = true;
           }
 
+          // ── Abordagem B: Verificar subscription_status para o cookie ──
+          const isAdmin =
+            (!profile && isAdminEmail) || profile?.role === "admin_sistema";
+          if (isAdmin) {
+            // Admin não precisa de verificação de assinatura
+            document.cookie =
+              "subscription_status=active; path=/; max-age=31536000; SameSite=Lax";
+          } else {
+            // Buscar subscription_status do perfil
+            const { data: subProfile } = await supabase
+              .from("profiles")
+              .select("subscription_status")
+              .eq("id", data.user.id)
+              .maybeSingle();
+            const subStatus =
+              (subProfile as Record<string, unknown> | null)?.subscription_status ||
+              "none";
+            document.cookie = `subscription_status=${subStatus}; path=/; max-age=31536000; SameSite=Lax`;
+          }
+
           // Determinar redirect baseado no role
-          const finalRedirect =
-            (!profile && isAdminEmail) || profile?.role === "admin_sistema"
-              ? "/admin-sistema"
-              : "/projetos";
+          const finalRedirect = isAdmin
+            ? "/admin-sistema"
+            : "/projetos";
+
+          // Se não é admin e não tem assinatura ativa, redirecionar para aguardar
+          if (
+            !isAdmin &&
+            document.cookie.includes("subscription_status=pending")
+          ) {
+            router.push("/aguardando-pagamento");
+            router.refresh();
+            return;
+          }
 
           if (hasMfa) {
             document.cookie = "mfa_pending=1; path=/; max-age=300; SameSite=Lax";
@@ -214,6 +243,19 @@ function LoginForm() {
               >
                 {loading ? "Entrando..." : "Entrar"}
               </button>
+
+              {/* Link para criar conta via planos (Abordagem B) */}
+              <div className="text-center mt-4">
+                <p className="text-sm text-gray-500">
+                  Novo por aqui?{" "}
+                  <a
+                    href="/planos"
+                    className="text-gray-900 font-semibold hover:underline underline-offset-2"
+                  >
+                    Escolha um plano e crie sua conta
+                  </a>
+                </p>
+              </div>
             </form>
           </div>
         </div>

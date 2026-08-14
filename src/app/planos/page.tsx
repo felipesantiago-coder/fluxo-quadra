@@ -1,52 +1,72 @@
 export const dynamic = 'force-dynamic';
 
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import PlanosClient from './PlanosClient';
+import { createAdminClient } from '@/lib/supabase/admin';
+import PlanosPublicClient from './PlanosPublicClient';
+import PlanosAuthClient from '../planos-auth/PlanosClient';
 import type { PlanoDB } from '@/lib/mercadopago';
 
 export default async function PlanosPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  let user: { id: string; email: string | null } | null = null;
+  let profile: Record<string, unknown> | null = null;
+  let assinaturaAtiva: Record<string, unknown> | null = null;
 
-  if (!user) redirect('/');
+  // Tentar detectar usuário logado (pode falhar se env vars não estão configuradas)
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
 
-  // Buscar planos ativos
-  const { data: planosData, error } = await supabase
-    .from('planos')
-    .select('*')
-    .eq('ativo', true)
-    .order('ordem', { ascending: true });
+    if (user) {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('display_name, role, subscription_status')
+        .eq('id', user.id)
+        .maybeSingle();
+      profile = p as Record<string, unknown> | null;
 
-  const planos: PlanoDB[] = (planosData || []).map((p) => ({
-    ...p,
-    features: Array.isArray(p.features) ? p.features : [],
-  }));
+      const { data: a } = await supabase
+        .from('assinaturas')
+        .select('id, status, plano:planos(id, nome)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+      assinaturaAtiva = a as Record<string, unknown> | null;
+    }
+  } catch {
+    // Env vars não configuradas — mostrar versão pública
+  }
 
-  // Buscar assinatura ativa do usuário
-  const { data: assinaturaAtiva } = await supabase
-    .from('assinaturas')
-    .select('id, status, plano:planos(id, nome)')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle();
+  // Buscar planos SEMPRE via admin client
+  let planos: PlanoDB[] = [];
+  try {
+    const adminClient = createAdminClient();
+    const { data: planosData } = await adminClient
+      .from('planos')
+      .select('*')
+      .eq('ativo', true)
+      .order('ordem', { ascending: true });
 
-  // Buscar perfil para nome
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('display_name, role')
-    .eq('id', user.id)
-    .maybeSingle();
+    planos = (planosData || []).map((p) => ({
+      ...p,
+      features: Array.isArray(p.features) ? p.features : [],
+    }));
+  } catch {
+    // Admin client também pode falhar sem env vars
+  }
 
-  const isAdmin = profile?.role === 'admin_sistema';
+  if (user) {
+    const isAdmin = profile?.role === 'admin_sistema';
+    return (
+      <PlanosAuthClient
+        userEmail={user.email || ''}
+        userName={(profile?.display_name as string) || user.email || ''}
+        isAdmin={isAdmin}
+        planos={planos}
+        assinaturaAtiva={assinaturaAtiva as { id: string; status: string; plano: { id: string; nome: string } } | null}
+      />
+    );
+  }
 
-  return (
-    <PlanosClient
-      userEmail={user.email || ''}
-      userName={profile?.display_name || user.email || ''}
-      isAdmin={isAdmin}
-      planos={planos}
-      assinaturaAtiva={assinaturaAtiva || null}
-    />
-  );
+  return <PlanosPublicClient planos={planos} />;
 }

@@ -10,13 +10,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Rotas públicas ou auto-gerenciadas (nunca interceptar)
+  // Rotas públicas (nunca interceptar)
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/change-password" ||
     pathname === "/mfa-onboarding" ||
     pathname === "/mfa-verify" ||
-    pathname === "/mfa-setup";
+    pathname === "/mfa-setup" ||
+    pathname === "/planos" ||
+    pathname === "/aguardando-pagamento";
 
   const isApiRoute = pathname.startsWith("/api/");
 
@@ -24,7 +26,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  // Rotas protegidas
+  // Rotas que exigem autenticacao
   const isProtectedRoute =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/admin-sistema") ||
@@ -34,7 +36,6 @@ export async function middleware(request: NextRequest) {
     pathname === "/moment" ||
     pathname === "/projetos" ||
     pathname === "/vitta" ||
-    pathname === "/planos" ||
     pathname === "/assinatura";
 
   if (!isProtectedRoute) {
@@ -44,7 +45,7 @@ export async function middleware(request: NextRequest) {
   try {
     const allCookies = request.cookies.getAll();
 
-    // 1. Verificar autenticação Supabase
+    // 1. Verificar autenticacao Supabase
     const hasSessionCookie = allCookies.some(
       (c) => c.name.includes("sb-") && c.name.includes("-auth-token")
     );
@@ -75,7 +76,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // 3. Verificar MFA: se cookie mfa_pending existe, o usuário precisa verificar
+    // 3. Verificar MFA
     const mfaPending = allCookies.some((c) => c.name === "mfa_pending");
     const mfaVerified = allCookies.some((c) => c.name === "mfa_verified");
 
@@ -84,6 +85,29 @@ export async function middleware(request: NextRequest) {
       url.pathname = "/mfa-verify";
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);
+    }
+
+    // 4. Abordagem B: Verificar assinatura ativa via cookie
+    //    - admin_sistema: acesso livre (sem verificação de assinatura)
+    //    - /assinatura: permitido para gerenciar assinatura existente
+    //    - subscription_status cookie: definido no login e na página de aguardar
+    //    - Se cookie não existe: permitir (usuário existente antes da feature)
+    //    - Se cookie = 'pending' ou 'none': bloquear
+    //    - Se cookie = 'active' ou 'cancelled': permitir (cancelled = já foi cliente)
+    const isAdminRoute = pathname.startsWith("/admin-sistema");
+    const isAssinaturaRoute = pathname === "/assinatura";
+
+    if (!isAdminRoute && !isAssinaturaRoute) {
+      const subCookie = allCookies.find(
+        (c) => c.name === "subscription_status"
+      );
+
+      if (subCookie && subCookie.value !== "active" && subCookie.value !== "cancelled") {
+        // Usuário com assinatura pendente/none — redirecionar
+        const url = request.nextUrl.clone();
+        url.pathname = "/aguardando-pagamento";
+        return NextResponse.redirect(url);
+      }
     }
   } catch {
     return NextResponse.next({ request });
@@ -107,5 +131,6 @@ export const config = {
     "/mfa-onboarding",
     "/planos",
     "/assinatura",
+    "/aguardando-pagamento",
   ],
 };

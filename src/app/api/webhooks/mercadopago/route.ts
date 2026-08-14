@@ -287,6 +287,20 @@ async function handlePaymentEvent(
         console.error(`[Webhook MP] Erro ao ativar assinatura ${assinaturaId}:`, updateErr);
         return false;
       }
+
+      // ── Abordagem B: Ativar subscription_status do perfil ──
+      try {
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .update({ subscription_status: 'active' })
+          .eq('id', userId);
+        if (profileErr) {
+          console.error(`[Webhook MP] Erro ao atualizar perfil ${userId}:`, profileErr);
+          // Nao e fatal — a assinatura foi ativada
+        }
+      } catch {
+        // Ignorar erro de perfil
+      }
     }
 
     return true;
@@ -373,6 +387,21 @@ async function handlePreapprovalEvent(
     if (error) {
       console.error(`[Webhook MP] Erro ao atualizar assinatura ${assinatura.id}:`, error);
       return false;
+    }
+
+    // ── Abordagem B: Sincronizar subscription_status do perfil ──
+    if (ourStatus === 'active' || ourStatus === 'cancelled') {
+      try {
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .update({ subscription_status: ourStatus === 'active' ? 'active' : 'cancelled' })
+          .eq('id', assinatura.user_id);
+        if (profileErr) {
+          console.error(`[Webhook MP] Erro ao atualizar perfil ${assinatura.user_id}:`, profileErr);
+        }
+      } catch {
+        // Ignorar
+      }
     }
 
     return true;
