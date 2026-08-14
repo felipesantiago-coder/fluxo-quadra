@@ -269,8 +269,10 @@ async function syncToDedicatedTable(
 // ─── Endpoint POST ─────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     const formData = await request.formData();
     const empreendimentoId = formData.get("empreendimentoId") as string;

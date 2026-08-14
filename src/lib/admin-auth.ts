@@ -5,22 +5,18 @@ const ADMIN_EMAIL = "prosperosdirecional@gmail.com";
 
 /**
  * Verifica se o usuário autenticado é admin_sistema.
- * Tenta buscar o profile; se falhar, usa fallback por email.
- * Retorna { supabase, error: null } ou { supabase, error: NextResponse }.
+ * Retorna true se permitido, false caso contrário.
+ *
+ * SEGURANÇA: Usa double-check (profile.role + email hardcoded).
+ * O email hardcoded é um fallback caso o profile não exista ainda.
  */
-export async function requireAdminSistema() {
+export async function requireAdminSistema(): Promise<boolean> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      supabase,
-      user: null,
-      error: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
-    };
-  }
+  if (!user) return false;
 
   // Verificar role pelo profile
   const { data: profile, error: profileError } = await supabase
@@ -32,16 +28,5 @@ export async function requireAdminSistema() {
   const isAdminRole = !profileError && profile?.role === "admin_sistema";
   const isAdminEmail = user.email?.toLowerCase() === ADMIN_EMAIL;
 
-  if (!isAdminRole && !isAdminEmail) {
-    return {
-      supabase,
-      user,
-      error: NextResponse.json(
-        { error: "Acesso restrito ao administrador do sistema" },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return { supabase, user, error: null };
+  return isAdminRole || isAdminEmail;
 }

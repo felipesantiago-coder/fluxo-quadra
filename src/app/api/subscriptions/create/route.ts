@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createMpSubscription, type PlanoDB } from '@/lib/mercadopago';
 
+// Regex para validacao de UUID v4
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * POST /api/subscriptions/create
  * Cria uma assinatura no Mercado Pago para o plano escolhido.
  * Retorna a URL de checkout (init_point) para redirecionar o usuário.
  *
  * Body: { planoId: string }
+ *
+ * SEGURANCA:
+ *  - Valida UUID do planoId
+ *  - Verifica assinatura ativa (evita duplicata)
+ *  - usa partial unique index como segunda barreira
  */
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +32,11 @@ export async function POST(request: NextRequest) {
 
     if (!planoId) {
       return NextResponse.json({ error: 'planoId é obrigatório.' }, { status: 400 });
+    }
+
+    // Validar formato do planoId (UUID)
+    if (!UUID_RE.test(planoId)) {
+      return NextResponse.json({ error: 'planoId inválido.' }, { status: 400 });
     }
 
     // 1. Buscar o plano no banco
@@ -76,15 +89,12 @@ export async function POST(request: NextRequest) {
       planoNome: plano.nome,
     });
 
-    // 5. Registrar assinatura no banco
+    // 5. Registrar/atualizar assinatura no banco
     const agora = new Date().toISOString();
-    const dataFim = new Date(
-      Date.now() + plano.periodo_meses * 30 * 24 * 60 * 60 * 1000
-    ).toISOString();
 
     if (assinaturaPendente) {
       // Atualizar a assinatura pendente existente
-      await supabase
+      const { error: updateErr } = await supabase
         .from('assinaturas')
         .update({
           mercadopago_subscription_id: mpResult.subscription_id,
@@ -92,9 +102,20 @@ export async function POST(request: NextRequest) {
           updated_at: agora,
         })
         .eq('id', assinaturaPendente.id);
+
+      if (updateErr) {
+        console.error('[POST /api/subscriptions/create] Erro ao atualizar assinatura pendente:', updateErr);
+        // Verificar se e violacao da constraint unica (race condition)
+        if (updateErr.code === '23505') {
+          return NextResponse.json(
+            { error: 'Você já possui uma assinatura ativa ou pendente.' },
+            { status: 409 }
+          );
+        }
+      }
     } else {
-      // Criar nova assinatura
-      await supabase.from('assinaturas').insert({
+      // Criar nova assinatura — o partial unique index e a segunda barreira
+      const { error: insertErr } = await supabase.from('assinaturas').insert({
         user_id: user.id,
         plano_id: planoId,
         mercadopago_subscription_id: mpResult.subscription_id,
@@ -102,6 +123,17 @@ export async function POST(request: NextRequest) {
         data_inicio: null,
         data_fim: null,
       });
+
+      if (insertErr) {
+        console.error('[POST /api/subscriptions/create] Erro ao criar assinatura:', insertErr);
+        if (insertErr.code === '23505') {
+          return NextResponse.json(
+            { error: 'Você já possui uma assinatura ativa ou pendente. Tente novamente.' },
+            { status: 409 }
+          );
+        }
+        return NextResponse.json({ error: 'Erro ao criar assinatura.' }, { status: 500 });
+      }
     }
 
     return NextResponse.json({

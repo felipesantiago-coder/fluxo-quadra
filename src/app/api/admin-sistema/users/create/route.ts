@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const { error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
     const body = await request.json();
     const { email, displayName, role } = body as {

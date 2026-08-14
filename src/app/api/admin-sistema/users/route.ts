@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,10 @@ function isValidRole(r: string): r is ValidRole {
 // ─── GET: listar todos os usuários ─────────────────────────────────────────
 export async function GET() {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     let profiles;
 
@@ -69,8 +72,11 @@ export async function GET() {
 // ─── PATCH: alterar role de um usuário ──────────────────────────────────────
 export async function PATCH(request: Request) {
   try {
-    const { supabase, user: adminUser, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
 
     const body = await request.json();
     const { userId, role } = body as { userId?: string; role?: string };

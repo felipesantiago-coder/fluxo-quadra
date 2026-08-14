@@ -65,6 +65,7 @@ export async function GET() {
  * PATCH /api/admin-sistema/assinaturas
  * Admin pode alterar manualmente o status de uma assinatura.
  * Valida transicao de estado e requer justificativa para status 'active'.
+ * Registra auditoria (motivo + quem fez).
  *
  * Body: { assinaturaId: string, status: string, motivo?: string }
  */
@@ -76,6 +77,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+
     const body = await request.json();
     const { assinaturaId, status, motivo } = body as {
       assinaturaId?: string;
@@ -128,17 +131,16 @@ export async function PATCH(request: NextRequest) {
     };
 
     if (status === 'cancelled' || status === 'cancelled_by_user') {
+      const auditoria = `Alterado por admin (${adminUser?.email || 'desconhecido'}) em ${new Date().toISOString()}. Motivo: ${motivo || 'Sem motivo informado'}`;
       updateData.cancelado_em = new Date().toISOString();
-      updateData.motivo_cancelamento = motivo || 'Cancelado manualmente pelo administrador';
+      updateData.motivo_cancelamento = auditoria;
       updateData.proximo_ciclo_em = null;
     }
 
     if (status === 'active') {
+      const auditoria = `Ativado manualmente por admin (${adminUser?.email || 'desconhecido'}) em ${new Date().toISOString()}. Motivo: ${motivo || 'Sem motivo informado'}`;
+      updateData.motivo_cancelamento = auditoria;
       updateData.cancelado_em = null;
-    }
-
-    if (status === 'paused') {
-      updateData.proximo_ciclo_em = null;
     }
 
     const { error } = await supabase

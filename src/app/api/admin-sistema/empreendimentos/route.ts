@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     // Query única com aggregate — evita N+1 queries separadas por empreendimento
     const { data, err } = await supabase
@@ -47,8 +50,10 @@ function generateSlug(nome: string): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { nome, regiao, descricao } = body;
@@ -88,8 +93,10 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { id } = body;

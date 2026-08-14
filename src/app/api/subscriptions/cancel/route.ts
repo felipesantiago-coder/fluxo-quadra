@@ -6,6 +6,10 @@ import { cancelMpSubscription } from '@/lib/mercadopago';
  * POST /api/subscriptions/cancel
  * Cancela a assinatura ativa do usuario.
  * Cancela no Mercado Pago PRIMEIRO — so cancela localmente se o MP confirmar.
+ *
+ * SEGURANCA:
+ *  - Usa CAS (Compare-And-Swap) no update para evitar race condition com webhook
+ *  - Retorna sucesso idempotente se ja esta cancelada
  */
 export async function POST() {
   try {
@@ -24,7 +28,23 @@ export async function POST() {
       .eq('status', 'active')
       .maybeSingle();
 
+    // Idempotencia: se nao tem assinatura ativa, verificar se ja foi cancelada
     if (assErr || !assinatura) {
+      // Verificar se tem assinatura cancelada recentemente (idempotencia)
+      const { data: recentCancelled } = await supabase
+        .from('assinaturas')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .in('status', ['cancelled_by_user', 'cancelled'])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentCancelled) {
+        // Ja cancelada — retornar sucesso idempotente
+        return NextResponse.json({ success: true, message: 'Assinatura ja estava cancelada.' });
+      }
+
       return NextResponse.json(
         { error: 'Nenhuma assinatura ativa encontrada.' },
         { status: 404 }
@@ -48,8 +68,9 @@ export async function POST() {
       }
     }
 
-    // So cancelar localmente se o MP foi cancelado com sucesso
-    const { error: updateErr } = await supabase
+    // So cancelar localmente usando CAS (Compare-And-Swap)
+    // O WHERE status = 'active' previne race condition com webhook
+    const { error: updateErr, count } = await supabase
       .from('assinaturas')
       .update({
         status: 'cancelled_by_user',
@@ -57,10 +78,19 @@ export async function POST() {
         motivo_cancelamento: 'Cancelado pelo usuario via painel',
         proximo_ciclo_em: null,
       })
-      .eq('id', assinatura.id);
+      .eq('id', assinatura.id)
+      .eq('status', 'active'); // CAS
 
-    if (updateErr) {
-      console.error('[POST /api/subscriptions/cancel] Erro ao atualizar:', updateErr);
+    if (updateErr || count === 0) {
+      // Se count=0, o webhook mudou o status entre nossa leitura e o update
+      console.warn(
+        '[POST /api/subscriptions/cancel] CAS falhou: status mudou concurrentemente. Assinatura',
+        assinatura.id
+      );
+      if (count === 0) {
+        // Nao e erro — o webhook provavelmente ja processou
+        return NextResponse.json({ success: true, message: 'Assinatura processada.' });
+      }
       return NextResponse.json({ error: 'Erro ao cancelar assinatura.' }, { status: 500 });
     }
 

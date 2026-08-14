@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * GET /api/subscriptions/status
  * Retorna o status da assinatura do usuário logado + histórico de pagamentos.
+ * Prioriza: active > pending > paused > mais recente.
  */
 export async function GET() {
   try {
@@ -14,8 +15,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
     }
 
-    // Buscar assinatura mais recente do usuário
-    const { data: assinatura, error: assErr } = await supabase
+    // Buscar assinaturas ordenadas por prioridade de status
+    // active primeiro, depois pending, depois paused, depois por data
+    const { data: assinaturas, error: assErr } = await supabase
       .from('assinaturas')
       .select(`
         id,
@@ -31,14 +33,21 @@ export async function GET() {
         plano:planos(id, nome, periodo_meses, preco, features)
       `)
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: false });
 
     if (assErr) {
       console.error('[GET /api/subscriptions/status] Erro:', assErr);
       return NextResponse.json({ error: 'Erro ao buscar assinatura.' }, { status: 500 });
     }
+
+    // Selecionar a assinatura mais relevante
+    // Prioridade: active > pending > paused > mais recente
+    const allAss = assinaturas || [];
+    const assinatura = allAss.find(a => a.status === 'active')
+      || allAss.find(a => a.status === 'pending')
+      || allAss.find(a => a.status === 'paused')
+      || allAss[0]
+      || null;
 
     // Buscar histórico de pagamentos
     const { data: pagamentos, error: pagErr } = await supabase
@@ -49,7 +58,7 @@ export async function GET() {
       .limit(20);
 
     return NextResponse.json({
-      assinatura: assinatura || null,
+      assinatura,
       pagamentos: pagamentos || [],
     });
   } catch (err) {

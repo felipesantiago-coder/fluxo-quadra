@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import path from "path";
 
 export const dynamic = "force-dynamic";
@@ -33,9 +34,10 @@ function tryAdminClient() {
 export async function POST(request: NextRequest) {
   try {
     // Verificação de autenticação/autorização
-    const { supabase: anonClient, error: authError } = await requireAdminSistema();
-    if (authError) return authError;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
+    const anonClient = await createClient();
     // Tentar admin client (bypass RLS); fallback para anon client
     const db = tryAdminClient() ?? anonClient;
 

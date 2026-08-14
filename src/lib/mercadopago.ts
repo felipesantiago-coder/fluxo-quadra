@@ -12,6 +12,23 @@ import { MercadoPagoConfig, PreApproval, Payment, PreApprovalPlan } from 'mercad
 const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
 const MP_WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
+// back_url validado na inicializacao
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
+function getBackUrl(path: string): string {
+  // Validar que APP_URL e uma URL https valida
+  try {
+    const url = new URL(APP_URL);
+    if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
+      throw new Error('APP_URL deve usar HTTPS');
+    }
+  } catch {
+    // Se APP_URL nao e uma URL valida, usar fallback seguro
+    console.warn('[MP] NEXT_PUBLIC_APP_URL invalido. Usando fallback.');
+    return `${path}`;
+  }
+  return `${APP_URL.replace(/\/$/, '')}${path}`;
+}
+
 let _client: PreApproval | null = null;
 let _paymentClient: Payment | null = null;
 let _planClient: PreApprovalPlan | null = null;
@@ -211,7 +228,7 @@ export async function createMpPlan(params: {
       transaction_amount: params.preco,
       currency_id: 'BRL',
     },
-    back_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/assinatura`,
+    back_url: getBackUrl('/assinatura'),
     status: 'active',
   });
 
@@ -238,7 +255,7 @@ export async function createMpSubscription(params: {
     payer_email: params.userEmail,
     reason: `Assinatura - ${params.planoNome}`,
     status: 'pending',
-    back_url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/assinatura`,
+    back_url: getBackUrl('/assinatura'),
   });
 
   if (!response.init_point) {

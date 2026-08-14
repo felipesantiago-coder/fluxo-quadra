@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     // Criar o bucket via SQL direto (bypass da API de storage que exige service_role)
     const { error: sqlErr } = await supabase.rpc("create_empreendimentos_bucket");

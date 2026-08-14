@@ -90,37 +90,37 @@ export async function POST(request: NextRequest) {
 
     // ── Criar novo plano ──
     const { nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
-      nome?: string;
-      descricao?: string;
-      periodo_meses?: number;
-      preco?: number;
-      features?: string[];
-      popular?: boolean;
-      ativo?: boolean;
-      ordem?: number;
+      nome?: unknown;
+      descricao?: unknown;
+      periodo_meses?: unknown;
+      preco?: unknown;
+      features?: unknown;
+      popular?: unknown;
+      ativo?: unknown;
+      ordem?: unknown;
     };
 
-    if (!nome || !periodo_meses || preco === undefined) {
+    // Validacao de tipos
+    if (typeof nome !== 'string' || typeof periodo_meses !== 'number' || typeof preco !== 'number') {
       return NextResponse.json(
-        { error: 'nome, periodo_meses e preco sao obrigatorios.' },
+        { error: 'nome (string), periodo_meses (number) e preco (number) sao obrigatorios.' },
         { status: 400 }
       );
     }
 
-    // Validacao de entradas
-    const trimmedNome = typeof nome === 'string' ? nome.trim().slice(0, 100) : '';
+    const trimmedNome = nome.trim().slice(0, 100);
     const trimmedDescricao = typeof descricao === 'string' ? descricao.trim().slice(0, 500) : '';
 
     if (!trimmedNome) {
       return NextResponse.json({ error: 'nome nao pode estar vazio.' }, { status: 400 });
     }
 
-    if (periodo_meses < 1 || periodo_meses > 36) {
-      return NextResponse.json({ error: 'periodo_meses deve estar entre 1 e 36.' }, { status: 400 });
+    if (!Number.isInteger(periodo_meses) || periodo_meses < 1 || periodo_meses > 36) {
+      return NextResponse.json({ error: 'periodo_meses deve ser inteiro entre 1 e 36.' }, { status: 400 });
     }
 
-    if (preco < 0 || preco > 99999.99) {
-      return NextResponse.json({ error: 'preco deve estar entre 0 e 99999.99.' }, { status: 400 });
+    if (preco <= 0 || preco > 99999.99 || !Number.isFinite(preco)) {
+      return NextResponse.json({ error: 'preco deve ser um numero positivo ate 99999.99.' }, { status: 400 });
     }
 
     // Validar features: array de strings com max 20 itens
@@ -128,9 +128,15 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(features)) {
       validatedFeatures = features
         .filter((f) => typeof f === 'string')
-        .map((f) => f.trim().slice(0, 200))
+        .map((f) => String(f).trim().slice(0, 200))
+        .filter((f) => f.length > 0)
         .slice(0, 20);
     }
+
+    // Validar ordem
+    const validatedOrdem = typeof ordem === 'number' && Number.isInteger(ordem) && ordem >= 0
+      ? ordem
+      : undefined;
 
     // Buscar maior ordem atual
     const { data: maxOrdem } = await supabase
@@ -148,9 +154,9 @@ export async function POST(request: NextRequest) {
         periodo_meses,
         preco,
         features: validatedFeatures,
-        popular: popular ?? false,
-        ativo: ativo ?? true,
-        ordem: ordem ?? ((maxOrdem?.ordem || 0) + 1),
+        popular: popular === true,
+        ativo: ativo !== false,
+        ordem: validatedOrdem ?? ((maxOrdem?.ordem || 0) + 1),
       })
       .select()
       .single();
@@ -192,14 +198,14 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
       id?: string;
-      nome?: string;
-      descricao?: string;
-      periodo_meses?: number;
-      preco?: number;
-      features?: string[];
-      popular?: boolean;
-      ativo?: boolean;
-      ordem?: number;
+      nome?: unknown;
+      descricao?: unknown;
+      periodo_meses?: unknown;
+      preco?: unknown;
+      features?: unknown;
+      popular?: unknown;
+      ativo?: unknown;
+      ordem?: unknown;
     };
 
     if (!id) {
@@ -221,36 +227,71 @@ export async function PUT(request: NextRequest) {
 
     // Montar objeto de atualização apenas com campos fornecidos
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    let precoChanged = false;
+    let periodoChanged = false;
 
-    if (nome !== undefined) updates.nome = nome.trim();
-    if (descricao !== undefined) updates.descricao = descricao.trim();
+    if (nome !== undefined) {
+      if (typeof nome !== 'string') {
+        return NextResponse.json({ error: 'nome deve ser string.' }, { status: 400 });
+      }
+      updates.nome = String(nome).trim().slice(0, 100);
+      if (!updates.nome) {
+        return NextResponse.json({ error: 'nome nao pode estar vazio.' }, { status: 400 });
+      }
+    }
+
+    if (descricao !== undefined) {
+      updates.descricao = typeof descricao === 'string' ? descricao.trim().slice(0, 500) : '';
+    }
+
     if (periodo_meses !== undefined) {
-      if (periodo_meses < 1) {
-        return NextResponse.json({ error: 'periodo_meses deve ser >= 1.' }, { status: 400 });
+      if (typeof periodo_meses !== 'number' || !Number.isInteger(periodo_meses) || periodo_meses < 1 || periodo_meses > 36) {
+        return NextResponse.json({ error: 'periodo_meses deve ser inteiro entre 1 e 36.' }, { status: 400 });
       }
       updates.periodo_meses = periodo_meses;
+      periodoChanged = periodo_meses !== planoAtual.periodo_meses;
     }
+
     if (preco !== undefined) {
-      if (preco < 0) {
-        return NextResponse.json({ error: 'preco deve ser >= 0.' }, { status: 400 });
+      if (typeof preco !== 'number' || !Number.isFinite(preco) || preco <= 0 || preco > 99999.99) {
+        return NextResponse.json({ error: 'preco deve ser um numero positivo ate 99999.99.' }, { status: 400 });
       }
       updates.preco = preco;
+      precoChanged = Number(preco) !== Number(planoAtual.preco);
     }
-    if (features !== undefined) updates.features = Array.isArray(features) ? features : [];
-    if (popular !== undefined) updates.popular = popular;
-    if (ativo !== undefined) updates.ativo = ativo;
-    if (ordem !== undefined) updates.ordem = ordem;
+
+    if (features !== undefined) {
+      if (Array.isArray(features)) {
+        updates.features = features
+          .filter((f) => typeof f === 'string')
+          .map((f) => String(f).trim().slice(0, 200))
+          .filter((f) => f.length > 0)
+          .slice(0, 20);
+      } else {
+        return NextResponse.json({ error: 'features deve ser um array de strings.' }, { status: 400 });
+      }
+    }
+
+    if (popular !== undefined) {
+      updates.popular = popular === true;
+    }
+
+    if (ativo !== undefined) {
+      updates.ativo = ativo === true;
+    }
+
+    if (ordem !== undefined) {
+      if (typeof ordem === 'number' && Number.isInteger(ordem) && ordem >= 0) {
+        updates.ordem = ordem;
+      } else {
+        return NextResponse.json({ error: 'ordem deve ser um inteiro nao negativo.' }, { status: 400 });
+      }
+    }
 
     // Se preço ou período mudou e o plano tem ID do MP, limpar o ID
-    // pois o plano no MP precisa ser recriado com os novos valores
-    const precoChanged = preco !== undefined && Number(preco) !== Number(planoAtual.preco);
-    const periodoChanged = periodo_meses !== undefined && periodo_meses !== planoAtual.periodo_meses;
     if ((precoChanged || periodoChanged) && planoAtual.mercadopago_plan_id) {
       updates.mercadopago_plan_id = null;
-      updates._mp_cleared = true; // flag para avisar o frontend
     }
-
-    delete updates._mp_cleared; // não salva no banco
 
     const { data: planoAtualizado, error: updateErr } = await supabase
       .from('planos')
@@ -266,11 +307,9 @@ export async function PUT(request: NextRequest) {
 
     const response: Record<string, unknown> = { plano: planoAtualizado, message: 'Plano atualizado com sucesso.' };
 
-    if (precoChanged || periodoChanged) {
-      if (planoAtual.mercadopago_plan_id) {
-        response.mp_plan_cleared = true;
-        response.mp_warning = 'Preço ou período alterado. O plano precisa ser re-sincronizado com o Mercado Pago.';
-      }
+    if ((precoChanged || periodoChanged) && planoAtual.mercadopago_plan_id) {
+      response.mp_plan_cleared = true;
+      response.mp_warning = 'Preço ou período alterado. O plano precisa ser re-sincronizado com o Mercado Pago.';
     }
 
     return NextResponse.json(response);

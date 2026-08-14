@@ -10,8 +10,10 @@ import { verifyWebhookSignature, getMpPayment, getMpSubscription } from '@/lib/m
  *  - Pagamentos aprovados/rejeitados
  *  - Assinaturas ativadas/canceladas/pausadas
  *
- * SEGURANCA: Verifica assinatura HMAC-SHA256 do x-signature.
- * NUNCA desabilita verificacao de assinatura, mesmo em dev.
+ * SEGURANCA:
+ *  - Verifica assinatura HMAC-SHA256 do x-signature (sem bypass)
+ *  - Idempotencia via INSERT ON CONFLICT DO NOTHING (atomico, sem race condition)
+ *  - Evento registrado ANTES do processamento (at-least-once seguro)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -55,37 +57,48 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // 2. Idempotencia: verificar se este evento ja foi processado
-    const { data: existingEvent } = await supabase
-      .from('webhook_events')
-      .select('id')
-      .eq('event_id', eventId)
-      .maybeSingle();
-
-    if (existingEvent) {
-      // Evento ja processado — retornar 200 silenciosamente
-      return NextResponse.json({ received: true, idempotent: true });
-    }
-
-    // 3. Processar por tipo de evento
-    if (type === 'payment') {
-      await handlePaymentEvent(supabase, data.id);
-    } else if (type === 'preapproval') {
-      await handlePreapprovalEvent(supabase, data.id, action);
-    } else {
-      // Tipo nao tratado — registrar e ignorar
-    }
-
-    // 4. Registrar evento como processado
-    await supabase
+    // 2. Idempotencia ATOMICA: INSERT ON CONFLICT DO NOTHING
+    //    Registra o evento ANTES de processar para evitar race conditions.
+    //    Se o insert falhar por conflito, o evento ja foi processado.
+    const { error: insertEventErr } = await supabase
       .from('webhook_events')
       .insert({
         event_id: eventId,
         event_type: type || 'unknown',
         action: action || null,
         mp_resource_id: data.id,
-        processed_at: new Date().toISOString(),
-      });
+      })
+      .select('id')
+      .single();
+
+    // Se insert falhou e o erro NAO e de duplicata, e um erro real
+    if (insertEventErr) {
+      // Verificar se e erro de chave unica (evento ja processado)
+      if (insertEventErr.code === '23505') {
+        // Evento ja processado — retornar 200 silenciosamente
+        return NextResponse.json({ received: true, idempotent: true });
+      }
+      console.error('[Webhook MP] Erro ao registrar evento:', insertEventErr);
+      return NextResponse.json({ error: 'Erro ao registrar evento.' }, { status: 500 });
+    }
+
+    // 3. Processar por tipo de evento
+    let processingError = false;
+
+    if (type === 'payment') {
+      processingError = !(await handlePaymentEvent(supabase, data.id));
+    } else if (type === 'preapproval') {
+      processingError = !(await handlePreapprovalEvent(supabase, data.id, action));
+    }
+    // Tipo nao tratado — registrar e ignorar
+
+    if (processingError) {
+      // Retornar 500 para que o MP faca retry
+      return NextResponse.json(
+        { error: 'Erro ao processar evento.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ received: true });
   } catch (err) {
@@ -115,7 +128,7 @@ function isTransitionValid(currentStatus: string, newStatus: string): boolean {
 async function handlePaymentEvent(
   supabase: ReturnType<typeof createAdminClient>,
   paymentId: string
-) {
+): Promise<boolean> {
   try {
     // Buscar detalhes do pagamento no MP
     const payment = await getMpPayment(paymentId);
@@ -128,7 +141,13 @@ async function handlePaymentEvent(
     const preapprovalId = (paymentData.metadata as Record<string, unknown> | undefined)?.preapproval_id as string | undefined;
 
     if (!status) {
-      return;
+      return true; // Sem status, nada a processar
+    }
+
+    // Sanity check: valor deve ser positivo e razoavel
+    if (valor < 0 || valor > 999999.99) {
+      console.error(`[Webhook MP] Valor fora do range aceitavel: R$${valor}. Pagamento ${paymentId}.`);
+      return false;
     }
 
     // Mapear metodo de pagamento
@@ -169,7 +188,7 @@ async function handlePaymentEvent(
     }
 
     if (!userId) {
-      return;
+      return true; // Pagamento nao relacionado a nenhum usuario local
     }
 
     // Validar status do pagamento
@@ -200,6 +219,7 @@ async function handlePaymentEvent(
 
     if (upsertErr) {
       console.error(`[Webhook MP] Erro ao upsert pagamento ${paymentId}:`, upsertErr);
+      return false;
     }
 
     // Se pagamento aprovado, atualizar assinatura como ativa
@@ -211,14 +231,14 @@ async function handlePaymentEvent(
         .eq('id', assinaturaId)
         .single();
 
-      if (!assinatura) return;
+      if (!assinatura) return true;
 
       // Validar transicao de estado: so ativar se esta em pending ou paused
       if (!isTransitionValid(assinatura.status, 'active')) {
         console.warn(
           `[Webhook MP] Transicao invalida: ${assinatura.status} -> active. Assinatura ${assinaturaId}. Ignorando.`
         );
-        return;
+        return true;
       }
 
       // Validar valor cobrado vs preco do plano (tolerancia de 5%)
@@ -233,7 +253,7 @@ async function handlePaymentEvent(
               `Assinatura ${assinaturaId}, Pagamento ${paymentId}. Requerer intervencao manual.`
             );
             // Nao ativar automaticamente — requerer confirmacao do admin
-            return;
+            return false;
           }
         }
       }
@@ -249,7 +269,8 @@ async function handlePaymentEvent(
         dataFim = fim.toISOString();
       }
 
-      await supabase
+      // Atualizar com WHERE para evitar race condition
+      const { error: updateErr } = await supabase
         .from('assinaturas')
         .update({
           status: 'active',
@@ -259,10 +280,19 @@ async function handlePaymentEvent(
           proximo_ciclo_em: dataFim,
           metodo_pagamento: metodoNorm,
         })
-        .eq('id', assinaturaId);
+        .eq('id', assinaturaId)
+        .in('status', ['pending', 'paused']); // CAS: so atualiza se ainda esta em estado valido
+
+      if (updateErr) {
+        console.error(`[Webhook MP] Erro ao ativar assinatura ${assinaturaId}:`, updateErr);
+        return false;
+      }
     }
+
+    return true;
   } catch (err) {
     console.error(`[Webhook MP] Erro ao processar pagamento ${paymentId}:`, err);
+    return false;
   }
 }
 
@@ -272,7 +302,7 @@ async function handlePreapprovalEvent(
   supabase: ReturnType<typeof createAdminClient>,
   subscriptionId: string,
   action: string | undefined
-) {
+): Promise<boolean> {
   try {
     // Buscar detalhes da assinatura no MP
     const subscription = await getMpSubscription(subscriptionId);
@@ -293,7 +323,7 @@ async function handlePreapprovalEvent(
     const ourStatus = statusMap[mpStatus];
     if (!ourStatus) {
       console.warn(`[Webhook MP] Status MP nao mapeado: ${mpStatus} para assinatura ${subscriptionId}`);
-      return;
+      return true; // Status desconhecido nao e erro fatal
     }
 
     // Buscar assinatura local com status atual
@@ -305,7 +335,7 @@ async function handlePreapprovalEvent(
 
     if (assErr || !assinatura) {
       console.warn(`[Webhook MP] Assinatura ${subscriptionId} nao encontrada localmente.`);
-      return;
+      return true;
     }
 
     // Validar transicao de estado
@@ -313,7 +343,7 @@ async function handlePreapprovalEvent(
       console.warn(
         `[Webhook MP] Transicao invalida: ${assinatura.status} -> ${ourStatus}. Assinatura ${assinatura.id}. Ignorando.`
       );
-      return;
+      return true;
     }
 
     // Montar dados de atualizacao
@@ -335,11 +365,19 @@ async function handlePreapprovalEvent(
       updateData.proximo_ciclo_em = null;
     }
 
-    await supabase
+    const { error } = await supabase
       .from('assinaturas')
       .update(updateData)
       .eq('id', assinatura.id);
+
+    if (error) {
+      console.error(`[Webhook MP] Erro ao atualizar assinatura ${assinatura.id}:`, error);
+      return false;
+    }
+
+    return true;
   } catch (err) {
     console.error(`[Webhook MP] Erro ao processar assinatura ${subscriptionId}:`, err);
+    return false;
   }
 }

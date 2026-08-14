@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,10 @@ const LEGACY_PROJECTS = [
 
 export async function POST() {
   try {
-    const { supabase, error } = await requireAdminSistema();
-    if (error) return error;
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    const supabase = await createClient();
 
     // Buscar slugs já existentes no banco
     const { data: existing } = await supabase
