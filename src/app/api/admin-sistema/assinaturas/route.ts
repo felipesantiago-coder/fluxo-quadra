@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdminSistema } from '@/lib/admin-auth';
 
 // Maquina de estados: transicoes validas
@@ -29,7 +30,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Buscar assinaturas com join de plano apenas
     // (nao e possivel join direto assinaturas -> profiles via PostgREST
@@ -101,8 +102,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
-    const supabase = await createClient();
-    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    // authClient para obter dados do admin logado
+    const authClient = await createClient();
+    const { data: { user: adminUser } } = await authClient.auth.getUser();
+
+    const supabase = createAdminClient();
 
     const body = await request.json();
     const { assinaturaId, status, motivo } = body as {

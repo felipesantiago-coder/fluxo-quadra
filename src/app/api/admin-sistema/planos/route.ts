@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdminSistema } from '@/lib/admin-auth';
 import { createMpPlan } from '@/lib/mercadopago';
 
@@ -14,7 +15,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('planos')
       .select('*')
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const body = await request.json();
 
     // ── Sincronizar plano existente com MP ──
@@ -212,7 +213,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'id é obrigatório.' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Buscar plano atual para comparar mudanças
     const { data: planoAtual, error: fetchErr } = await supabase
@@ -338,7 +339,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'id é obrigatório.' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Verificar se existem assinaturas ativas ou pendentes vinculadas
     const { count, error: countErr } = await supabase
