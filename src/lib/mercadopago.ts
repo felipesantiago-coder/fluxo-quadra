@@ -269,18 +269,30 @@ export async function createMpSubscription(params: {
   planoId: string;
   userEmail: string;
   planoNome: string;
+  /** Se informado, sobrescreve o valor da assinatura (usado para cupons) */
+  customAmount?: number;
 }): Promise<{ init_point: string; subscription_id: string }> {
   const client = getPreApprovalClient();
 
-  const response = await client.create({
-    body: {
-      preapproval_plan_id: params.planoId,
-      payer_email: params.userEmail,
-      reason: `Assinatura - ${params.planoNome}`,
-      status: 'pending',
-      back_url: getBackUrl('/assinatura'),
-    },
-  });
+  const body: Record<string, unknown> = {
+    preapproval_plan_id: params.planoId,
+    payer_email: params.userEmail,
+    reason: `Assinatura - ${params.planoNome}`,
+    status: 'pending',
+    back_url: getBackUrl('/assinatura'),
+  };
+
+  // Se há valor customizado (cupom), enviar auto_recurring com o desconto
+  if (params.customAmount && params.customAmount > 0) {
+    body.auto_recurring = {
+      frequency: 1,
+      frequency_type: 'months',
+      transaction_amount: params.customAmount,
+      currency_id: 'BRL',
+    };
+  }
+
+  const response = await client.create({ body });
 
   if (!response.init_point) {
     throw new Error('Mercado Pago não retornou init_point para o checkout.');

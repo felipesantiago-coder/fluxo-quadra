@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createMpSubscription, type PlanoDB } from '@/lib/mercadopago';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createMpSubscription } from '@/lib/mercadopago';
 
 // Regex para validacao de UUID v4
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -10,12 +11,13 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
  * Cria uma assinatura no Mercado Pago para o plano escolhido.
  * Retorna a URL de checkout (init_point) para redirecionar o usuário.
  *
- * Body: { planoId: string }
+ * Body: { planoId: string, cupomId?: string }
  *
  * SEGURANCA:
  *  - Valida UUID do planoId
  *  - Verifica assinatura ativa (evita duplicata)
  *  - usa partial unique index como segunda barreira
+ *  - Cupom: valida, incrementa usos atomicamente, registra uso
  */
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Parse body
     const body = await request.json();
-    const { planoId } = body as { planoId?: string };
+    const { planoId, cupomId } = body as { planoId?: string; cupomId?: string };
 
     if (!planoId) {
       return NextResponse.json({ error: 'planoId é obrigatório.' }, { status: 400 });
@@ -39,8 +41,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'planoId inválido.' }, { status: 400 });
     }
 
+    const adminClient = createAdminClient();
+
     // 1. Buscar o plano no banco
-    const { data: plano, error: planoErr } = await supabase
+    const { data: plano, error: planoErr } = await adminClient
       .from('planos')
       .select('*')
       .eq('id', planoId)
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Verificar se o usuário já tem assinatura ATIVA
-    const { data: assinaturaAtiva } = await supabase
+    const { data: assinaturaAtiva } = await adminClient
       .from('assinaturas')
       .select('id, status')
       .eq('user_id', user.id)
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verificar se há assinatura pendente para este plano
-    const { data: assinaturaPendente } = await supabase
+    const { data: assinaturaPendente } = await adminClient
       .from('assinaturas')
       .select('id, status, mercadopago_subscription_id')
       .eq('user_id', user.id)
@@ -82,19 +86,62 @@ export async function POST(request: NextRequest) {
       .in('status', ['pending', 'paused'])
       .maybeSingle();
 
-    // 4. Criar assinatura no Mercado Pago
+    // ── 4. Validar cupom (se fornecido) ──
+    let cupomValidado: Record<string, unknown> | null = null;
+    let valorFinal = Number(plano.preco);
+    let valorDescontado = 0;
+
+    if (cupomId) {
+      const now = new Date().toISOString();
+      const { data: cupom } = await adminClient
+        .from('cupons')
+        .select('*')
+        .eq('id', cupomId)
+        .maybeSingle();
+
+      if (!cupom) {
+        return NextResponse.json({ error: 'Cupom não encontrado.' }, { status: 404 });
+      }
+      if (!cupom.ativo) {
+        return NextResponse.json({ error: 'Este cupom não está mais ativo.' }, { status: 400 });
+      }
+      if (cupom.valido_a_partir && cupom.valido_a_partir > now) {
+        return NextResponse.json({ error: 'Este cupom ainda não é válido.' }, { status: 400 });
+      }
+      if (cupom.valido_ate && cupom.valido_ate < now) {
+        return NextResponse.json({ error: 'Este cupom expirou.' }, { status: 400 });
+      }
+      if (cupom.usos_maximos !== null && cupom.usos_atuais >= cupom.usos_maximos) {
+        return NextResponse.json({ error: 'Este cupom já atingiu o limite de usos.' }, { status: 400 });
+      }
+      if (Array.isArray(cupom.planos_ids) && cupom.planos_ids.length > 0 && !cupom.planos_ids.includes(planoId)) {
+        return NextResponse.json({ error: 'Este cupom não é válido para o plano selecionado.' }, { status: 400 });
+      }
+
+      // Calcular desconto
+      const precoOriginal = Number(plano.preco);
+      if (cupom.tipo_desconto === 'percentual') {
+        valorDescontado = Math.round(precoOriginal * Number(cupom.valor_desconto) / 100 * 100) / 100;
+      } else {
+        valorDescontado = Math.min(Number(cupom.valor_desconto), precoOriginal);
+      }
+      valorFinal = Math.max(0, precoOriginal - valorDescontado);
+      cupomValidado = cupom as Record<string, unknown>;
+    }
+
+    // 5. Criar assinatura no Mercado Pago (com desconto se aplicável)
     const mpResult = await createMpSubscription({
       planoId: plano.mercadopago_plan_id,
       userEmail: user.email || '',
       planoNome: plano.nome,
+      customAmount: cupomValidado ? valorFinal : undefined,
     });
 
-    // 5. Registrar/atualizar assinatura no banco
+    // 6. Registrar/atualizar assinatura no banco
     const agora = new Date().toISOString();
 
     if (assinaturaPendente) {
-      // Atualizar a assinatura pendente existente
-      const { error: updateErr } = await supabase
+      const { error: updateErr } = await adminClient
         .from('assinaturas')
         .update({
           mercadopago_subscription_id: mpResult.subscription_id,
@@ -105,7 +152,6 @@ export async function POST(request: NextRequest) {
 
       if (updateErr) {
         console.error('[POST /api/subscriptions/create] Erro ao atualizar assinatura pendente:', updateErr);
-        // Verificar se e violacao da constraint unica (race condition)
         if (updateErr.code === '23505') {
           return NextResponse.json(
             { error: 'Você já possui uma assinatura ativa ou pendente.' },
@@ -114,8 +160,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Criar nova assinatura — o partial unique index e a segunda barreira
-      const { error: insertErr } = await supabase.from('assinaturas').insert({
+      const { error: insertErr } = await adminClient.from('assinaturas').insert({
         user_id: user.id,
         plano_id: planoId,
         mercadopago_subscription_id: mpResult.subscription_id,
@@ -136,14 +181,52 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    // 7. Registrar uso do cupom e incrementar (atômico via RPC ou update condicional)
+    if (cupomValidado) {
+      // Incrementar usos_atuais com proteção contra race condition
+      const { error: incErr } = await adminClient
+        .from('cupons')
+        .update({
+          usos_atuais: (cupomValidado.usos_atuais as number) + 1,
+          updated_at: agora,
+        })
+        .eq('id', cupomValidado.id)
+        .lt('usos_atuais', cupomValidado.usos_maximos ?? 999999999);
+
+      if (incErr) {
+        console.error('[POST /api/subscriptions/create] Aviso: falha ao incrementar uso do cupom:', incErr);
+        // Não falhar — a assinatura já foi criada
+      }
+
+      // Registrar uso detalhado
+      await adminClient.from('cupom_usos').insert({
+        cupom_id: cupomValidado.id,
+        user_id: user.id,
+        plano_id: planoId,
+        valor_original: Number(plano.preco),
+        valor_descontado: valorDescontado,
+        valor_final: valorFinal,
+      });
+    }
+
+    const response: Record<string, unknown> = {
       checkoutUrl: mpResult.init_point,
       subscriptionId: mpResult.subscription_id,
-    });
+    };
+
+    if (cupomValidado) {
+      response.desconto = {
+        codigo: cupomValidado.codigo,
+        valor_original: Number(plano.preco),
+        valor_descontado: valorDescontado,
+        valor_final: valorFinal,
+      };
+    }
+
+    return NextResponse.json(response);
   } catch (err) {
     console.error('[POST /api/subscriptions/create] Erro:', err);
 
-    // Se o erro for por falta de token do MP, retornar mensagem clara
     const msg = err instanceof Error ? err.message : '';
     if (msg.includes('MERCADOPAGO_ACCESS_TOKEN')) {
       return NextResponse.json(

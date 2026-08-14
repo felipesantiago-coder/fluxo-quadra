@@ -14,6 +14,7 @@ interface SignupSubscribeBody {
   email: string;
   senha: string;
   planoId: string;
+  cupomId?: string;
 }
 
 /**
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Parse e validação do body
     const body = await request.json();
-    const { nome, email, senha, planoId } = body as SignupSubscribeBody;
+    const { nome, email, senha, planoId, cupomId } = body as SignupSubscribeBody;
 
     // Validar nome
     const nomeTrimmed = (nome || '').trim();
@@ -156,14 +157,57 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 6. Criar assinatura no Mercado Pago
+      // 6. Validar cupom (se fornecido)
+      let cupomValidado: Record<string, unknown> | null = null;
+      let valorFinal = Number(plano.preco);
+      let valorDescontado = 0;
+
+      if (cupomId) {
+        const now = new Date().toISOString();
+        const { data: cupom } = await adminClient
+          .from('cupons')
+          .select('*')
+          .eq('id', cupomId)
+          .maybeSingle();
+
+        if (!cupom) {
+          return NextResponse.json({ error: 'Cupom não encontrado.' }, { status: 404 });
+        }
+        if (!cupom.ativo) {
+          return NextResponse.json({ error: 'Cupom inativo.' }, { status: 400 });
+        }
+        if (cupom.valido_a_partir && cupom.valido_a_partir > now) {
+          return NextResponse.json({ error: 'Cupom ainda não é válido.' }, { status: 400 });
+        }
+        if (cupom.valido_ate && cupom.valido_ate < now) {
+          return NextResponse.json({ error: 'Cupom expirou.' }, { status: 400 });
+        }
+        if (cupom.usos_maximos !== null && cupom.usos_atuais >= cupom.usos_maximos) {
+          return NextResponse.json({ error: 'Cupom esgotado.' }, { status: 400 });
+        }
+        if (Array.isArray(cupom.planos_ids) && cupom.planos_ids.length > 0 && !cupom.planos_ids.includes(planoId)) {
+          return NextResponse.json({ error: 'Cupom não válido para este plano.' }, { status: 400 });
+        }
+
+        const precoOriginal = Number(plano.preco);
+        if (cupom.tipo_desconto === 'percentual') {
+          valorDescontado = Math.round(precoOriginal * Number(cupom.valor_desconto) / 100 * 100) / 100;
+        } else {
+          valorDescontado = Math.min(Number(cupom.valor_desconto), precoOriginal);
+        }
+        valorFinal = Math.max(0, precoOriginal - valorDescontado);
+        cupomValidado = cupom as Record<string, unknown>;
+      }
+
+      // 7. Criar assinatura no Mercado Pago (com desconto se houver)
       const mpResult = await createMpSubscription({
         planoId: plano.mercadopago_plan_id,
         userEmail: emailTrimmed,
         planoNome: plano.nome,
+        customAmount: cupomValidado ? valorFinal : undefined,
       });
 
-      // 7. Registrar assinatura local como pending
+      // 8. Registrar assinatura local como pending
       const { error: insertSubErr } = await adminClient.from('assinaturas').insert({
         user_id: userId,
         plano_id: planoId,
@@ -189,7 +233,26 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 8. Login automático do usuário (criar sessão)
+      // 9. Registrar uso do cupom e incrementar
+      if (cupomValidado) {
+        const agora = new Date().toISOString();
+        await adminClient
+          .from('cupons')
+          .update({ usos_atuais: (cupomValidado.usos_atuais as number) + 1, updated_at: agora })
+          .eq('id', cupomValidado.id)
+          .lt('usos_atuais', cupomValidado.usos_maximos ?? 999999999);
+
+        await adminClient.from('cupom_usos').insert({
+          cupom_id: cupomValidado.id,
+          user_id: userId,
+          plano_id: planoId,
+          valor_original: Number(plano.preco),
+          valor_descontado: valorDescontado,
+          valor_final: valorFinal,
+        });
+      }
+
+      // 10. Login automático do usuário (criar sessão)
       //    Precisamos usar o client anon para autenticar
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -210,7 +273,7 @@ export async function POST(request: NextRequest) {
         // Não é erro fatal — o usuário pode fazer login depois
       }
 
-      // 9. Retornar URL de checkout + dados para login
+      // 11. Retornar URL de checkout + dados para login
       const responseHeaders = new Headers();
 
       // Se login automático funcionou, propagar cookies de sessão

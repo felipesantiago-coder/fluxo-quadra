@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, Loader2, CreditCard, Shield, Zap,
   Crown, CalendarDays, Clock, Star, AlertCircle,
-  User, Mail, Lock, Eye, EyeOff, Building2,
+  User, Mail, Lock, Eye, EyeOff, Building2, Tag, X, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +46,12 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Cupom
+  const [cupomInput, setCupomInput] = useState('');
+  const [cupomValido, setCupomValido] = useState<Record<string, unknown> | null>(null);
+  const [cupomLoading, setCupomLoading] = useState(false);
+  const [cupomId, setCupomId] = useState<string | null>(null);
+
   const handleSelectPlano = (plano: PlanoDB) => {
     if (!plano.mercadopago_plan_id) {
       setError('Este plano ainda nao esta disponivel para compra. Aguarde a configuracao pelo administrador.');
@@ -64,6 +70,38 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
     setEmail('');
     setSenha('');
     setConfirmarSenha('');
+    setCupomInput('');
+    setCupomValido(null);
+    setCupomId(null);
+  };
+
+  const handleValidarCupom = async () => {
+    if (!cupomInput.trim() || !selectedPlano) return;
+    setCupomLoading(true);
+    setCupomValido(null);
+    setCupomId(null);
+    try {
+      const res = await fetch(`/api/cupons/validate?codigo=${encodeURIComponent(cupomInput.trim())}&planoId=${selectedPlano.id}`);
+      const data = await res.json();
+      if (data.valid) {
+        setCupomValido(data);
+        setCupomId(data.cupom.id);
+      } else {
+        setCupomValido(null);
+        setCupomId(null);
+        setError(data.error || 'Cupom inválido.');
+      }
+    } catch {
+      setError('Erro ao validar cupom.');
+    } finally {
+      setCupomLoading(false);
+    }
+  };
+
+  const handleRemoverCupom = () => {
+    setCupomInput('');
+    setCupomValido(null);
+    setCupomId(null);
   };
 
   const handleSubmit = async () => {
@@ -116,6 +154,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
           email: email.trim().toLowerCase(),
           senha,
           planoId: selectedPlano.id,
+          ...(cupomId ? { cupomId } : {}),
         }),
       });
 
@@ -370,8 +409,58 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   {periodoLabels[selectedPlano.periodo_meses]}
                 </span>
               </p>
+              {cupomValido && (
+                <div className="mt-2 pt-2 border-t border-amber-200/50">
+                  <div className="flex items-center gap-1.5 text-emerald-600">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="text-xs font-semibold">Cupom aplicado: {String(cupomValido.cupom.codigo)}</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    <span className="line-through">R$ {Number(cupomValido.calculo.valor_original).toFixed(2).replace('.', ',')}</span>
+                    <span className="font-bold text-emerald-600 ml-2">R$ {Number(cupomValido.calculo.valor_final).toFixed(2).replace('.', ',')}</span>
+                  </p>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Campo de cupom */
+          <div className="mb-3">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+              <Tag className="w-3 h-3 inline mr-1 -mt-0.5" />
+              Cupom de desconto
+            </label>
+            {cupomValido ? (
+              <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-emerald-200 bg-emerald-50">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-sm font-medium text-emerald-700 flex-1">{String(cupomValido.cupom.codigo)}</span>
+                <span className="text-xs text-emerald-600">-{cupomValido.cupom.tipo_desconto === 'percentual' ? `${Number(cupomValido.cupom.valor_desconto)}%` : `R$ ${Number(cupomValido.cupom.valor_desconto).toFixed(2).replace('.', ',')}`}</span>
+                <button type="button" onClick={handleRemoverCupom} className="text-gray-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cupomInput}
+                  onChange={(e) => setCupomInput(e.target.value.toUpperCase())}
+                  placeholder="CODIGO"
+                  className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-300 transition-all"
+                  onKeyDown={(e) => e.key === 'Enter' && !cupomLoading && handleValidarCupom()}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleValidarCupom}
+                  disabled={cupomLoading || !cupomInput.trim()}
+                  className="h-10 px-4 rounded-xl text-xs font-semibold"
+                >
+                  {cupomLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aplicar'}
+                </Button>
+              </div>
+            )}
+          </div>
 
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
