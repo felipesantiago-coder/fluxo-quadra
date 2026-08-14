@@ -30,7 +30,11 @@ export async function GET() {
     }
 
     const supabase = await createClient();
-    const { data, error } = await supabase
+
+    // Buscar assinaturas com join de plano apenas
+    // (nao e possivel join direto assinaturas -> profiles via PostgREST
+    //  porque user_id referencia auth.users, nao profiles)
+    const { data: assinaturas, error } = await supabase
       .from('assinaturas')
       .select(`
         id,
@@ -44,7 +48,7 @@ export async function GET() {
         motivo_cancelamento,
         created_at,
         mercadopago_subscription_id,
-        user:profiles!inner(id, email, display_name, role),
+        user_id,
         plano:planos(id, nome, periodo_meses, preco)
       `)
       .order('created_at', { ascending: false });
@@ -54,7 +58,28 @@ export async function GET() {
       return NextResponse.json({ error: 'Erro ao buscar assinaturas.' }, { status: 500 });
     }
 
-    return NextResponse.json({ assinaturas: data || [] });
+    // Buscar profiles dos usuarios separadamente
+    if (assinaturas && assinaturas.length > 0) {
+      const userIds = [...new Set(assinaturas.map((a: Record<string, unknown>) => a.user_id as string))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, display_name, role')
+        .in('id', userIds);
+
+      const profileMap = new Map(
+        (profiles || []).map((p: Record<string, unknown>) => [p.id, p])
+      );
+
+      // Mesclar dados do perfil em cada assinatura
+      const enriched = assinaturas.map((a: Record<string, unknown>) => ({
+        ...a,
+        user: profileMap.get(a.user_id as string) || null,
+      }));
+
+      return NextResponse.json({ assinaturas: enriched });
+    }
+
+    return NextResponse.json({ assinaturas: [] });
   } catch (err) {
     console.error('[GET /api/admin-sistema/assinaturas] Erro:', err);
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });

@@ -941,6 +941,33 @@ export default function AdminSistemaClient() {
             )}
           </div>
         )}
+
+        {/* ═══ TAB: Assinaturas ═══ */}
+        {activeTab === "assinaturas" && (<AssinaturasTab
+          assinaturas={assinaturas}
+          assinaturasLoading={assinaturasLoading}
+          planosAdmin={planosAdmin}
+          syncingPlano={syncingPlano}
+          changingStatus={changingStatus}
+          statusChangeDialog={statusChangeDialog}
+          newStatus={newStatus}
+          statusMotivo={statusMotivo}
+          savingPlano={savingPlano}
+          deletingPlano={deletingPlano}
+          togglingPlano={togglingPlano}
+          addToast={addToast}
+          onSyncPlano={handleSyncPlano}
+          onFetchAssinaturas={fetchAssinaturas}
+          onFetchPlanos={fetchPlanosAdmin}
+          onOpenStatusChange={handleOpenStatusChange}
+          onConfirmStatusChange={handleConfirmStatusChange}
+          onSetStatusChangeDialog={setStatusChangeDialog}
+          onSetNewStatus={setNewStatus}
+          onSetStatusMotivo={setStatusMotivo}
+          onSavePlano={handleSavePlano}
+          onDeletePlano={handleDeletePlano}
+          onTogglePlano={handleTogglePlano}
+        />)}
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
@@ -1248,32 +1275,6 @@ export default function AdminSistemaClient() {
         )}
       </AnimatePresence>
 
-      {/* ═══ TAB: Assinaturas ═══ */}
-      {activeTab === "assinaturas" && (<AssinaturasTab
-        assinaturas={assinaturas}
-        assinaturasLoading={assinaturasLoading}
-        planosAdmin={planosAdmin}
-        syncingPlano={syncingPlano}
-        changingStatus={changingStatus}
-        statusChangeDialog={statusChangeDialog}
-        newStatus={newStatus}
-        statusMotivo={statusMotivo}
-        savingPlano={savingPlano}
-        deletingPlano={deletingPlano}
-        togglingPlano={togglingPlano}
-        addToast={addToast}
-        onSyncPlano={handleSyncPlano}
-        onFetchAssinaturas={fetchAssinaturas}
-        onFetchPlanos={fetchPlanosAdmin}
-        onOpenStatusChange={handleOpenStatusChange}
-        onConfirmStatusChange={handleConfirmStatusChange}
-        onSetStatusChangeDialog={setStatusChangeDialog}
-        onSetNewStatus={setNewStatus}
-        onSetStatusMotivo={setStatusMotivo}
-        onSavePlano={handleSavePlano}
-        onDeletePlano={handleDeletePlano}
-        onTogglePlano={handleTogglePlano}
-      />)}
 
       {/* ── Toast Notifications ─────────────────────────────────────────── */}
       <div className="fixed bottom-6 right-6 z-[400] flex flex-col gap-2 max-w-sm">
