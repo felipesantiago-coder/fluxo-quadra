@@ -424,7 +424,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
             </div>
           )}
 
-          {/* Campo de cupom */
+          {/* Campo de cupom */}
           <div className="mb-3">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
               <Tag className="w-3 h-3 inline mr-1 -mt-0.5" />
