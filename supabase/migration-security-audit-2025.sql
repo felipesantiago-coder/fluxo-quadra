@@ -71,13 +71,18 @@ DROP POLICY IF EXISTS "assinaturas_user_update_own" ON public.assinaturas;
 
 -- 2. Criar policy que só permite cancelar (motivo_cancelamento + status)
 -- usando uma abordagem de restrição: o usuário só pode setar status='cancelled'
+-- NOTA: Em RLS policies, USING acessa a linha atual (antes do update)
+-- e WITH CHECK acessa a linha nova (após o update).
+-- Equivalentes: USING = OLD, WITH CHECK = NEW.
 CREATE POLICY "assinaturas_user_cancel_own" ON public.assinaturas
   FOR UPDATE
-  USING (auth.uid() = user_id)
+  USING (
+    auth.uid() = user_id
+    AND status IN ('active', 'paused', 'pending')
+  )
   WITH CHECK (
     auth.uid() = user_id
-    AND NEW.status IN ('cancelled')
-    AND OLD.status IN ('active', 'paused', 'pending')
+    AND status IN ('cancelled')
   );
 
 -- -----------------------------------------------------------------------------
