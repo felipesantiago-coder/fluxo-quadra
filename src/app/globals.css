@@ -120,3 +120,48 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Simulator Shared Styles ─── */
+@layer utilities {
+  .sim-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+  }
+  .sim-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .sim-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sim-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d1d5db;
+    border-radius: 9999px;
+  }
+  .sim-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
+  }
+}
+
+/* Smooth scrolling for simulator tabs */
+.sim-tab-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Touch-friendly tap targets for radio/checkbox in simulators */
+.sim-radio-label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.sim-radio-label:hover {
+  background-color: #f9fafb;
+}
+.sim-radio-label:active {
+  background-color: #f3f4f6;
+}
