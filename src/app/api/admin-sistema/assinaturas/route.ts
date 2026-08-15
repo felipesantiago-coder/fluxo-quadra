@@ -6,11 +6,11 @@ import { requireAdminSistema } from '@/lib/admin-auth';
 // Maquina de estados: transicoes validas
 const VALID_TRANSITIONS: Record<string, Set<string>> = {
   pending: new Set(['pending', 'active', 'cancelled', 'expired', 'paused', 'lifetime']),
-  active: new Set(['active', 'cancelled', 'paused', 'expired', 'cancelled_by_user']),
-  paused: new Set(['paused', 'active', 'cancelled', 'expired', 'cancelled_by_user']),
-  cancelled: new Set(['cancelled']),
-  cancelled_by_user: new Set(['cancelled_by_user']),
-  expired: new Set(['expired']),
+  active: new Set(['active', 'cancelled', 'paused', 'expired', 'cancelled_by_user', 'lifetime']),
+  paused: new Set(['paused', 'active', 'cancelled', 'expired', 'cancelled_by_user', 'lifetime']),
+  cancelled: new Set(['cancelled', 'lifetime']),
+  cancelled_by_user: new Set(['cancelled_by_user', 'lifetime']),
+  expired: new Set(['expired', 'lifetime']),
   lifetime: new Set(['lifetime', 'cancelled']),
 };
 
@@ -172,6 +172,14 @@ export async function PATCH(request: NextRequest) {
       const auditoria = `Ativado manualmente por admin (${adminUser?.email || 'desconhecido'}) em ${new Date().toISOString()}. Motivo: ${motivo || 'Sem motivo informado'}`;
       updateData.motivo_cancelamento = auditoria;
       updateData.cancelado_em = null;
+    }
+
+    if (status === 'lifetime') {
+      const auditoria = `Concedido vitalicio por admin (${adminUser?.email || 'desconhecido'}) em ${new Date().toISOString()}. Motivo: ${motivo || 'Sem motivo informado'}`;
+      updateData.motivo_cancelamento = auditoria;
+      updateData.cancelado_em = null;
+      updateData.proximo_ciclo_em = null;
+      updateData.data_fim = null;
     }
 
     const { error } = await supabase
