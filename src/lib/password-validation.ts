@@ -45,6 +45,9 @@ export function validatePassword(password: string): PasswordValidation {
 /**
  * Gera uma senha temporária segura com 12 caracteres.
  * Formato: AABBcc12!xx (maiúsculas + minúsculas + números + especial)
+ *
+ * SEC-AUDIT FIX: Usa crypto.getRandomValues() em vez de Math.random()
+ * para garantir aleatoriedade criptograficamente segura.
  */
 export function generateTempPassword(): string {
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sem I, O para evitar confusão
@@ -52,8 +55,11 @@ export function generateTempPassword(): string {
   const digits = "23456789"; // sem 0, 1 para evitar confusão
   const special = "!@#$%&*";
 
-  const pick = (str: string, n: number) =>
-    Array.from({ length: n }, () => str[Math.floor(Math.random() * str.length)]).join("");
+  const pick = (str: string, n: number) => {
+    const arr = new Uint32Array(n);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (v) => str[v % str.length]).join("");
+  };
 
   // Garantir pelo menos 1 de cada tipo
   let pwd = "";
@@ -62,9 +68,14 @@ export function generateTempPassword(): string {
   pwd += pick(digits, 3);
   pwd += pick(special, 2);
 
-  // Embaralhar
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+  // Embaralhar usando Fisher-Yates com crypto.getRandomValues
+  const chars = pwd.split("");
+  for (let i = chars.length - 1; i > 0; i--) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    const j = arr[0] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+
+  return chars.join("");
 }

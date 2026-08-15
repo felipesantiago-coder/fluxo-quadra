@@ -121,7 +121,12 @@ export async function middleware(request: NextRequest) {
       }
     }
   } catch {
-    return NextResponse.next({ request });
+    // SEC-AUDIT: Fail-closed on middleware errors — redirect to login
+    // instead of silently allowing the request through.
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.searchParams.set("reason", "error");
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next({ request });

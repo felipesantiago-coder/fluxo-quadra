@@ -1,14 +1,46 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
+Disallow: /admin-sistema
+Disallow: /espelho
+Disallow: /mfa-
+Disallow: /change-password
+Disallow: /assinatura
+Disallow: /aguardando-pagamento
+Disallow: /simulador
+Disallow: /projetos
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /admin-sistema
+Disallow: /espelho
+Disallow: /mfa-
+Disallow: /change-password
+Disallow: /assinatura
+Disallow: /aguardando-pagamento
+Disallow: /simulador
+Disallow: /projetos
 
 User-agent: Twitterbot
-Allow: /
+Allow: /$
+Disallow: /*
 
 User-agent: facebookexternalhit
-Allow: /
+Allow: /$
+Disallow: /*
 
 User-agent: *
-Allow: /
+Allow: /$
+Disallow: /admin
+Disallow: /admin-sistema
+Disallow: /api/
+Disallow: /espelho
+Disallow: /mfa-
+Disallow: /change-password
+Disallow: /assinatura
+Disallow: /aguardando-pagamento
+Disallow: /simulador
+Disallow: /projetos
+Disallow: /planos-auth
+Disallow: /empreendimento

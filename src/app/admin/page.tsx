@@ -18,7 +18,9 @@ export default async function AdminPage() {
     .map((e) => e.trim().toLowerCase())
     .filter((e) => e.length > 0);
 
-  if (adminEmails.length > 0 && !adminEmails.includes(user.email?.toLowerCase() || "")) {
+  // SEC-AUDIT FIX: Fail-closed — se ADMIN_EMAILS não estiver configurado,
+  // negar acesso em vez de permitir para qualquer usuário autenticado.
+  if (adminEmails.length === 0 || !adminEmails.includes(user.email?.toLowerCase() || "")) {
     redirect("/projetos");
   }
 

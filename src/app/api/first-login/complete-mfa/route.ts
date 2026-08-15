@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
+    // SEC-AUDIT FIX: Verificar se o usuário REALMENTE configurou MFA
+    // antes de marcar must_setup_mfa como concluído.
+    // Impede bypass do onboarding de MFA via chamada direta à API.
+    const adminClient = createAdminClient();
+
+    const { data: totp } = await adminClient
+      .from("user_totp")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("verified", true)
+      .maybeSingle();
+
+    const { count: passkeyCount } = await adminClient
+      .from("user_passkeys")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    const hasMfa = !!(totp || (passkeyCount && passkeyCount > 0));
+
+    if (!hasMfa) {
+      return NextResponse.json(
+        { error: "Configure pelo menos um fator de autenticação (TOTP ou Chave de Acesso) antes de continuar." },
+        { status: 400 }
+      );
+    }
+
     // Limpar flag must_setup_mfa e habilitar MFA no perfil
-    const { error } = await supabase
+    const { error } = await adminClient
       .from("profiles")
       .update({
         must_setup_mfa: false,

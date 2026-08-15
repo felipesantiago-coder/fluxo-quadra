@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { PlanoDB } from '@/lib/mercadopago';
 
 /**
  * GET /api/plans/public
  * Retorna planos ativos SEM exigir autenticação.
  * Usado na página pública de planos (abordagem B).
+ *
+ * SEC-AUDIT FIX: Usa select explícito para não expor campos internos
+ * como mercadopago_plan_id, created_at, updated_at.
  */
 export async function GET() {
   try {
@@ -13,7 +15,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('planos')
-      .select('*')
+      .select('id, nome, descricao, preco, periodo, features, ativo, ordem, destaque')
       .eq('ativo', true)
       .order('ordem', { ascending: true });
 
@@ -22,7 +24,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Erro ao buscar planos.' }, { status: 500 });
     }
 
-    const planos: PlanoDB[] = (data || []).map((p) => ({
+    const planos = (data || []).map((p) => ({
       ...p,
       features: Array.isArray(p.features) ? p.features : [],
     }));

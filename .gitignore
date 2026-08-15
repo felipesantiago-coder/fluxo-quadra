@@ -33,6 +33,14 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# SEC-AUDIT: Database files and archives
+db/*.db
+*.db
+download/*.zip
+download/*.tar.gz
+public/*.zip
+public/*.tar.gz
+
 # vercel
 .vercel
 

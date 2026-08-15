@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const passkeyId = body.passkeyId as string | undefined;
 
     if (passkeyId) {
-      // Remover uma passkey específica
+      // Remover uma passkey específica (ação menos crítica)
       const { error } = await supabase
         .from("user_passkeys")
         .delete()
@@ -40,6 +40,46 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json({ success: true, mfa_enabled: stillHasMfa });
+    }
+
+    // SEC-AUDIT: Desativar MFA completo requer TOTP code se TOTP estiver ativo
+    // Verificar se o usuário tem TOTP verificado
+    const { data: activeTotp } = await supabase
+      .from("user_totp")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("verified", true)
+      .maybeSingle();
+
+    if (activeTotp) {
+      const totpCode = body.totpCode as string | undefined;
+      if (!totpCode) {
+        return NextResponse.json(
+          { error: "Informe um código TOTP válido para desativar o MFA completo." },
+          { status: 400 }
+        );
+      }
+
+      // Verificar o código TOTP
+      const { verifyTOTP } = await import("@/lib/mfa/totp");
+      const { data: totpSecret } = await supabase
+        .from("user_totp")
+        .select("secret")
+        .eq("user_id", user.id)
+        .eq("verified", true)
+        .single();
+
+      if (!totpSecret) {
+        return NextResponse.json({ error: "Segredo TOTP não encontrado." }, { status: 500 });
+      }
+
+      const isValid = verifyTOTP(totpSecret.secret, totpCode);
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "Código TOTP inválido." },
+          { status: 401 }
+        );
+      }
     }
 
     // Desativar MFA completo: remover TOTP + todas passkeys

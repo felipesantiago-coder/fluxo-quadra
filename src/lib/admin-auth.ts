@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
-
-const ADMIN_EMAIL = "prosperosdirecional@gmail.com";
 
 /**
  * Verifica se o usuário autenticado é admin_sistema.
  * Retorna true se permitido, false caso contrário.
  *
- * SEGURANÇA: Usa double-check (profile.role + email hardcoded).
- * O email hardcoded é um fallback caso o profile não exista ainda.
+ * SEGURANÇA: Verifica SOMENTE o profile.role no banco de dados.
+ * O email hardcoded foi removido — a criação de admins
+ * deve ser feita exclusivamente via seed-admin ou grant-lifetime.
+ *
+ * SEC-AUDIT: Removido fallback de email hardcoded para evitar
+ * que um atacante que registre o email bypass a verificação de role.
  */
 export async function requireAdminSistema(): Promise<boolean> {
   const supabase = await createClient();
@@ -25,8 +26,7 @@ export async function requireAdminSistema(): Promise<boolean> {
     .eq("id", user.id)
     .maybeSingle();
 
-  const isAdminRole = !profileError && profile?.role === "admin_sistema";
-  const isAdminEmail = user.email?.toLowerCase() === ADMIN_EMAIL;
+  if (profileError || !profile) return false;
 
-  return isAdminRole || isAdminEmail;
+  return profile.role === "admin_sistema";
 }
