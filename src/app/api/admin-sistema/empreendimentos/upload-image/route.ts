@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
     const empreendimentoId = formData.get("empreendimentoId") as string;
     const file = formData.get("file") as File | null;
 
-    if (!empreendimentoId || !file) {
+    // S3-P2-008: Validate UUID format to prevent injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!empreendimentoId || !UUID_RE.test(empreendimentoId) || !file) {
       return NextResponse.json(
         { error: "Campos 'empreendimentoId' e 'file' são obrigatórios" },
         { status: 400 }
@@ -143,7 +145,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ imagem_url: imagemUrl });
   } catch (err) {
     console.error("Erro no upload de imagem:", err);
-    const msg = err instanceof Error ? err.message : "Erro desconhecido";
-    return NextResponse.json({ error: `Erro interno: ${msg}` }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao processar upload" }, { status: 500 });
   }
 }
