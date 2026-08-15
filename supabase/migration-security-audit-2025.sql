@@ -3,20 +3,14 @@
 -- =============================================================================
 -- Data: 2025-08-15
 -- Motivo: Correção de vulnerabilidades encontradas na auditoria de segurança
+-- INSTRUÇÃO: Executar cada seção separadamente no SQL Editor do Supabase.
 -- =============================================================================
 
-BEGIN;
 
--- -----------------------------------------------------------------------------
--- SEC-R01 CRITICAL: Privilege Escalation via profiles_update_own_mfa
--- -----------------------------------------------------------------------------
--- PROBLEMA: A policy 'profiles_update_own_mfa' permite qualquer usuário
--- atualizar QUALQUER coluna do próprio perfil, incluindo 'role'.
--- Um coordenador pode setar role='admin_sistema' e obter acesso total.
---
--- CORREÇÃO: Dropar a policy genérica e criar policies específicas por coluna.
--- A coluna 'role' só pode ser alterada via service_role.
--- -----------------------------------------------------------------------------
+-- =============================================================================
+-- SEÇÃO 1: SEC-R01 — Privilege Escalation via profiles_update_own_mfa
+-- =============================================================================
+-- Executar este bloco primeiro (policies + trigger function juntos)
 
 -- 1. Remover a policy genérica que permite update de qualquer coluna
 DROP POLICY IF EXISTS "profiles_update_own_mfa" ON public.profiles;
@@ -56,24 +50,18 @@ CREATE TRIGGER protect_profile_columns_trigger
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_profile_columns();
 
--- -----------------------------------------------------------------------------
--- SEC-R02 HIGH: Usuário pode auto-ativar assinatura
--- -----------------------------------------------------------------------------
--- PROBLEMA: A policy 'assinaturas_user_update_own' permite qualquer usuário
--- fazer UPDATE em qualquer coluna da própria assinatura, incluindo 'status'.
--- Um usuário poderia setar status='active' sem pagamento.
---
--- CORREÇÃO: Restringir o update do usuário para colunas não-críticas.
--- -----------------------------------------------------------------------------
+
+-- =============================================================================
+-- SEÇÃO 2: SEC-R02 — Usuário pode auto-ativar assinatura
+-- =============================================================================
 
 -- 1. Remover a policy genérica
 DROP POLICY IF EXISTS "assinaturas_user_update_own" ON public.assinaturas;
 
 -- 2. Criar policy que só permite cancelar (motivo_cancelamento + status)
--- usando uma abordagem de restrição: o usuário só pode setar status='cancelled'
--- NOTA: Em RLS policies, USING acessa a linha atual (antes do update)
--- e WITH CHECK acessa a linha nova (após o update).
--- Equivalentes: USING = OLD, WITH CHECK = NEW.
+-- Em RLS policies de UPDATE:
+--   USING = condição sobre a linha atual (pré-update)
+--   WITH CHECK = condição sobre a nova linha (pós-update)
 CREATE POLICY "assinaturas_user_cancel_own" ON public.assinaturas
   FOR UPDATE
   USING (
@@ -85,26 +73,17 @@ CREATE POLICY "assinaturas_user_cancel_own" ON public.assinaturas
     AND status IN ('cancelled')
   );
 
--- -----------------------------------------------------------------------------
--- SEC-R03 MEDIUM: Usuário pode inserir registros de pagamento falsos
--- -----------------------------------------------------------------------------
--- PROBLEMA: A policy 'pagamentos_user_insert_own' permite que um usuário
--- insira registros de pagamento para si mesmo.
---
--- CORREÇÃO: Remover a policy. Pagamentos só devem ser criados via webhook
--- (que usa service_role) ou por admin.
--- -----------------------------------------------------------------------------
+
+-- =============================================================================
+-- SEÇÃO 3: SEC-R03 — Usuário pode inserir registros de pagamento falsos
+-- =============================================================================
 
 DROP POLICY IF EXISTS "pagamentos_user_insert_own" ON public.pagamentos;
 
--- -----------------------------------------------------------------------------
--- SEC-R04 MEDIUM: Login event forging
--- -----------------------------------------------------------------------------
--- PROBLEMA: A policy 'login_events_insert_any' usa WITH CHECK (true),
--- permitindo que qualquer pessoa insira eventos de login falsos.
---
--- CORREÇÃO: Restringir para que usuários só possam inserir eventos próprios.
--- -----------------------------------------------------------------------------
+
+-- =============================================================================
+-- SEÇÃO 4: SEC-R04 — Login event forging
+-- =============================================================================
 
 DROP POLICY IF EXISTS "login_events_insert_any" ON public.user_login_events;
 
@@ -112,18 +91,11 @@ CREATE POLICY "login_events_insert_own" ON public.user_login_events
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- -----------------------------------------------------------------------------
--- SEC-R05 CRITICAL: Storage RLS regression
--- -----------------------------------------------------------------------------
--- PROBLEMA: A migration-storage-rls-fix.sql removeu o role check das policies
--- de storage, permitindo que QUALQUER usuário (mesmo anon) faça upload,
--- sobrescreva e delete imagens no bucket 'empreendimentos'.
---
--- CORREÇÃO: Re-adicionar verificação de role='admin_sistema' nas policies
--- de INSERT, UPDATE e DELETE.
--- -----------------------------------------------------------------------------
 
--- Recriar policies de storage com verificação de role
+-- =============================================================================
+-- SEÇÃO 5: SEC-R05 — Storage RLS regression
+-- =============================================================================
+
 DROP POLICY IF EXISTS "storage_empreendimentos_insert" ON storage.objects;
 DROP POLICY IF EXISTS "storage_empreendimentos_update" ON storage.objects;
 DROP POLICY IF EXISTS "storage_empreendimentos_delete" ON storage.objects;
@@ -155,9 +127,11 @@ CREATE POLICY "storage_empreendimentos_delete" ON storage.objects
     )
   );
 
--- -----------------------------------------------------------------------------
--- SEC-R06: Adicionar auditoria de alterações de role
--- -----------------------------------------------------------------------------
+
+-- =============================================================================
+-- SEÇÃO 6: SEC-R06 — Auditoria de alterações de role
+-- =============================================================================
+
 CREATE TABLE IF NOT EXISTS public.role_change_audit (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   target_user_id UUID NOT NULL REFERENCES auth.users(id),
@@ -184,7 +158,7 @@ CREATE POLICY "role_change_audit_admin_insert" ON public.role_change_audit
     )
   );
 
--- Atualizar o trigger de proteção de role para incluir auditoria
+-- Função de trigger separada para auditoria de role
 CREATE OR REPLACE FUNCTION public.protect_role_column()
 RETURNS TRIGGER
 LANGUAGE plpgsql AS $$
@@ -205,5 +179,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
-COMMIT;
