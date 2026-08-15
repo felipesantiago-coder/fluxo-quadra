@@ -615,7 +615,7 @@ function SimulatorContent() {
                 <h1 className="text-lg font-bold text-gray-900 tracking-tight">
                   Espelho de <span className="text-gray-400 font-normal">Vendas</span>
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-400 font-medium hidden sm:block">Simulador Residencial Vitta</p>
+                <p className="text-xs text-gray-400 font-medium hidden sm:block">Simulador Residencial Vitta</p>
               </div>
             </div>
             <a href="/vitta" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
@@ -645,9 +645,9 @@ function SimulatorContent() {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Inputs */}
-          <div className="space-y-6 lg:col-span-3">
+          <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
                 <div className="flex items-center gap-2 text-white">
@@ -655,8 +655,7 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Informações do Imóvel</h3>
                 </div>
               </div>
-              <div className="p-4 sm:p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
+              <div className="p-4 sm:p-6 space-y-5">
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
                   <RotateCcw className="w-4 h-4" />
                   <span className="font-medium">Cálculo automático em tempo real</span>
@@ -665,7 +664,6 @@ function SimulatorContent() {
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span><strong>Entrega Prevista:</strong> Agosto de 2029</span>
-                </div>
                 </div>
 
                 <div>
@@ -748,19 +746,19 @@ function SimulatorContent() {
 
                   {inccMode !== "none" && (
                     <div className="pl-4 space-y-3">
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
                         <span className="text-sm text-gray-600">Sem correção</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
                         <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
@@ -798,15 +796,15 @@ function SimulatorContent() {
             </div>
 
             {/* Summary Card */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white lg:sticky lg:top-4 lg:self-start">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white">
               <h4 className="font-semibold text-white/80 text-sm uppercase tracking-wider mb-4">Resumo do Financiamento</h4>
               <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-lg sm:text-xl font-bold">{formatBRL(propertyValue)}</p></div>
-                <div><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-lg sm:text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p></div>
+                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-xl font-bold">{formatBRL(propertyValue)}</p></div>
+                <div><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p></div>
               </div>
               <div className="mt-4">
                 <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
-                  <div className={`h-full rounded-full transition-all duration-500 will-change-transform ${result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${Math.min(result.captationPercent, 100)}%` }} />
+                  <div className={`h-full rounded-full transition-all duration-500 ${result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${Math.min(result.captationPercent, 100)}%` }} />
                 </div>
                 <p className="text-white/60 text-xs mt-2 text-center">Captação durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span></p>
               </div>
@@ -826,7 +824,7 @@ function SimulatorContent() {
           </div>
 
           {/* Right Column - Results */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
                 <div className="flex items-center gap-2 text-white">
@@ -893,7 +891,7 @@ function SimulatorContent() {
                 {/* Tabs for schedules */}
                 {showResults && propertyValue > 0 && (
                   <div className="mt-6">
-                    <div className="sim-tab-scroll flex overflow-x-auto border-b border-gray-200" style={{ scrollbarWidth: 'none' }}>
+                    <div className="flex overflow-x-auto border-b border-gray-200">
                       {[
                         { key: "sinal", label: "Sinal" },
                         { key: "mensal", label: `Mensais (${result.monthlyRows.length})` },
@@ -908,7 +906,7 @@ function SimulatorContent() {
                       ))}
                     </div>
 
-                    <div className="mt-4 max-h-72 sm:max-h-96 overflow-y-auto sim-scrollbar">
+                    <div className="mt-4 max-h-80 overflow-y-auto">
                       {activeTab === "sinal" && (
                         <table className="w-full text-sm">
                           <thead><tr className="bg-gray-100"><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Parcela</th><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th><th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th></tr></thead>

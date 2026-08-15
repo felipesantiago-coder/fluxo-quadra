@@ -641,27 +641,27 @@ function SimulatorContent() {
         {/* Title */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">Simulador Villa Bianco — Calcule o financiamento do seu apartamento</p>
+          <p className="text-gray-500 mt-2">Simulador Villa Bianco — Calcule o financiamento do seu apartamento</p>
         </div>
 
         {/* Step Indicator */}
         <div className="flex items-center justify-center mb-10">
           {["Dados Básicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
             <div key={step} className="flex items-center">
-              {i > 0 && <div className="w-2 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
+              {i > 0 && <div className="w-4 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
               <div className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
                   {i < 4 ? "✓" : i + 1}
                 </div>
-                <span className="text-[10px] sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
+                <span className="text-xs sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* ─── Left Column: Form ─── */}
-          <div className="space-y-6 lg:col-span-3">
+          <div className="space-y-6">
             {/* Form Card */}
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
@@ -670,8 +670,7 @@ function SimulatorContent() {
                   <h3 className="font-semibold">Informações do Imóvel</h3>
                 </div>
               </div>
-              <div className="p-4 sm:p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
+              <div className="p-4 sm:p-6 space-y-5">
                 {/* Auto calc indicator */}
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
                   <RotateCcw className="w-4 h-4" />
@@ -682,7 +681,6 @@ function SimulatorContent() {
                 <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
                   <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span><strong>Entrega Prevista:</strong> Outubro de {DELIVERY_YEAR}</span>
-                </div>
                 </div>
 
                 {/* Property Value */}
@@ -833,19 +831,19 @@ function SimulatorContent() {
 
                   {inccMode !== "none" && (
                     <div className="pl-4 space-y-3">
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
                         <span className="text-sm text-gray-600">Sem correção</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
                         <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="sim-radio-label">
+                      <label className="flex items-center min-h-[44px] cursor-pointer">
                         <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
                         <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
@@ -881,22 +879,22 @@ function SimulatorContent() {
             </div>
 
             {/* Summary Card */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white lg:sticky lg:top-4 lg:self-start">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white">
               <h4 className="font-semibold text-white/80 text-sm uppercase tracking-wider mb-4">Resumo do Financiamento</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-white/60 text-xs mb-1">Valor do Imóvel</p>
-                  <p className="text-lg sm:text-xl font-bold">{formatBRL(propertyValue)}</p>
+                  <p className="text-xl font-bold">{formatBRL(propertyValue)}</p>
                 </div>
                 <div>
                   <p className="text-white/60 text-xs mb-1">Valor com Desconto</p>
-                  <p className="text-lg sm:text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p>
+                  <p className="text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p>
                 </div>
               </div>
               <div className="mt-4">
                 <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 will-change-transform ${
+                    className={`h-full rounded-full transition-all duration-500 ${
                       result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"
                     }`}
                     style={{ width: `${Math.min(result.captationPercent, 100)}%` }}
@@ -922,7 +920,7 @@ function SimulatorContent() {
           </div>
 
           {/* ─── Right Column: Results ─── */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="space-y-6">
             {/* Results Table Card */}
             <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
               <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
@@ -1021,7 +1019,7 @@ function SimulatorContent() {
                 {showResults && (
                   <div className="mt-6">
                     <h4 className="text-lg font-bold text-gray-900 mb-3">Cronograma de Pagamento</h4>
-                    <div className="flex overflow-x-auto border-b border-gray-200 sim-tab-scroll" style={{ scrollbarWidth: 'none' }}>
+                    <div className="flex overflow-x-auto border-b border-gray-200">
                       {(["sinal", "mensal", "semestral", "decoracao", "habitese"] as const).map((tab) => (
                         <button
                           key={tab}
@@ -1036,7 +1034,7 @@ function SimulatorContent() {
                         </button>
                       ))}
                     </div>
-                    <div className="p-4 border border-t-0 border-gray-200 rounded-b-xl max-h-72 sm:max-h-96 overflow-y-auto sim-scrollbar">
+                    <div className="p-4 border border-t-0 border-gray-200 rounded-b-xl max-h-96 overflow-y-auto custom-scrollbar">
                       {activeTab === "sinal" && (
                         <table className="w-full text-sm">
                           <thead>
@@ -1198,7 +1196,7 @@ function SimulatorContent() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-gray-400">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
