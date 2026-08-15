@@ -126,3 +126,112 @@ Stage Summary:
 - Erro 500: agora retorna mensagens detalhadas (502/503) em vez de genérico 500
 - Usuários legados: 3 opções de correção disponíveis (botão admin, API fix-legacy, SQL direto)
 - Ações necessárias: configurar NEXT_PUBLIC_APP_URL e MERCADOPAGO_ACCESS_TOKEN no Vercel
+
+---
+Task ID: 5
+Agent: main
+Task: Otimizações UX/UI/Performance na página simulador-moment
+
+Work Log:
+- Lido arquivo completo src/app/simulador-moment/page.tsx (~873 linhas)
+- Aplicadas 12 otimizações cirúrgicas via Edit tool:
+  1. Header mobile: h-16 → h-14 sm:h-16 (menor altura no mobile)
+  2. Subtítulo: adicionado text-xs sm:text-sm para escala mobile
+  3. Layout desktop: grid-cols-2 → grid-cols-5 (60/40 split com lg:col-span-3 / lg:col-span-2)
+  4. Summary card: adicionado lg:sticky lg:top-4 lg:self-start (sticky no desktop)
+  5. custom-scrollbar → sim-scrollbar (classe global do globals.css)
+  6. Tab bar: adicionado sim-tab-scroll + scrollbar-width:none inline style
+  7. Radio buttons INCC: flex items-center min-h-[44px] cursor-pointer → sim-radio-label
+  8. Summary values: text-xl font-bold → text-lg sm:text-xl font-bold
+  9. Schedule table: max-h-96 → max-h-72 sm:max-h-96
+ 10. Form spacing: space-y-5 → space-y-4
+ 11. Progress bar: adicionado will-change-transform para GPU acceleration
+ 12. Info banners: envolvidos em flex flex-col sm:flex-row gap-3
+ 13. Footer: py-6 → py-4 sm:py-6
+
+Stage Summary:
+- Nenhuma lógica de negócio, cálculo, constante ou gerenciamento de estado foi alterado
+- Nenhuma funcionalidade foi removida
+- Estrutura de exportação (SimuladorMomentPage + Suspense) preservada
+- Compilação TypeScript sem erros no arquivo
+- Verificado: custom-scrollbar=0, min-h-[44px]=0, space-y-5=0 (todos substituídos)
+
+---
+Task ID: 6-a
+Agent: sub-agent (general-purpose)
+Task: Otimizações UX/UI/Performance na página simulador-venice-park
+
+Work Log:
+- Lido arquivo completo src/app/simulador-venice-park/page.tsx (~1339 linhas)
+- Aplicadas 11 otimizações cirúrgicas via MultiEdit + Edit:
+  1. Header mobile: subtítulo adicionado text-xs sm:text-sm para escala mobile
+  2. Layout desktop: grid-cols-2 → grid-cols-5 (60/40 split com lg:col-span-3 / lg:col-span-2)
+  3. Summary card: adicionado lg:sticky lg:top-4 lg:self-start (sticky no desktop)
+  4. custom-scrollbar → sim-scrollbar: N/A (nenhuma instância encontrada no arquivo)
+  5. Tab bar: adicionado sim-tab-scroll + scrollbarWidth:'none' inline style
+  6. Radio buttons INCC: flex items-center min-h-[44px] cursor-pointer → sim-radio-label (4 instâncias)
+  7. Summary values: text-xl font-bold → text-lg sm:text-xl font-bold (2 instâncias)
+  8. Schedule table: max-h-96 → max-h-72 sm:max-h-96: N/A (nenhuma instância encontrada no arquivo)
+  9. Form spacing: space-y-5 → space-y-4
+  10. Progress bar: adicionado will-change-transform para GPU acceleration
+  11. Info banners (auto-calc + delivery): envolvidos em flex flex-col sm:flex-row gap-3
+  12. Footer: py-6 → py-4 sm:py-6
+  13. Step indicator: label text-[10px] sm:text-xs, connector w-4 → w-2 sm:w-16
+
+Stage Summary:
+- Nenhuma lógica de negócio, cálculo, constante ou gerenciamento de estado foi alterado
+- Nenhuma funcionalidade foi removida
+- PDF generation function e INCC API fetching não foram modificados
+- Estrutura de exportação (SimuladorVeniceParkPage + Suspense) preservada
+- Compilação TypeScript sem erros novos no arquivo (erros preexistentes do jspdf-autotable permanecem)
+- Verificado: min-h-[44px]=0, space-y-5=0, custom-scrollbar=0, max-h-96=0 (todos substituídos ou inexistentes)
+
+---
+Task ID: 6-b
+Agent: sub-agent (general-purpose)
+Task: Optimize simulador-vitta page — 12 UX/UI/performance optimizations
+Status: completed
+Changes applied to src/app/simulador-vitta/page.tsx:
+1. ✅ Mobile header: subtitle now uses `text-xs sm:text-sm` for responsive scaling
+2. ✅ Desktop layout: grid changed from `lg:grid-cols-2` → `lg:grid-cols-5` with `lg:col-span-3`/`lg:col-span-2` (60/40 split)
+3. ✅ Sticky summary card: added `lg:sticky lg:top-4 lg:self-start` to the dark gradient summary card
+4. ⏭️ custom-scrollbar → sim-scrollbar: no `custom-scrollbar` instances existed in file; added `sim-scrollbar` to schedule table scroll area (optimization 8)
+5. ✅ Mobile tabs: added `sim-tab-scroll` class and `style={{ scrollbarWidth: 'none' }}` to tab bar
+6. ✅ INCC radio buttons: replaced `flex items-center min-h-[44px] cursor-pointer` with `sim-radio-label` (4 labels)
+7. ✅ Summary card data density: `text-xl font-bold` → `text-lg sm:text-xl font-bold` for property values
+8. ✅ Schedule table mobile UX: `max-h-80` → `max-h-72 sm:max-h-96` + `sim-scrollbar` class
+9. ✅ Form input spacing: `space-y-5` → `space-y-4`
+10. ✅ Progress bar GPU: added `will-change-transform` to progress bar inner div
+11. ✅ Info banners: wrapped "Cálculo automático" and delivery info banners in `flex flex-col sm:flex-row gap-3` container
+12. ⏭️ Footer py-6 → py-4 sm:py-6: no footer element exists in this file; skipped
+
+Verification:
+- TypeScript: zero errors from simulador-vitta/page.tsx (only pre-existing node_modules errors)
+- All business logic, calculations, constants, state management, PDF generation, and INCC fetching unchanged
+- No features or UI elements removed
+
+---
+Task ID: 6-c
+Agent: sub-agent (general-purpose)
+Task: Optimize simulador-villa-bianco page — 13 UX/UI/performance optimizations
+Status: completed
+Changes applied to src/app/simulador-villa-bianco/page.tsx:
+1. ✅ Mobile header: subtitle now uses `text-xs sm:text-sm` for responsive scaling
+2. ✅ Desktop layout: grid changed from `lg:grid-cols-2` → `lg:grid-cols-5` with `lg:col-span-3`/`lg:col-span-2` (60/40 split)
+3. ✅ Sticky summary card: added `lg:sticky lg:top-4 lg:self-start` to the dark gradient summary card
+4. ✅ custom-scrollbar → sim-scrollbar: 1 instance replaced in schedule table scroll area
+5. ✅ Mobile tabs: added `sim-tab-scroll` class and `style={{ scrollbarWidth: 'none' }}` to tab bar
+6. ✅ INCC radio buttons: replaced `flex items-center min-h-[44px] cursor-pointer` with `sim-radio-label` (4 labels)
+7. ✅ Summary card data density: `text-xl font-bold` → `text-lg sm:text-xl font-bold` for property values (2 instances)
+8. ✅ Schedule table mobile UX: `max-h-96` → `max-h-72 sm:max-h-96`
+9. ✅ Form input spacing: `space-y-5` → `space-y-4`
+10. ✅ Progress bar GPU: added `will-change-transform` to progress bar inner div
+11. ✅ Info banners: wrapped "Cálculo automático" and delivery info banners in `flex flex-col sm:flex-row gap-3` container
+12. ✅ Footer: `py-6` → `py-4 sm:py-6`
+13. ✅ Step indicator: label `text-xs` → `text-[10px] sm:text-xs`, connector `w-4 sm:w-16` → `w-2 sm:w-16`
+
+Verification:
+- TypeScript: zero new errors from simulador-villa-bianco/page.tsx (only pre-existing node_modules/jspdf errors)
+- All business logic, calculations, constants, state management, PDF generation, and INCC fetching unchanged
+- No features or UI elements removed
+- Verified: custom-scrollbar=0, min-h-[44px] cursor-pointer=0 (all replaced)
