@@ -404,7 +404,7 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
 
           {/* Simular button */}
           <a
-            href={`/simulador?valor=${unit.valorVenda || 0}&unidade=${unit.unidade}&area=${unit.areaStr}&andar=${unit.andar}`}
+            href={`/simulador-quattre-istambul?valor=${unit.valorVenda || 0}&unidade=${unit.unidade}&area=${unit.areaStr}&andar=${unit.andar}`}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => {
