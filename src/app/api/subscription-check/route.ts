@@ -14,12 +14,12 @@ export async function GET() {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    // Verificar assinatura ativa
+    // Verificar assinatura ativa ou vitalícia
     const { data: assinatura } = await supabase
       .from('assinaturas')
       .select('id, status, plano:planos(nome)')
       .eq('user_id', user.id)
-      .eq('status', 'active')
+      .in('status', ['active', 'lifetime'])
       .maybeSingle();
 
     // Verificar perfil

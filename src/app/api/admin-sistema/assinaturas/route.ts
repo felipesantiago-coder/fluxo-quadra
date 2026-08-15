@@ -5,12 +5,13 @@ import { requireAdminSistema } from '@/lib/admin-auth';
 
 // Maquina de estados: transicoes validas
 const VALID_TRANSITIONS: Record<string, Set<string>> = {
-  pending: new Set(['pending', 'active', 'cancelled', 'expired', 'paused']),
+  pending: new Set(['pending', 'active', 'cancelled', 'expired', 'paused', 'lifetime']),
   active: new Set(['active', 'cancelled', 'paused', 'expired', 'cancelled_by_user']),
   paused: new Set(['paused', 'active', 'cancelled', 'expired', 'cancelled_by_user']),
   cancelled: new Set(['cancelled']),
   cancelled_by_user: new Set(['cancelled_by_user']),
   expired: new Set(['expired']),
+  lifetime: new Set(['lifetime', 'cancelled']),
 };
 
 function isTransitionValid(current: string, target: string): boolean {
@@ -72,6 +73,7 @@ export async function GET() {
       );
 
       // Mesclar dados do perfil em cada assinatura
+      // Nota: assinaturas lifetime têm plano_id = null, então plano será null
       const enriched = assinaturas.map((a: Record<string, unknown>) => ({
         ...a,
         user: profileMap.get(a.user_id as string) || null,
@@ -122,7 +124,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const validStatuses = ['pending', 'active', 'cancelled', 'paused', 'expired', 'cancelled_by_user'];
+    const validStatuses = ['pending', 'active', 'cancelled', 'paused', 'expired', 'cancelled_by_user', 'lifetime'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Status invalido.' }, { status: 400 });
     }

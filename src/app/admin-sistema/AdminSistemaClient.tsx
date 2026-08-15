@@ -1398,9 +1398,15 @@ function AssinaturasTab({
   // Correcao de usuarios legados
   const [fixLegacyLoading, setFixLegacyLoading] = useState(false);
 
+  // Conceder plano vitalicio
+  const [showLifetimeDialog, setShowLifetimeDialog] = useState(false);
+  const [lifetimeForm, setLifetimeForm] = useState({ userId: "", motivo: "" });
+  const [lifetimeLoading, setLifetimeLoading] = useState(false);
+
   const statusLabels: Record<string, string> = {
     active: "Ativa", pending: "Pendente", cancelled: "Cancelada",
     paused: "Pausada", expired: "Expirada", cancelled_by_user: "Cancelada (user)",
+    lifetime: "Vitalícia",
   };
 
   const statusColors: Record<string, string> = {
@@ -1410,6 +1416,7 @@ function AssinaturasTab({
     cancelled_by_user: "bg-red-100 text-red-700",
     paused: "bg-gray-100 text-gray-700",
     expired: "bg-gray-100 text-gray-500",
+    lifetime: "bg-purple-100 text-purple-700",
   };
 
   const openCreatePlano = () => {
@@ -1420,6 +1427,56 @@ function AssinaturasTab({
   const handleOpenActivateDialog = async () => {
     setActivateForm({ userId: "", planoId: "", motivo: "" });
     setShowActivateDialog(true);
+    if (activateUsers.length === 0) {
+      setActivateFetchingUsers(true);
+      try {
+        const res = await fetch("/api/admin-sistema/users");
+        if (res.ok) {
+          const json = await res.json();
+          setActivateUsers((json.users || []).filter((u: Record<string, unknown>) => u.role !== "admin_sistema"));
+        }
+      } catch {
+        addToast("error", "Erro ao buscar usuários.");
+      } finally {
+        setActivateFetchingUsers(false);
+      }
+    }
+  };
+
+  const handleGrantLifetime = async () => {
+    if (!lifetimeForm.userId || lifetimeForm.motivo.trim().length < 15) {
+      addToast("error", "Selecione um usuário e forneça um motivo (mín. 15 caracteres).");
+      return;
+    }
+    setLifetimeLoading(true);
+    try {
+      const res = await fetch("/api/admin-sistema/assinaturas/grant-lifetime", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: lifetimeForm.userId,
+          motivo: lifetimeForm.motivo.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        addToast("success", json.message || "Plano vitalício concedido.");
+        setShowLifetimeDialog(false);
+        setLifetimeForm({ userId: "", motivo: "" });
+        await onFetchAssinaturas();
+      } else {
+        addToast("error", json.error || "Erro ao conceder vitalício.");
+      }
+    } catch {
+      addToast("error", "Erro ao conceder plano vitalício.");
+    } finally {
+      setLifetimeLoading(false);
+    }
+  };
+
+  const handleOpenLifetimeDialog = async () => {
+    setLifetimeForm({ userId: "", motivo: "" });
+    setShowLifetimeDialog(true);
     if (activateUsers.length === 0) {
       setActivateFetchingUsers(true);
       try {
@@ -1580,6 +1637,12 @@ function AssinaturasTab({
               >
                 <Check className="w-4 h-4" /> Ativar manualmente
               </Button>
+              <Button
+                onClick={handleOpenLifetimeDialog}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md rounded-xl h-9 px-4 text-xs font-semibold"
+              >
+                <Crown className="w-4 h-4" /> Vitalício
+              </Button>
             </div>
           </div>
           {assinaturasLoading && <div className="space-y-3">{[1,2,3].map(i => (<div key={i} className="bg-white rounded-xl p-4 border animate-pulse"><div className="h-4 bg-gray-200 rounded w-48" /></div>))}</div>}
@@ -1606,7 +1669,7 @@ function AssinaturasTab({
                             <p className="font-medium text-gray-900">{(user.display_name as string) || (user.email as string)?.split("@")[0]}</p>
                             <p className="text-xs text-gray-500">{user.email as string}</p>
                           </td>
-                          <td className="px-4 py-3 font-medium">{plano.nome as string}</td>
+                          <td className="px-4 py-3 font-medium">{plano ? (plano.nome as string) : <span className="text-purple-600 font-semibold">Vitalício</span>}</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${statusColors[status] || "bg-gray-100 text-gray-500"}`}>
                               {statusLabels[status] || status}
@@ -1888,6 +1951,7 @@ function AssinaturasTab({
               >
                 <option value="">Selecionar...</option>
                 <option value="active">Ativa</option>
+                <option value="lifetime">Vitalícia</option>
                 <option value="paused">Pausada</option>
                 <option value="cancelled">Cancelada</option>
                 <option value="expired">Expirada</option>
@@ -1981,6 +2045,66 @@ function AssinaturasTab({
               className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {activateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ativar assinatura"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ Dialog: Conceder plano vitalício ══ */}
+      <Dialog open={showLifetimeDialog} onOpenChange={setShowLifetimeDialog}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="w-5 h-5 text-purple-600" />
+              Conceder Plano Vitalício
+            </DialogTitle>
+            <DialogDescription>
+              Concede acesso vitalício a um usuário. Não pode ser desfeita e não exige pagamento. Toda ação é auditada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
+              <p className="text-xs text-purple-700 font-medium">
+                O plano vitalício nunca expira e não está vinculado a nenhum plano de pagamento. O usuário terá acesso permanente.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Usuário *</label>
+              <select
+                value={lifetimeForm.userId}
+                onChange={(e) => setLifetimeForm((f) => ({ ...f, userId: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                disabled={activateFetchingUsers}
+              >
+                <option value="">{activateFetchingUsers ? "Carregando..." : "Selecionar usuário..."}</option>
+                {activateUsers.map((u) => (
+                  <option key={u.id as string} value={u.id as string}>
+                    {u.email as string}{u.display_name ? ` — ${u.display_name}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">
+                Motivo da concessão * <span className="text-xs text-gray-400">(mín. 15 caracteres)</span>
+              </label>
+              <textarea
+                value={lifetimeForm.motivo}
+                onChange={(e) => setLifetimeForm((f) => ({ ...f, motivo: e.target.value }))}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                rows={3}
+                placeholder="Ex: Parceiro estratégico, colaborador interno, acordo comercial..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowLifetimeDialog(false)} className="flex-1 rounded-xl" disabled={lifetimeLoading}>Cancelar</Button>
+            <Button
+              onClick={handleGrantLifetime}
+              disabled={lifetimeLoading || !lifetimeForm.userId || lifetimeForm.motivo.trim().length < 15}
+              className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {lifetimeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Conceder vitalício"}
             </Button>
           </DialogFooter>
         </DialogContent>

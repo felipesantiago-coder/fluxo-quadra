@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 // Este cookie é apenas um HINT de cache — nunca é fonte de verdade.
 // Todas as APIs verificam sessão via supabase.auth.getUser() server-side.
 // Valores fora desta lista são tratados como ausência de cookie (fallback seguro).
-const ALLOWED_SUB_STATUS_VALUES = new Set(['active', 'cancelled', 'none', 'pending']);
+const ALLOWED_SUB_STATUS_VALUES = new Set(['active', 'cancelled', 'lifetime', 'none', 'pending']);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
