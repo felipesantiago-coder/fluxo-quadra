@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createMpSubscription } from '@/lib/mercadopago';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Regex para validacao de UUID v4
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -34,6 +35,23 @@ interface SignupSubscribeBody {
  *  - Se qualquer etapa falhar, tenta limpar (best-effort)
  */
 export async function POST(request: NextRequest) {
+  // SEC-007 FIX: Rate limiting — 5 cadastros por IP por minuto
+  const ip = getClientIp(request);
+  const rl = rateLimit(`signup_subscribe:${ip}`, { maxRequests: 5, windowSeconds: 60 });
+
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Muitas tentativas de cadastro. Aguarde um momento.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   try {
     // 0. Verificar se MP está configurado
     if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {

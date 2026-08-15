@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 /**
  * GET /api/cupons/validate?codigo=XXX&planoId=YYY
@@ -7,8 +8,27 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * Retorna dados do cupom e valores calculados se válido.
  *
  * Não incrementa usos_atuais — isso é feito no momento da criação da assinatura.
+ *
+ * SEC-007 FIX: Rate limiting — 10 validações por IP por minuto.
  */
 export async function GET(request: NextRequest) {
+  // SEC-007 FIX: Rate limiting para evitar enumeração de cupons
+  const ip = getClientIp(request);
+  const rl = rateLimit(`cupom_validate:${ip}`, { maxRequests: 10, windowSeconds: 60 });
+
+  if (!rl.success) {
+    return NextResponse.json(
+      { valid: false, error: 'Muitas tentativas. Aguarde um momento.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    );
+  }
+
   try {
     const { searchParams } = request.nextUrl;
     const codigo = searchParams.get('codigo')?.trim();

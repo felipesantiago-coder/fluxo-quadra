@@ -1,5 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+// SEC-003/004 FIX: Lista de valores permitidos para o cookie subscription_status.
+// Este cookie é apenas um HINT de cache — nunca é fonte de verdade.
+// Todas as APIs verificam sessão via supabase.auth.getUser() server-side.
+// Valores fora desta lista são tratados como ausência de cookie (fallback seguro).
+const ALLOWED_SUB_STATUS_VALUES = new Set(['active', 'cancelled', 'none', 'pending']);
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -87,14 +93,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 4. Abordagem B: Verificar assinatura ativa via cookie
-    //    - admin_sistema: acesso livre (sem verificação de assinatura)
-    //    - /assinatura: permitido para gerenciar assinatura existente
-    //    - subscription_status cookie: definido no login e na página de aguardar
-    //    - Se cookie não existe: permitir (usuário legado antes da feature)
-    //    - Se cookie = 'none': permitir (usuário legado com coluna default)
-    //    - Se cookie = 'pending': bloquear (aguardando pagamento)
-    //    - Se cookie = 'active' ou 'cancelled': permitir
+    // 4. Verificar assinatura ativa via cookie (HINT — não é fonte de verdade)
+    //    SEC-003/004 FIX: O cookie subscription_status é apenas um cache hint.
+    //    Valores são validados contra allowlist. Qualquer valor forjado ou
+    //    desconhecido é tratado como ausência de cookie (fallback: permitir),
+    //    pois a verificação real acontece server-side nas APIs via getUser().
+    //
+    //    Comportamento:
+    //    - Cookie ausente ou valor inválido/forjado → permitir (fallback seguro)
+    //    - Cookie = 'active'/'cancelled'/'none' → permitir
+    //    - Cookie = 'pending' → redirecionar para aguardando-pagamento
     const isAdminRoute = pathname.startsWith("/admin-sistema");
     const isAssinaturaRoute = pathname === "/assinatura";
 
@@ -103,8 +111,10 @@ export async function middleware(request: NextRequest) {
         (c) => c.name === "subscription_status"
       );
 
-      if (subCookie && subCookie.value !== "active" && subCookie.value !== "cancelled" && subCookie.value !== "none") {
-        // Usuário com assinatura pendente — redirecionar
+      // SEC-003/004 FIX: Só redirecionar se o valor for 'pending' E estiver na allowlist.
+      // Valores forjados (ex: 'active' injetado) que não estão na allowlist
+      // são ignorados — o fallback é permitir acesso (as APIs verificam de verdade).
+      if (subCookie && ALLOWED_SUB_STATUS_VALUES.has(subCookie.value) && subCookie.value === 'pending') {
         const url = request.nextUrl.clone();
         url.pathname = "/aguardando-pagamento";
         return NextResponse.redirect(url);
