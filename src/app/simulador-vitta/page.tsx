@@ -11,6 +11,10 @@ import {
   Trash2,
   RotateCcw,
   TrendingUp,
+  Home,
+  Wallet,
+  CalendarClock,
+  Settings,
 } from "lucide-react";
 
 // ─── Constants ───
@@ -588,225 +592,232 @@ function SimulatorContent() {
     }
   }, [result, unitName, initialArea, propertyValue, inccMode, inccMonthlyRate]);
 
-  const resultRows = [
-    { description: "Sinal", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent, note: "Pagamento à vista", bold: false, isHighlight: false },
-    { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent, note: `${MAX_MONTHLY_INSTALLMENTS} parcelas (${result.paidMonthlyCount} durante a obra + ${result.remainingMonthlyCount} pós-entrega)`, bold: false, isHighlight: false },
-    { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent, note: `${MAX_SEMESTER_INSTALLMENTS} parcelas durante a obra`, bold: false, isHighlight: false },
-    { description: "Parcela Única", value: formatBRL(result.unicaValue), percent: result.unicaPercent, note: "Paga na entrega", bold: false, isHighlight: false },
-    { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false },
+  const resultRows = useMemo(() => [
+    { description: "Sinal", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent, note: "Pagamento à vista", bold: false, isHighlight: false, isIncc: false },
+    { description: "Parcelas Mensais", value: formatBRL(result.totalMonthlyCommitted), percent: result.totalMonthlyCommittedPercent, note: `${MAX_MONTHLY_INSTALLMENTS} parcelas (${result.paidMonthlyCount} durante a obra + ${result.remainingMonthlyCount} pós-entrega)`, bold: false, isHighlight: false, isIncc: false },
+    { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaidDuringConstruction), percent: result.semesterPaidPercent, note: `${result.paidSemesterCount}x de ${MAX_SEMESTER_INSTALLMENTS} durante a obra`, bold: false, isHighlight: false, isIncc: false },
+    { description: "Parcela Única", value: formatBRL(result.unicaValue), percent: result.unicaPercent, note: "Paga na entrega", bold: false, isHighlight: false, isIncc: false },
+    { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false, isIncc: false },
     ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [{
-      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false,
+      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false, isIncc: true,
     }] : []),
-    { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true },
-  ];
+    { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true, isIncc: false },
+  ], [result, inccMode, inccMonthlyRate]);
+
 
   // ─── Render ───
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center shadow-md">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                  Espelho de <span className="text-gray-400 font-normal">Vendas</span>
-                </h1>
-                <p className="text-xs text-gray-400 font-medium hidden sm:block">Simulador Residencial Vitta</p>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">Espelho de <span className="text-slate-400 font-normal">Vendas</span></h1>
+                <p className="text-xs text-slate-500 font-medium hidden sm:block">Simulador Residencial Vitta</p>
               </div>
             </div>
-            <a href="/vitta" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">
-              &larr; Voltar ao Residencial Vitta
+            <a href="/vitta" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium flex items-center gap-2">
+              <span className="hidden sm:inline">&larr; Voltar ao Residencial Vitta</span>
+              <span className="sm:hidden">Voltar</span>
             </a>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
-          <p className="text-gray-500 mt-2">Residencial Vitta &mdash; Ceilândia, DF &mdash; Calcule o financiamento do seu imóvel</p>
+        {/* Title */}
+        <div className="text-center mb-10">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
+          <p className="text-slate-500 mt-2 max-w-xl mx-auto">Preencha os dados abaixo e simule o plano de pagamento personalizado para o seu imóvel.</p>
         </div>
 
-        <div className="flex items-center justify-center mb-10">
-          {["Dados Básicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
-            <div key={step} className="flex items-center">
-              {i > 0 && <div className="w-4 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
-              <div className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
-                  {i < 4 ? "✓" : i + 1}
+        {/* Grid: 5 columns on lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+          {/* Left Column */}
+          <div className="space-y-6 lg:col-span-3">
+            {/* Auto-calc indicator */}
+            <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">
+              <RotateCcw className="w-4 h-4 animate-spin" style={{animationDuration: '3s'}} />
+              <span>Cálculo automático em tempo real</span>
+            </div>
+
+            {/* Card 1: Detalhes do Imóvel */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Home className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Detalhes do Imóvel</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor do Imóvel (R$)</label>
+                    <input type="text" inputMode="numeric" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 400.000,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Percentual de Desconto (%)</label>
+                    <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} min="0" max="100" step="0.01" placeholder="Ex: 5" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                  </div>
                 </div>
-                <span className="text-xs sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Unidade Escolhida</label>
+                  <input type="text" value={unitName} onChange={(e) => setUnitName(e.target.value)} placeholder="Ex: A-101" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Inputs */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <Calculator className="w-5 h-5" />
-                  <h3 className="font-semibold">Informações do Imóvel</h3>
+            {/* Card 2: Pagamento Inicial (Sinal) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Wallet className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Pagamento Inicial (Sinal)</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor do Sinal (R$)</label>
+                  <input type="text" inputMode="numeric" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
+                  <p className="text-xs text-slate-500 mt-1">Padrão: 6% do valor final do imóvel. Pagamento à vista.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Data do Pagamento do Sinal</label>
+                  <input type="date" value={downPaymentDate} min={getTodayISO()} onChange={(e) => setDownPaymentDate(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                  <p className="text-xs text-slate-500 mt-1">Por padrão, utiliza a data atual. Não é permitido selecionar datas anteriores.</p>
                 </div>
               </div>
-              <div className="p-4 sm:p-6 space-y-5">
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
-                  <RotateCcw className="w-4 h-4" />
-                  <span className="font-medium">Cálculo automático em tempo real</span>
-                </div>
+            </div>
 
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
-                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span><strong>Entrega Prevista:</strong> Agosto de 2029</span>
-                </div>
-
+            {/* Card 3: Parcelas Durante a Obra */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <CalendarClock className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Parcelas Durante a Obra</h3>
+              </div>
+              <div className="p-6 space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Imóvel (R$)</label>
-                  <input type="text" inputMode="numeric" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 400.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Percentual de Desconto (%)</label>
-                  <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} min="0" max="100" step="0.01" placeholder="Ex: 5" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Unidade Escolhida</label>
-                  <input type="text" value={unitName} onChange={(e) => setUnitName(e.target.value)} placeholder="Ex: A-101" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor do Sinal (R$)</label>
-                  <input type="text" inputMode="numeric" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 6% do valor final" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-xs text-gray-400 mt-1">Padrão: 6% do valor final do imóvel. Pagamento à vista.</p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Data do Pagamento do Sinal</label>
-                  <input type="date" value={downPaymentDate} min={getTodayISO()} onChange={(e) => setDownPaymentDate(e.target.value)} className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Mensal (R$)</label>
-                  <input type="text" inputMode="numeric" value={monthlyValueInput} onChange={handleCurrencyInput(setMonthlyValueInput)} placeholder="Ex: R$ 1.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Mensal (R$)</label>
+                  <input type="text" inputMode="numeric" value={monthlyValueInput} onChange={handleCurrencyInput(setMonthlyValueInput)} placeholder="Ex: R$ 1.000,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
                   {monthlyVal > 0 && (
                     <div className="mt-2 space-y-1">
-                      <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
+                      <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
                         <span className="font-medium">Total mensal: {formatBRL(monthlyVal * MAX_MONTHLY_INSTALLMENTS)} ({MAX_MONTHLY_INSTALLMENTS}x)</span>
                       </div>
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs text-slate-500">
                         {result.paidMonthlyCount} parcelas durante a obra + {result.remainingMonthlyCount} pós-entrega (captação)
                       </p>
                     </div>
                   )}
                 </div>
-
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Semestral (R$)</label>
-                  <input type="text" inputMode="numeric" value={semesterValueInput} onChange={handleCurrencyInput(setSemesterValueInput)} placeholder="Ex: R$ 8.000,00" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Semestral (R$)</label>
+                  <input type="text" inputMode="numeric" value={semesterValueInput} onChange={handleCurrencyInput(setSemesterValueInput)} placeholder="Ex: R$ 8.000,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
                   {semesterVal > 0 && (
                     <div className="mt-2 space-y-1">
-                      <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
+                      <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
                         <span className="font-medium">Total semestral: {formatBRL(semesterVal * MAX_SEMESTER_INSTALLMENTS)} ({MAX_SEMESTER_INSTALLMENTS}x)</span>
                       </div>
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs text-slate-500">
                         {result.paidSemesterCount} parcelas durante a obra + {result.remainingSemesterCount} para o financiamento
                       </p>
                     </div>
                   )}
                 </div>
-
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">Valor da Parcela Única (R$)</label>
-                  <input type="text" inputMode="numeric" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all" />
-                  <p className="text-xs text-gray-400 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês de entrega. Compõe a captação da obra.</p>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor da Parcela Úanica (R$)</label>
+                  <input type="text" inputMode="numeric" value={unicaValueInput} onChange={handleCurrencyInput(setUnicaValueInput)} placeholder="Deixe em branco para 5% do valor final" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
+                  <p className="text-xs text-slate-500 mt-1">Padrão: 5% do valor final do imóvel. Paga no mês de entrega. Compõe a captação da obra.</p>
                 </div>
+              </div>
+            </div>
 
+            {/* Card 4: Ajustes Finais e INCC */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Settings className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Ajustes Finais e INCC</h3>
+              </div>
+              <div className="p-6 space-y-5">
                 {/* INCC Correction */}
                 <div className="space-y-3">
                   <button
                     type="button"
                     onClick={() => setInccMode(inccMode === "none" ? "12m" : "none")}
-                    className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-gray-200 hover:border-amber-300 transition-all"
+                    className="flex items-center justify-between w-full p-4 rounded-xl border-2 border-slate-100 hover:border-amber-300 transition-all bg-slate-50"
                   >
                     <div className="flex items-center gap-3">
-                      <TrendingUp className="w-4 h-4 text-amber-600" />
-                      <span className="font-semibold text-sm text-gray-700">Correção INCC</span>
+                      <TrendingUp className="w-5 h-5 text-amber-600" />
+                      <span className="font-bold text-slate-700">Correção INCC</span>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${inccMode !== "none" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${inccMode !== "none" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-500"}`}>
                       {inccMode !== "none" ? "Ativada" : "Desativada"}
                     </span>
                   </button>
 
                   {inccMode !== "none" && (
-                    <div className="pl-4 space-y-3">
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Sem correção</span>
+                    <div className="mt-4 pl-2 space-y-3 border-l-2 border-slate-100 ml-4">
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Sem correção</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
-                          <p className="text-xs text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
+                          <p className="text-xs text-slate-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
                         )}
                       </label>
                       {inccData.lastUpdate && (
-                        <p className="text-xs text-gray-400">Dados atualizados em {inccData.lastUpdate} &mdash; {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>
+                        <p className="text-xs text-slate-400 pl-8">Atualizado em {inccData.lastUpdate} — {inccData.isFallback ? "Referência" : "FGV IBRE"}</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 {result.isLowCaptation && showResults && (
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 animate-pulse">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
                     <span className="font-bold text-sm">Captação durante as obras abaixo de {MIN_CAPTATION_PCT}% não é permitida!</span>
                   </div>
                 )}
 
-                <button onClick={clearAll} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all">
-                  <Trash2 className="w-4 h-4" /> Limpar Todos os Campos
+                <button onClick={clearAll} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all">
+                  <Trash2 className="w-4 h-4" /> Limpar Campos
                 </button>
-
-                {showResults && (
-                  <button
-                    onClick={generatePDF}
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-lg"
-                  >
-                    <FileDown className="w-4 h-4" />
-                    Gerar PDF da Simulação
-                  </button>
-                )}
               </div>
             </div>
+          </div>
 
+          {/* Right Column */}
+          <div className="space-y-6 lg:col-span-2 lg:sticky lg:top-24 self-start">
             {/* Summary Card */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white">
-              <h4 className="font-semibold text-white/80 text-sm uppercase tracking-wider mb-4">Resumo do Financiamento</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-xl font-bold">{formatBRL(propertyValue)}</p></div>
-                <div><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p></div>
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-bold text-white/90 text-sm uppercase tracking-wider">Resumo do Financiamento</h4>
+                <span className="text-xs bg-white/10 px-2 py-1 rounded-full">Entrega: Ago/{DELIVERY_YEAR}</span>
               </div>
-              <div className="mt-4">
-                <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
+              <div className="space-y-4">
+                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-lg font-bold">{formatBRL(propertyValue)}</p></div>
+                <div className="pt-4 border-t border-white/10"><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-2xl font-extrabold tracking-tight">{formatBRL(result.finalPropertyValue)}</p></div>
+              </div>
+              <div className="mt-6">
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-white/80 font-medium">Captação durante obras</span>
+                  <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span>
+                </div>
+                <div className="w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${Math.min(result.captationPercent, 100)}%` }} />
                 </div>
-                <p className="text-white/60 text-xs mt-2 text-center">Captação durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span></p>
               </div>
 
               {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
@@ -821,187 +832,218 @@ function SimulatorContent() {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Right Column - Results */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                    <Calculator className="w-5 h-5" />
-                    <h3 className="font-semibold">Detalhamento do Fluxo de Pagamento</h3>
-                  </div>
+            {/* Results Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Calculator className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Fluxo de Pagamento</h3>
               </div>
               <div className="p-4 sm:p-6">
                 {/* Mobile card layout */}
-                <div className="sm:hidden space-y-2">
+                <div className="sm:hidden space-y-3">
                   {resultRows.map((row, i) => (
-                    <div key={i} className={`rounded-xl p-3 ${row.isHighlight ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`font-medium text-sm ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.description}</span>
-                        {row.bold && <span className={`text-base font-bold ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
+                    <div key={i} className={`rounded-xl p-4 border ${row.bold ? "bg-emerald-50 border-emerald-200" : row.isIncc ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-medium text-sm ${row.bold ? "text-emerald-900" : row.isIncc ? "text-amber-900" : "text-slate-700"}`}>{row.description}</span>
+                        {row.percent != null && <span className={`text-xs px-2 py-0.5 rounded-full ${row.bold ? "bg-emerald-200 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>{row.percent.toFixed(2)}%</span>}
                       </div>
-                      {!row.bold && <span className={`text-base font-bold block mt-0.5 ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
-                      <div className="flex items-center gap-2 mt-1">
-                        {row.percent != null && <span className={`text-xs ${row.isHighlight ? 'text-gray-300' : 'text-gray-500'}`}>{row.percent.toFixed(2)}%</span>}
-                        {row.note && <span className="text-xs text-gray-400">· {row.note}</span>}
-                      </div>
+                      <span className={`text-lg font-bold block ${row.bold ? "text-emerald-900" : row.isIncc ? "text-amber-900" : "text-slate-900"}`}>{row.value}</span>
+                      {row.note && <span className={`text-xs block mt-1 ${row.isIncc ? "text-amber-600" : "text-slate-400"}`}>{row.note}</span>}
                     </div>
                   ))}
                 </div>
-                {result.remainingMonthlyCount > 0 && (
-                  <div className="sm:hidden flex items-start gap-2 p-3 bg-blue-50 rounded-xl text-sm text-blue-800 mt-2">
-                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação e podem ser pagas diretamente à construtora após a entrega ou integradas ao financiamento bancário.</span>
-                  </div>
-                )}
+
                 {/* Desktop table */}
-                <div className="hidden sm:block overflow-x-auto">
+                <div className="hidden sm:block overflow-hidden rounded-xl border border-slate-100">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-900 text-white">
-                        <th className="text-left py-3 px-4 rounded-tl-lg font-semibold text-xs uppercase tracking-wider">Descrição</th>
-                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Valor (R$)</th>
-                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Percentual</th>
-                        <th className="text-left py-3 px-4 rounded-tr-lg font-semibold text-xs uppercase tracking-wider">Observação</th>
+                      <tr className="bg-slate-100 text-slate-600">
+                        <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider">Etapa</th>
+                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Valor</th>
+                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">%</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Sinal</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Pagamento à vista</td></tr>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Mensais</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.totalMonthlyCommitted)}</td><td className="py-3 px-4 text-right text-gray-500">{result.totalMonthlyCommittedPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{MAX_MONTHLY_INSTALLMENTS} parcelas ({result.paidMonthlyCount} durante a obra + {result.remainingMonthlyCount} pós-entrega)</td></tr>
-                      <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium">Semestrais (obra)</td><td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaidDuringConstruction)}</td><td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">{result.paidSemesterCount}x de {MAX_SEMESTER_INSTALLMENTS}</td></tr>
-                      {result.remainingMonthlyCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-blue-50/50"><td className="py-3 px-4 font-medium text-blue-700" colSpan={4}><div className="flex items-center gap-2"><Info className="w-4 h-4" /><span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação e podem ser pagas diretamente à construtora após a entrega ou integradas ao financiamento bancário.</span></div></td></tr>
-                      )}
-                      {result.remainingSemesterCount > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50/50"><td className="py-3 px-4 font-medium text-amber-700">Semestrais (pós financiamento)</td><td className="py-3 px-4 text-right font-semibold text-amber-700">{formatBRL(result.remainingSemesterValue)}</td><td className="py-3 px-4 text-right text-gray-500">&mdash;</td><td className="py-3 px-4 text-amber-600 text-xs">{result.remainingSemesterCount} parcelas remanescentes</td></tr>
-                      )}
-                      {result.unicaValue > 0 && (
-                        <tr className="border-b border-gray-100"><td className="py-3 px-4 font-medium text-blue-700">Única</td><td className="py-3 px-4 text-right font-semibold text-blue-700">{formatBRL(result.unicaValue)}</td><td className="py-3 px-4 text-right text-gray-500">{result.unicaPercent.toFixed(2)}%</td><td className="py-3 px-4 text-blue-600 text-xs">1 parcela em {result.unicaDate}</td></tr>
-                      )}
-                      <tr className="border-b border-gray-100 bg-gray-50"><td className="py-3 px-4 font-bold">Financiamento</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.habiteseAmount)}</td><td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td><td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor pós-obra</td></tr>
-                      {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-orange-50"><td className="py-3 px-4 font-bold text-orange-700">Financiamento (INCC)</td><td className="py-3 px-4 text-right font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</td><td className="py-3 px-4 text-right text-gray-500">{((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%</td><td className="py-3 px-4 text-orange-600 text-xs">Projeção com correção</td></tr>
-                      )}
-                      <tr className="bg-gray-900 text-white"><td className="py-3 px-4 rounded-bl-lg font-bold">Total</td><td className="py-3 px-4 text-right font-bold">{formatBRL(result.finalPropertyValue)}</td><td className="py-3 px-4 text-right font-bold">100%</td><td className="py-3 px-4 rounded-br-lg text-white/60 text-xs"></td></tr>
+                      {resultRows.map((row, i) => (
+                        <tr key={i} className={row.bold ? "bg-emerald-50 border-t border-emerald-200" : row.isIncc ? "border-t border-amber-200 bg-amber-50" : "border-t border-slate-100"}>
+                          <td className={`py-3 px-4 ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-medium text-amber-900" : "font-medium text-slate-700"}`}>
+                            {row.description}
+                            {row.note && <span className={`block text-xs font-normal mt-0.5 ${row.isIncc ? "text-amber-600" : "text-slate-400"}`}>{row.note}</span>}
+                          </td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-bold text-amber-900" : "font-semibold text-slate-900"}`}>{row.value}</td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-700" : "text-slate-500"}`}>{row.percent != null ? `${row.percent.toFixed(2)}%` : "—"}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Tabs for schedules */}
-                {showResults && propertyValue > 0 && (
+                {/* Schedule Tabs */}
+                {showResults && (
                   <div className="mt-6">
-                    <div className="flex overflow-x-auto border-b border-gray-200">
-                      {[
+                    <div className="flex flex-wrap gap-2 mb-4 bg-slate-100 p-1.5 rounded-xl">
+                      {([
                         { key: "sinal", label: "Sinal" },
                         { key: "mensal", label: `Mensais (${result.monthlyRows.length})` },
                         { key: "semestral", label: `Semestrais (${result.semesterRows.length})` },
-                        { key: "unica", label: `Única${result.unicaScheduleRows.length > 0 ? ` (${result.unicaScheduleRows.length})` : ""}` },
-                        { key: "habitese", label: "Financiamento" },
-                      ].map((tab) => (
-                        <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                          className={`flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${activeTab === tab.key ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400 hover:text-gray-600"}`}>
+                        { key: "unica", label: `Úanica${result.unicaScheduleRows.length > 0 ? ` (${result.unicaScheduleRows.length})` : ""}` },
+                        { key: "habitese", label: "Financ." },
+                      ] as const).map((tab) => (
+                        <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)} className={`flex-1 min-w-[80px] px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === tab.key ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>
                           {tab.label}
                         </button>
                       ))}
                     </div>
 
-                    <div className="mt-4 max-h-80 overflow-y-auto">
-                      {activeTab === "sinal" && (
-                        <table className="w-full text-sm">
-                          <thead><tr className="bg-gray-100"><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Parcela</th><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th><th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th></tr></thead>
-                          <tbody>{result.sinalRows.map((r, i) => <tr key={i} className="border-b border-gray-50"><td className="py-2 px-3">{r.parcela}</td><td className="py-2 px-3 text-gray-500">{r.data}</td><td className="py-2 px-3 text-right font-medium">{r.valor}</td></tr>)}</tbody>
-                        </table>
-                      )}
-
-                      {activeTab === "mensal" && result.monthlyRows.length > 0 && (
-                        <table className="w-full text-sm">
-                          <thead><tr className="bg-gray-100"><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Parcela</th><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th><th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th></tr></thead>
-                          <tbody>{result.monthlyRows.map((r, i) => <tr key={i} className="border-b border-gray-50"><td className="py-2 px-3">{r.parcela}</td><td className="py-2 px-3 text-gray-500">{r.data}</td><td className="py-2 px-3 text-right font-medium">{r.valor}</td></tr>)}</tbody>
-                          <tfoot><tr className="bg-gray-50 font-bold"><td className="py-2 px-3" colSpan={2}>Total mensais (obra)</td><td className="py-2 px-3 text-right">{formatBRL(result.monthlyPaidDuringConstruction)}</td></tr></tfoot>
-                        </table>
-                      )}
-                      {activeTab === "mensal" && result.monthlyRows.length === 0 && <p className="text-gray-400 text-sm py-4 text-center">Nenhuma parcela mensal durante a obra</p>}
-
-                      {activeTab === "semestral" && result.semesterRows.length > 0 && (
-                        <table className="w-full text-sm">
-                          <thead><tr className="bg-gray-100"><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Parcela</th><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th><th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th></tr></thead>
-                          <tbody>{result.semesterRows.map((r, i) => <tr key={i} className="border-b border-gray-50"><td className="py-2 px-3">{r.parcela}</td><td className="py-2 px-3 text-gray-500">{r.data}</td><td className="py-2 px-3 text-right font-medium">{r.valor}</td></tr>)}</tbody>
-                          <tfoot><tr className="bg-gray-50 font-bold"><td className="py-2 px-3" colSpan={2}>Total semestrais (obra)</td><td className="py-2 px-3 text-right">{formatBRL(result.semesterPaidDuringConstruction)}</td></tr></tfoot>
-                        </table>
-                      )}
-                      {activeTab === "semestral" && result.semesterRows.length === 0 && <p className="text-gray-400 text-sm py-4 text-center">Nenhuma parcela semestral durante a obra</p>}
-
-                      {activeTab === "unica" && result.unicaScheduleRows.length > 0 && (
-                        <div className="space-y-3">
+                    {activeTab === "sinal" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
                           <table className="w-full text-sm">
-                            <thead><tr className="bg-gray-100"><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Parcela</th><th className="text-left py-2 px-3 text-xs font-semibold text-gray-500">Data</th><th className="text-right py-2 px-3 text-xs font-semibold text-gray-500">Valor</th></tr></thead>
-                            <tbody>{result.unicaScheduleRows.map((r, i) => <tr key={i} className="border-b border-gray-50"><td className="py-2 px-3">{r.parcela}</td><td className="py-2 px-3 text-gray-500">{r.data}</td><td className="py-2 px-3 text-right font-medium">{r.valor}</td></tr>)}</tbody>
-                            <tfoot><tr className="bg-gray-50 font-bold"><td className="py-2 px-3" colSpan={2}>Total parcela única</td><td className="py-2 px-3 text-right">{formatBRL(result.unicaValue)}</td></tr></tfoot>
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.sinalRows.length > 0 ? result.sinalRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhum dado</td></tr>)}
+                            </tbody>
                           </table>
-                          <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-blue-500 text-blue-700 text-xs">
-                            <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <span>Paga no mês de entrega do empreendimento. Este valor compõe o percentual de captação durante as obras.</span>
-                          </div>
                         </div>
-                      )}
-                      {activeTab === "unica" && result.unicaScheduleRows.length === 0 && <p className="text-gray-400 text-sm py-4 text-center">Nenhuma parcela única informada</p>}
+                      </div>
+                    )}
 
-                      {activeTab === "habitese" && (
-                        <div className="space-y-3">
-                          <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
-                            <h4 className="font-semibold text-gray-900 mb-3">Composição do Financiamento</h4>
-                            <div className="space-y-3">
-                              <div className="flex justify-between text-sm"><span className="text-gray-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
-                              {result.remainingSemesterCount > 0 && (
-                                <div className="flex justify-between text-sm pl-4 border-l-2 border-amber-300"><span className="text-gray-500">{result.remainingSemesterCount}x semestrais remanescentes</span><span className="font-medium text-amber-700">{formatBRL(result.remainingSemesterValue)}</span></div>
-                              )}
-                              {(() => { const sr = result.habiteseAmount - result.remainingSemesterValue; return sr > 0 ? (
-                                  <div className="flex justify-between text-sm pl-4 border-l-2 border-gray-300"><span className="text-gray-500">Saldo residual</span><span className="font-medium">{formatBRL(sr)}</span></div>
-                              ) : null; })()}
-                            </div>
-                          </div>
-                          {result.remainingMonthlyCount > 0 && (
-                            <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-blue-500 text-blue-700 text-xs">
-                              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              <span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação da obra. O cliente pode optar por pagá-las diretamente à construtora após a entrega do empreendimento ou integrar esse saldo ao financiamento bancário, conforme sua renda permita.</span>
-                            </div>
-                          )}
-                          {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                            <div className="p-4 rounded-xl bg-orange-50 border border-orange-200">
-                              <h4 className="font-semibold text-orange-700 mb-2">Projeção INCC</h4>
-                              <div className="flex justify-between text-sm"><span className="text-gray-600">Financiamento projetado</span><span className="font-bold text-orange-700">{formatBRL(result.habiteseCorrected)}</span></div>
-                              <div className="flex justify-between text-sm mt-1"><span className="text-gray-500">Impacto estimado</span><span className="font-medium text-orange-600">+{formatBRL(result.habiteseCorrected - result.habiteseAmount)}</span></div>
-                              <p className="text-xs text-orange-500 mt-2">* Valores estimados. O INCC é variável e não pode ser previsto com certeza.</p>
-                            </div>
-                          )}
+                    {activeTab === "mensal" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.monthlyRows.length > 0 ? result.monthlyRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhuma parcela mensal durante a obra</td></tr>)}
+                            </tbody>
+                            <tfoot><tr className="bg-slate-50 font-bold border-t border-slate-200"><td className="py-2 px-4" colSpan={2}>Total mensais (obra)</td><td className="py-2 px-4 text-right">{formatBRL(result.monthlyPaidDuringConstruction)}</td></tr></tfoot>
+                          </table>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {activeTab === "semestral" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.semesterRows.length > 0 ? result.semesterRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhuma parcela semestral durante a obra</td></tr>)}
+                            </tbody>
+                            <tfoot><tr className="bg-slate-50 font-bold border-t border-slate-200"><td className="py-2 px-4" colSpan={2}>Total semestrais (obra)</td><td className="py-2 px-4 text-right">{formatBRL(result.semesterPaidDuringConstruction)}</td></tr></tfoot>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "unica" && (
+                      <div className="space-y-3">
+                        <div className="border border-slate-100 rounded-xl overflow-hidden">
+                          <div className="max-h-[400px] overflow-y-auto">
+                            <table className="w-full text-sm">
+                              <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                              <tbody>
+                                {result.unicaScheduleRows.length > 0 ? result.unicaScheduleRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhuma parcela única informada</td></tr>)}
+                              </tbody>
+                              <tfoot><tr className="bg-slate-50 font-bold border-t border-slate-200"><td className="py-2 px-4" colSpan={2}>Total parcela única</td><td className="py-2 px-4 text-right">{formatBRL(result.unicaValue)}</td></tr></tfoot>
+                            </table>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500">
+                          <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                          <span>Paga no mês de entrega do empreendimento. Este valor compõe o percentual de captação durante as obras.</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "habitese" && (
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-xl bg-white border border-slate-200">
+                          <h4 className="font-bold text-slate-900 mb-3">Composição do Financiamento</h4>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm"><span className="text-slate-600">Saldo devedor total</span><span className="font-semibold">{formatBRL(result.habiteseAmount)}</span></div>
+                            {result.remainingSemesterCount > 0 && (
+                              <div className="flex justify-between text-sm pl-4 border-l-2 border-amber-300"><span className="text-slate-500">{result.remainingSemesterCount}x semestrais remanescentes</span><span className="font-medium text-amber-700">{formatBRL(result.remainingSemesterValue)}</span></div>
+                            )}
+                            {(() => { const sr = result.habiteseAmount - result.remainingSemesterValue; return sr > 0 ? (
+                              <div className="flex justify-between text-sm pl-4 border-l-2 border-slate-300"><span className="text-slate-500">Saldo residual</span><span className="font-medium">{formatBRL(sr)}</span></div>
+                            ) : null; })()}
+                          </div>
+                        </div>
+                        {result.remainingMonthlyCount > 0 && (
+                          <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500">
+                            <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                            <span>As {result.remainingMonthlyCount} parcelas mensais remanescentes ({formatBRL(result.remainingMonthlyValue)}) compõem a captação da obra. O cliente pode optar por pagá-las diretamente à construtora após a entrega do empreendimento ou integrar esse saldo ao financiamento bancário, conforme sua renda permita.</span>
+                          </div>
+                        )}
+                        {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
+                          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <p className="font-bold text-amber-900 text-xl">{formatBRL(result.habiteseCorrected)}</p>
+                            <p className="text-sm text-amber-700 mt-1">Projeção com INCC (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
-                {showResults && propertyValue > 0 && (
-                <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-gray-600">
-                  <strong className="text-gray-800">Observação:</strong> O valor do Financiamento inclui:
-                  <ul className="mt-2 space-y-1 list-disc list-inside text-gray-500">
-                    <li>Parcelas semestrais restantes</li>
-                    <li>Saldo final do imóvel</li>
-                  </ul>
-                  <p className="mt-2 text-blue-700 text-xs font-medium">Todas as parcelas mensais contratadas (incluindo as remanescentes pós-entrega) compõem a captação da obra e não são incluídas no saldo devedor do financiamento.</p>
-                </div>
+
+                {/* PDF Button */}
+                {showResults && (
+                  <button onClick={generatePDF} className="mt-6 flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors shadow-md hover:shadow-lg">
+                    <FileDown className="w-5 h-5" /> Gerar PDF da Simulação
+                  </button>
                 )}
               </div>
+            </div>
+
+            {/* Info Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="w-5 h-5 text-blue-500" />
+                <h4 className="font-bold text-slate-800 text-sm">Informações Importantes</h4>
+              </div>
+              <ul className="space-y-2 text-xs text-slate-500 list-disc list-inside">
+                <li>Captação mínima durante as obras: <strong>{MIN_CAPTATION_PCT}%</strong> do valor do imóvel</li>
+                <li>Máx. mensais: <strong>{MAX_MONTHLY_INSTALLMENTS} parcelas</strong> | Máx. semestrais: <strong>{MAX_SEMESTER_INSTALLMENTS} parcelas</strong></li>
+                <li>Parcela única padrão: <strong>5%</strong> do valor final (paga na entrega)</li>
+                <li>Entrega prevista: <strong>Agosto de 2029</strong></li>
+                <li>Saldos devedores corrigidos mensalmente pelo INCC até o financiamento</li>
+              </ul>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white mt-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              <span className="font-semibold text-slate-600">Espelho de Vendas</span>
+            </div>
+            <span className="hidden sm:inline">•</span>
+            <span>Residencial Vitta</span>
+            <span className="hidden sm:inline">•</span>
+            <span>&copy; {new Date().getFullYear()}</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
 export default function SimuladorVittaPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-400 font-medium">Carregando simulador...</p>
+        </div>
+      </div>
+    }>
       <SimulatorContent />
     </Suspense>
   );

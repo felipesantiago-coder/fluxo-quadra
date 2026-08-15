@@ -11,6 +11,10 @@ import {
   Trash2,
   RotateCcw,
   TrendingUp,
+  Home,
+  Wallet,
+  CalendarClock,
+  Settings,
 } from "lucide-react";
 
 // ─── Constants ───
@@ -597,41 +601,37 @@ function SimulatorContent() {
     }
   }, [result, unitName, initialArea, propertyValue, inccMode, inccMonthlyRate]);
 
-  const resultRows = [
-    { description: "Sinal Ato", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent, note: "Pagamento à vista", bold: false, isHighlight: false },
-    { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent, note: `${result.maxMonthlyInstallments} parcelas durante a obra`, bold: false, isHighlight: false },
-    { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent, note: `${result.maxSemesterInstallments} parcelas durante a obra`, bold: false, isHighlight: false },
-    { description: "Taxa de Decoração", value: formatBRL(DECORATION_FEE), percent: null as number | null, note: "Inclusa no financiamento", bold: false, isHighlight: false },
-    { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false },
+  const resultRows = useMemo(() => [
+    { description: "Sinal Ato", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent, note: "Pagamento à vista", bold: false, isHighlight: false, isIncc: false },
+    { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent, note: `${result.maxMonthlyInstallments} parcelas durante a obra`, bold: false, isHighlight: false, isIncc: false },
+    { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent, note: `${result.maxSemesterInstallments} parcelas durante a obra`, bold: false, isHighlight: false, isIncc: false },
+    { description: "Taxa de Decoração", value: formatBRL(DECORATION_FEE), percent: null as number | null, note: "Inclusa no financiamento", bold: false, isHighlight: false, isIncc: false },
+    { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false, isIncc: false },
     ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [{
-      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false,
+      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false, isIncc: true,
     }] : []),
-    { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true },
-  ];
+    { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true, isIncc: false },
+  ], [result, inccMode, inccMonthlyRate]);
 
   // ─── Render ───
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center shadow-md">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                  Espelho de <span className="text-gray-400 font-normal">Vendas</span>
-                </h1>
-                <p className="text-xs text-gray-400 font-medium hidden sm:block">Simulador Villa Bianco</p>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">Espelho de <span className="text-slate-400 font-normal">Vendas</span></h1>
+                <p className="text-xs text-slate-500 font-medium hidden sm:block">Simulador Villa Bianco</p>
               </div>
             </div>
-            <a
-              href="/villa-bianco"
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium"
-            >
-              ← Voltar ao Villa Bianco
+            <a href="/villa-bianco" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium flex items-center gap-2">
+              <span className="hidden sm:inline">← Voltar ao Villa Bianco</span>
+              <span className="sm:hidden">Voltar</span>
             </a>
           </div>
         </div>
@@ -639,172 +639,94 @@ function SimulatorContent() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Title */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
-          <p className="text-gray-500 mt-2">Simulador Villa Bianco — Calcule o financiamento do seu apartamento</p>
+        <div className="text-center mb-10">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Simulador de Fluxo de Pagamento</h2>
+          <p className="text-slate-500 mt-2 max-w-xl mx-auto">Preencha os dados abaixo e simule o plano de pagamento personalizado para o seu apartamento.</p>
         </div>
 
-        {/* Step Indicator */}
-        <div className="flex items-center justify-center mb-10">
-          {["Dados Básicos", "Sinal", "Mensais", "Semestrais", "Resultado"].map((step, i) => (
-            <div key={step} className="flex items-center">
-              {i > 0 && <div className="w-4 sm:w-16 h-0.5 bg-gray-200 mx-1" />}
-              <div className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < 4 ? "bg-emerald-500 text-white" : "bg-gray-900 text-white"}`}>
-                  {i < 4 ? "✓" : i + 1}
+        {/* Grid: 5 columns on lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+          {/* ── Left Column ── */}
+          <div className="space-y-6 lg:col-span-3">
+            {/* Auto-calc indicator */}
+            <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">
+              <RotateCcw className="w-4 h-4 animate-spin" style={{animationDuration: '3s'}} />
+              <span>Cálculo automático em tempo real</span>
+            </div>
+
+            {/* Card 1: Detalhes do Imóvel */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Home className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Detalhes do Imóvel</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor do Imóvel (R$)</label>
+                    <input type="text" inputMode="numeric" value={propertyValueInput} onChange={handleCurrencyInput(setPropertyValueInput)} placeholder="Ex: R$ 500.000,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Percentual de Desconto (%)</label>
+                    <input type="number" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} min="0" max="100" step="0.01" placeholder="Ex: 5" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                  </div>
                 </div>
-                <span className="text-xs sm:text-xs text-gray-500 font-medium text-center hidden sm:block">{step}</span>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Unidade Escolhida</label>
+                  <input type="text" value={unitName} onChange={(e) => setUnitName(e.target.value)} placeholder="Ex: Apartamento B 101" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* ─── Left Column: Form ─── */}
-          <div className="space-y-6">
-            {/* Form Card */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <Calculator className="w-5 h-5" />
-                  <h3 className="font-semibold">Informações do Imóvel</h3>
+            {/* Card 2: Pagamento Inicial (Sinal) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Wallet className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Pagamento Inicial (Sinal)</h3>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor do Sinal Ato (R$)</label>
+                  <input type="text" inputMode="numeric" value={downPaymentInput} onChange={handleCurrencyInput(setDownPaymentInput)} placeholder="Deixe em branco para 10% do valor final" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
+                  <p className="text-xs text-slate-500 mt-1">Padrão: 10% do valor final do imóvel. Pagamento à vista.</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Data do Pagamento do Sinal Ato</label>
+                  <input type="date" value={downPaymentDate} min={getTodayISO()} onChange={(e) => setDownPaymentDate(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400" />
+                  <p className="text-xs text-slate-500 mt-1">Por padrão, utiliza a data atual. Não é permitido selecionar datas anteriores.</p>
                 </div>
               </div>
-              <div className="p-4 sm:p-6 space-y-5">
-                {/* Auto calc indicator */}
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm">
-                  <RotateCcw className="w-4 h-4" />
-                  <span className="font-medium">Cálculo automático em tempo real</span>
-                </div>
+            </div>
 
-                {/* Delivery info */}
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border-l-4 border-gray-900 text-gray-700 text-sm">
-                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span><strong>Entrega Prevista:</strong> Outubro de {DELIVERY_YEAR}</span>
-                </div>
-
-                {/* Property Value */}
+            {/* Card 3: Parcelas Durante a Obra */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <CalendarClock className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Parcelas Durante a Obra</h3>
+              </div>
+              <div className="p-6 space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Valor do Imóvel (R$)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={propertyValueInput}
-                    onChange={handleCurrencyInput(setPropertyValueInput)}
-                    placeholder="Ex: R$ 500.000,00"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                </div>
-
-                {/* Discount */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Percentual de Desconto (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={discountPercent}
-                    onChange={(e) => setDiscountPercent(e.target.value)}
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    placeholder="Ex: 5"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                </div>
-
-                {/* Unit */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Unidade Escolhida
-                  </label>
-                  <input
-                    type="text"
-                    value={unitName}
-                    onChange={(e) => setUnitName(e.target.value)}
-                    placeholder="Ex: Apartamento B 101"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                </div>
-
-                {/* Down Payment Value */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Valor do Sinal Ato (R$)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={downPaymentInput}
-                    onChange={handleCurrencyInput(setDownPaymentInput)}
-                    placeholder="Deixe em branco para 10% do valor final"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Padrão: 10% do valor final do imóvel. Pagamento à vista.</p>
-                </div>
-
-                {/* Down Payment Date */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Data do Pagamento do Sinal Ato
-                  </label>
-                  <input
-                    type="date"
-                    value={downPaymentDate}
-                    min={getTodayISO()}
-                    onChange={(e) => setDownPaymentDate(e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Por padrão, utiliza a data atual. Não é permitido selecionar datas anteriores.</p>
-                </div>
-
-                {/* Monthly Installment Value */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Valor de Cada Parcela Mensal (R$)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={monthlyValueInput}
-                    onChange={handleCurrencyInput(setMonthlyValueInput)}
-                    placeholder="Ex: R$ 1.500,00"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Mensal (R$)</label>
+                  <input type="text" inputMode="numeric" value={monthlyValueInput} onChange={handleCurrencyInput(setMonthlyValueInput)} placeholder="Ex: R$ 1.500,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
                   {monthlyVal > 0 && result.totalMonths > 0 && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
+                    <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
                       <span className="font-medium">Total mensal: {formatBRL(monthlyVal * result.maxMonthlyInstallments)} ({result.maxMonthlyInstallments}x)</span>
                     </div>
                   )}
                 </div>
-
-                {/* Semester Installment Value */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                    Valor de Cada Parcela Semestral (R$)
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={semesterValueInput}
-                    onChange={handleCurrencyInput(setSemesterValueInput)}
-                    placeholder="Ex: R$ 10.000,00"
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-right text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Valor de Cada Parcela Semestral (R$)</label>
+                  <input type="text" inputMode="numeric" value={semesterValueInput} onChange={handleCurrencyInput(setSemesterValueInput)} placeholder="Ex: R$ 10.000,00" className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right" />
                   {semesterVal > 0 && result.maxSemesterInstallments > 0 && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-600">
+                    <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
                       <span className="font-medium">Total semestral: {formatBRL(semesterVal * result.maxSemesterInstallments)} ({result.maxSemesterInstallments}x)</span>
                     </div>
                   )}
                 </div>
-
-                {/* Decoration Fee Display */}
-                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-700">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700">
                   <div className="flex flex-wrap items-center justify-between gap-1">
-                    <span className="font-medium text-gray-900">Taxa de Decoração (R$ 10.000,00):</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-medium text-slate-900">Taxa de Decoração (R$ 10.000,00):</span>
+                    <span className="font-semibold text-slate-900">
                       {result.totalMonths > 0
                         ? `${result.totalMonths}x de ${formatBRL(result.decorationInstallmentValue)}`
                         : "A pagar à vista no financiamento"
@@ -812,97 +734,94 @@ function SimulatorContent() {
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
 
+            {/* Card 4: Ajustes Finais e INCC */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Settings className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Ajustes Finais e INCC</h3>
+              </div>
+              <div className="p-6 space-y-5">
                 {/* INCC Correction */}
                 <div className="space-y-3">
                   <button
                     type="button"
                     onClick={() => setInccMode(inccMode === "none" ? "12m" : "none")}
-                    className="flex items-center justify-between w-full p-3 rounded-xl border-2 border-gray-200 hover:border-amber-300 transition-all"
+                    className="flex items-center justify-between w-full p-4 rounded-xl border-2 border-slate-100 hover:border-amber-300 transition-all bg-slate-50"
                   >
                     <div className="flex items-center gap-3">
-                      <TrendingUp className="w-4 h-4 text-amber-600" />
-                      <span className="font-semibold text-sm text-gray-700">Correção INCC</span>
+                      <TrendingUp className="w-5 h-5 text-amber-600" />
+                      <span className="font-bold text-slate-700">Correção INCC</span>
                     </div>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${inccMode !== "none" ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500"}`}>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${inccMode !== "none" ? "bg-amber-100 text-amber-700" : "bg-slate-200 text-slate-500"}`}>
                       {inccMode !== "none" ? "Ativada" : "Desativada"}
                     </span>
                   </button>
 
                   {inccMode !== "none" && (
-                    <div className="pl-4 space-y-3">
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Sem correção</span>
+                    <div className="mt-4 pl-2 space-y-3 border-l-2 border-slate-100 ml-4">
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="none" checked={inccMode === "none"} onChange={() => setInccMode("none")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Sem correção</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                       </label>
-                      <label className="flex items-center min-h-[44px] cursor-pointer">
-                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="mr-2" />
-                        <span className="text-sm text-gray-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                      <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
+                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
                         {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
-                          <p className="text-xs text-gray-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
+                          <p className="text-xs text-slate-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
                         )}
                       </label>
                       {inccData.lastUpdate && (
-                        <p className="text-xs text-gray-400">Dados atualizados em {inccData.lastUpdate} — {inccData.isFallback ? "valores de referência" : "fonte: FGV IBRE"}</p>
+                        <p className="text-xs text-slate-400 pl-8">Atualizado em {inccData.lastUpdate} — {inccData.isFallback ? "Referência" : "FGV IBRE"}</p>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Low captation warning */}
                 {result.isLowCaptation && showResults && (
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border-l-4 border-red-500 text-red-700 animate-pulse">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700">
                     <AlertTriangle className="w-5 h-5 flex-shrink-0" />
-                    <span className="font-bold text-sm">
-                      Captação durante as obras abaixo de 15% não é permitida!
-                    </span>
+                    <span className="font-bold text-sm">Captação abaixo de 15% não é permitida!</span>
                   </div>
                 )}
 
-                {/* Clear button */}
-                <button
-                  onClick={clearAll}
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Limpar Todos os Campos
+                <button onClick={clearAll} className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-50 transition-all">
+                  <Trash2 className="w-4 h-4" /> Limpar Campos
                 </button>
               </div>
             </div>
+          </div>
 
+          {/* ── Right Column ── */}
+          <div className="space-y-6 lg:col-span-2 lg:sticky lg:top-24 self-start">
             {/* Summary Card */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-2xl shadow-lg p-6 text-white">
-              <h4 className="font-semibold text-white/80 text-sm uppercase tracking-wider mb-4">Resumo do Financiamento</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-white/60 text-xs mb-1">Valor do Imóvel</p>
-                  <p className="text-xl font-bold">{formatBRL(propertyValue)}</p>
-                </div>
-                <div>
-                  <p className="text-white/60 text-xs mb-1">Valor com Desconto</p>
-                  <p className="text-xl font-bold">{formatBRL(result.finalPropertyValue)}</p>
-                </div>
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-lg p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-bold text-white/90 text-sm uppercase tracking-wider">Resumo do Financiamento</h4>
+                <span className="text-xs bg-white/10 px-2 py-1 rounded-full">Entrega: Out/{DELIVERY_YEAR}</span>
               </div>
-              <div className="mt-4">
-                <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"
-                    }`}
-                    style={{ width: `${Math.min(result.captationPercent, 100)}%` }}
-                  />
+              <div className="space-y-4">
+                <div><p className="text-white/60 text-xs mb-1">Valor do Imóvel</p><p className="text-lg font-bold">{formatBRL(propertyValue)}</p></div>
+                <div className="pt-4 border-t border-white/10"><p className="text-white/60 text-xs mb-1">Valor com Desconto</p><p className="text-2xl font-extrabold tracking-tight">{formatBRL(result.finalPropertyValue)}</p></div>
+              </div>
+              <div className="mt-6">
+                <div className="flex justify-between text-xs mb-2">
+                  <span className="text-white/80 font-medium">Captação durante obras</span>
+                  <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span>
                 </div>
-                <p className="text-white/60 text-xs mt-2 text-center">
-                  Captação durante obras: <span className="text-white font-bold">{result.captationPercent.toFixed(2)}%</span>
-                </p>
+                <div className="w-full h-2.5 rounded-full bg-white/10 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all duration-500 ${result.captationPercent >= 50 ? "bg-emerald-400" : result.isLowCaptation ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${Math.min(result.captationPercent, 100)}%` }} />
+                </div>
               </div>
 
               {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
@@ -917,299 +836,181 @@ function SimulatorContent() {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* ─── Right Column: Results ─── */}
-          <div className="space-y-6">
-            {/* Results Table Card */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <Calculator className="w-5 h-5" />
-                  <h3 className="font-semibold">Detalhamento do Fluxo de Pagamento</h3>
-                </div>
+            {/* Results Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <Calculator className="w-5 h-5 text-slate-700" />
+                <h3 className="font-bold text-slate-800">Fluxo de Pagamento</h3>
               </div>
               <div className="p-4 sm:p-6">
                 {/* Mobile card layout */}
-                <div className="sm:hidden space-y-2">
+                <div className="sm:hidden space-y-3">
                   {resultRows.map((row, i) => (
-                    <div key={i} className={`rounded-xl p-3 ${row.isHighlight ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`font-medium text-sm ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.description}</span>
-                        {row.bold && <span className={`text-base font-bold ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
+                    <div key={i} className={`rounded-xl p-4 border ${row.bold ? "bg-emerald-50 border-emerald-200" : row.isIncc ? "bg-amber-50 border-amber-200" : "bg-slate-50 border-slate-100"}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-medium text-sm ${row.bold ? "text-emerald-900" : row.isIncc ? "text-amber-900" : "text-slate-700"}`}>{row.description}</span>
+                        {row.percent != null && <span className={`text-xs px-2 py-0.5 rounded-full ${row.bold ? "bg-emerald-200 text-emerald-800" : "bg-slate-200 text-slate-600"}`}>{row.percent.toFixed(2)}%</span>}
                       </div>
-                      {!row.bold && <span className={`text-base font-bold block mt-0.5 ${row.isHighlight ? 'text-white' : 'text-gray-900'}`}>{row.value}</span>}
-                      <div className="flex items-center gap-2 mt-1">
-                        {row.percent != null && <span className={`text-xs ${row.isHighlight ? 'text-gray-300' : 'text-gray-500'}`}>{row.percent.toFixed(2)}%</span>}
-                        {row.note && <span className="text-xs text-gray-400">· {row.note}</span>}
-                      </div>
+                      <span className={`text-lg font-bold block ${row.bold ? "text-emerald-900" : row.isIncc ? "text-amber-900" : "text-slate-900"}`}>{row.value}</span>
+                      {row.note && <span className={`text-xs block mt-1 ${row.isIncc ? "text-amber-600" : "text-slate-400"}`}>{row.note}</span>}
                     </div>
                   ))}
                 </div>
+
                 {/* Desktop table */}
-                <div className="hidden sm:block overflow-x-auto">
+                <div className="hidden sm:block overflow-hidden rounded-xl border border-slate-100">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-900 text-white">
-                        <th className="text-left py-3 px-4 rounded-tl-lg font-semibold text-xs uppercase tracking-wider">Descrição</th>
-                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Valor (R$)</th>
-                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Percentual</th>
-                        <th className="text-left py-3 px-4 rounded-tr-lg font-semibold text-xs uppercase tracking-wider">Observação</th>
+                      <tr className="bg-slate-100 text-slate-600">
+                        <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider">Etapa</th>
+                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">Valor</th>
+                        <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider">%</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Sinal Ato</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.downPaymentValue)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.downPaymentPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">Pagamento à vista</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Parcelas Mensais</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.monthlyPaid)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.monthlyPaidPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">{result.maxMonthlyInstallments} parcelas durante a obra</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Parcelas Semestrais</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.semesterPaid)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.semesterPaidPercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">{result.maxSemesterInstallments} parcelas durante a obra</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Taxa de Decoração</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(DECORATION_FEE)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">—</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">{result.decorationInstallments} parcelas durante a obra</td>
-                      </tr>
-                      <tr className="border-b border-gray-100">
-                        <td className="py-3 px-4 font-medium">Financiamento</td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatBRL(result.habiteseAmount)}</td>
-                        <td className="py-3 px-4 text-right text-gray-500">{result.habitesePercent.toFixed(2)}%</td>
-                        <td className="py-3 px-4 text-gray-400 text-xs">Saldo devedor restante</td>
-                      </tr>
-                      {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                        <tr className="border-b border-gray-100 bg-amber-50">
-                          <td className="py-3 px-4 font-medium text-amber-900">Financiamento (projeção INCC)*</td>
-                          <td className="py-3 px-4 text-right font-semibold text-amber-900">{formatBRL(result.habiteseCorrected)}</td>
-                          <td className="py-3 px-4 text-right text-amber-700">{result.habitesePercent > 0 ? ((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2) : "0.00"}%</td>
-                          <td className="py-3 px-4 text-amber-600 text-xs">INCC +{result.inccAccumulatedPercent.toFixed(2)}% ({inccMonthlyRate.toFixed(3)}% a.m.)</td>
+                      {resultRows.map((row, i) => (
+                        <tr key={i} className={row.bold ? "bg-emerald-50 border-t border-emerald-200" : row.isIncc ? "border-t border-amber-200 bg-amber-50" : "border-t border-slate-100"}>
+                          <td className={`py-3 px-4 ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-medium text-amber-900" : "font-medium text-slate-700"}`}>
+                            {row.description}
+                            {row.note && <span className={`block text-xs font-normal mt-0.5 ${row.isIncc ? "text-amber-600" : "text-slate-400"}`}>{row.note}</span>}
+                          </td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-900" : row.isIncc ? "font-bold text-amber-900" : "font-semibold text-slate-900"}`}>{row.value}</td>
+                          <td className={`py-3 px-4 text-right ${row.bold ? "font-bold text-emerald-700" : "text-slate-500"}`}>{row.percent != null ? `${row.percent.toFixed(2)}%` : "—"}</td>
                         </tr>
-                      )}
-                      <tr className="bg-emerald-50">
-                        <td className="py-3 px-4 font-bold text-emerald-900">Valor Total</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-900">{formatBRL(result.finalPropertyValue)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-emerald-700">100%</td>
-                        <td className="py-3 px-4"></td>
-                      </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-
-                {/* Info note */}
-                <div className="mt-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-gray-600">
-                  <strong className="text-gray-800">Observação:</strong> O valor do Financiamento inclui:
-                  <ul className="mt-2 space-y-1 list-disc list-inside text-gray-500">
-                    <li>Saldo devedor restante</li>
-                    <li>Pode ser quitado ou financiado com o banco de preferência</li>
-                  </ul>
                 </div>
 
                 {/* Schedule Tabs */}
                 {showResults && (
                   <div className="mt-6">
-                    <h4 className="text-lg font-bold text-gray-900 mb-3">Cronograma de Pagamento</h4>
-                    <div className="flex overflow-x-auto border-b border-gray-200">
+                    <div className="flex flex-wrap gap-2 mb-4 bg-slate-100 p-1.5 rounded-xl">
                       {(["sinal", "mensal", "semestral", "decoracao", "habitese"] as const).map((tab) => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveTab(tab)}
-                          className={`flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors ${
-                            activeTab === tab
-                              ? "text-gray-900 border-b-2 border-gray-900"
-                              : "text-gray-400 hover:text-gray-600"
-                          }`}
-                        >
-                          {tab === "habitese" ? "Financiamento" : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : tab === "semestral" ? "Semestrais" : "Decoração"}
+                        <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 min-w-[80px] px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all ${activeTab === tab ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700"}`}>
+                          {tab === "habitese" ? "Financ." : tab === "sinal" ? "Sinal" : tab === "mensal" ? "Mensais" : tab === "semestral" ? "Semest." : "Decoração"}
                         </button>
                       ))}
                     </div>
-                    <div className="p-4 border border-t-0 border-gray-200 rounded-b-xl max-h-96 overflow-y-auto custom-scrollbar">
-                      {activeTab === "sinal" && (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-100">
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Parcela</th>
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Data</th>
-                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Valor (R$)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {result.sinalRows.length > 0 ? result.sinalRows.map((row, i) => (
-                              <tr key={i} className="border-b border-gray-50">
-                                <td className="py-2 px-3">{row.parcela}</td>
-                                <td className="py-2 px-3">{row.data}</td>
-                                <td className="py-2 px-3 text-right font-semibold">{row.valor}</td>
-                              </tr>
-                            )) : (
-                              <tr><td colSpan={3} className="py-4 text-center text-gray-400">Nenhum dado</td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      )}
 
-                      {activeTab === "mensal" && (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-100">
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Parcela</th>
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Data</th>
-                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Valor (R$)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {result.monthlyRows.length > 0 ? result.monthlyRows.map((row, i) => (
-                              <tr key={i} className="border-b border-gray-50">
-                                <td className="py-2 px-3">{row.parcela}</td>
-                                <td className="py-2 px-3">{row.data}</td>
-                                <td className="py-2 px-3 text-right font-semibold">{row.valor}</td>
-                              </tr>
-                            )) : (
-                              <tr><td colSpan={3} className="py-4 text-center text-gray-400">Nenhum dado</td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      )}
-
-                      {activeTab === "semestral" && (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-100">
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Parcela</th>
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Data</th>
-                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Valor (R$)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {result.semesterRows.length > 0 ? result.semesterRows.map((row, i) => (
-                              <tr key={i} className="border-b border-gray-50">
-                                <td className="py-2 px-3">{row.parcela}</td>
-                                <td className="py-2 px-3">{row.data}</td>
-                                <td className="py-2 px-3 text-right font-semibold">{row.valor}</td>
-                              </tr>
-                            )) : (
-                              <tr><td colSpan={3} className="py-4 text-center text-gray-400">Nenhum dado</td></tr>
-                            )}
-                          </tbody>
-                        </table>
-                      )}
-
-                      {activeTab === "decoracao" && (
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-100">
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Parcela</th>
-                              <th className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Data</th>
-                              <th className="text-right py-2 px-3 text-xs font-semibold text-gray-400 uppercase">Valor (R$)</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {result.decorationRows.length > 0 ? result.decorationRows.map((row, i) => (
-                              <tr key={i} className="border-b border-gray-50">
-                                <td className="py-2 px-3">{row.parcela}</td>
-                                <td className="py-2 px-3">{row.data}</td>
-                                <td className="py-2 px-3 text-right font-semibold">{row.valor}</td>
-                              </tr>
-                            )) : (
-                              <tr><td colSpan={3} className="py-4 text-center text-gray-400">Nenhum dado</td></tr>
-                            )}
-                          </tbody>
-                          {result.decorationRows.length > 0 && (
-                            <tfoot>
-                              <tr className="border-t-2 border-gray-200 bg-gray-50">
-                                <td className="py-2 px-3 font-bold text-gray-900">Total</td>
-                                <td className="py-2 px-3"></td>
-                                <td className="py-2 px-3 text-right font-bold text-gray-900">{formatBRL(DECORATION_FEE)}</td>
-                              </tr>
-                            </tfoot>
-                          )}
-                        </table>
-                      )}
-
-                      {activeTab === "habitese" && (
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
-                            <p className="font-bold text-amber-900 text-lg">{formatBRL(result.habiteseAmount)}</p>
-                            <p className="text-sm text-amber-700 mt-1">Este valor pode ser quitado ou financiado com instituição financeira de preferência</p>
-                          </div>
-                          {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
-                            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                              <p className="font-bold text-amber-900 text-lg">{formatBRL(result.habiteseCorrected)}</p>
-                              <p className="text-sm text-amber-700 mt-1">Financiamento projetado pelo INCC* (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
-                            </div>
-                          )}
+                    {activeTab === "sinal" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.sinalRows.length > 0 ? result.sinalRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhum dado</td></tr>)}
+                            </tbody>
+                          </table>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {activeTab === "mensal" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.monthlyRows.length > 0 ? result.monthlyRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhum dado</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "semestral" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.semesterRows.length > 0 ? result.semesterRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhum dado</td></tr>)}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "decoracao" && (
+                      <div className="border border-slate-100 rounded-xl overflow-hidden">
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0 bg-slate-50"><tr className="border-b border-slate-100"><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Parc.</th><th className="text-left py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Data</th><th className="text-right py-2 px-4 text-xs font-semibold text-slate-500 uppercase">Valor</th></tr></thead>
+                            <tbody>
+                              {result.decorationRows.length > 0 ? result.decorationRows.map((row, i) => (<tr key={i} className="border-b border-slate-50 hover:bg-slate-50"><td className="py-2 px-4 font-medium text-slate-700">{row.parcela}</td><td className="py-2 px-4 text-slate-600">{row.data}</td><td className="py-2 px-4 text-right font-bold text-slate-900">{row.valor}</td></tr>)) : (<tr><td colSpan={3} className="py-4 text-center text-slate-400">Nenhum dado</td></tr>)}
+                            </tbody>
+                            {result.decorationRows.length > 0 && (
+                              <tfoot>
+                                <tr className="border-t-2 border-slate-200 bg-slate-50">
+                                  <td className="py-2 px-4 font-bold text-slate-900">Total</td>
+                                  <td className="py-2 px-4"></td>
+                                  <td className="py-2 px-4 text-right font-bold text-slate-900">{formatBRL(DECORATION_FEE)}</td>
+                                </tr>
+                              </tfoot>
+                            )}
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === "habitese" && (
+                      <div className="p-4 space-y-4 bg-slate-50">
+                        <div className="p-4 rounded-xl bg-white border border-slate-200">
+                          <p className="font-bold text-slate-900 text-xl">{formatBRL(result.habiteseAmount)}</p>
+                          <p className="text-sm text-slate-500 mt-1">Saldo para financiamento bancário</p>
+                        </div>
+                        {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
+                          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <p className="font-bold text-amber-900 text-xl">{formatBRL(result.habiteseCorrected)}</p>
+                            <p className="text-sm text-amber-700 mt-1">Projeção com INCC (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* PDF Button */}
                 {showResults && (
-                  <button
-                    onClick={generatePDF}
-                    className="mt-6 flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-colors shadow-lg"
-                  >
-                    <FileDown className="w-4 h-4" />
-                    Gerar PDF da Simulação
+                  <button onClick={generatePDF} className="mt-6 flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm transition-colors shadow-md hover:shadow-lg">
+                    <FileDown className="w-5 h-5" /> Gerar PDF da Simulação
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Important Info Card */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <Info className="w-5 h-5" />
-                  <h3 className="font-semibold">Informações Importantes</h3>
-                </div>
+            {/* Info Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Info className="w-5 h-5 text-blue-500" />
+                <h4 className="font-bold text-slate-800 text-sm">Informações Importantes</h4>
               </div>
-              <div className="p-6">
-                <div className="p-4 rounded-xl bg-gray-50 border-l-4 border-amber-400 text-sm text-gray-600 space-y-3">
-                  <ul className="space-y-3">
-                    <li>O sinal é pago à vista</li>
-                    <li>As parcelas mensais começam no mês seguinte ao sinal</li>
-                    <li>A primeira parcela semestral é 6 meses após o sinal</li>
-                    <li>O número de parcelas pagas durante as obras é calculado automaticamente com base na data do sinal e na entrega prevista para outubro de {DELIVERY_YEAR}</li>
-                    <li>O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência</li>
-                    <li><strong>Importante:</strong> Os valores dos saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC</li>
-                    <li><strong>Captação mínima:</strong> A captação durante as obras deve ser de no mínimo 15% do valor do imóvel</li>
-                    <li>A Taxa de Decoração de R$ 10.000,00 é dividida em parcelas mensais equivalentes aos meses restantes até a entrega</li>
-                  </ul>
-                </div>
-              </div>
+              <ul className="space-y-2 text-xs text-slate-500 list-disc list-inside">
+                <li>Captação mínima durante as obras: <strong>15%</strong> do valor do imóvel</li>
+                <li>Taxa de Decoração: <strong>R$ 10.000,00</strong> (parcelas mensais até a entrega)</li>
+                <li>Entrega prevista: <strong>Outubro de 2027</strong></li>
+                <li>Saldos devedores corrigidos mensalmente pelo INCC até o financiamento</li>
+              </ul>
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+      <footer className="border-t border-slate-200 bg-white mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-gray-400">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-slate-400">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              <span className="font-semibold text-gray-600">Espelho de Vendas</span>
+              <span className="font-semibold text-slate-600">Espelho de Vendas</span>
             </div>
             <span className="hidden sm:inline">•</span>
             <span>Simulador Villa Bianco</span>
             <span className="hidden sm:inline">•</span>
-            <span>&copy; {new Date().getFullYear()} - Todos os direitos reservados</span>
+            <span>&copy; {new Date().getFullYear()}</span>
           </div>
-          <p className="text-center text-xs text-gray-400 mt-2">
-            Este é um simulador de fluxo de pagamento. Valores sujeitos a alteração sem aviso prévio.
-          </p>
         </div>
       </footer>
     </div>
@@ -1218,16 +1019,14 @@ function SimulatorContent() {
 
 export default function SimuladorVillaBiancoPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
-          <div className="text-center">
-            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4 animate-pulse" />
-            <p className="text-gray-400 font-medium">Carregando simulador...</p>
-          </div>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-400 font-medium">Carregando simulador...</p>
         </div>
-      }
-    >
+      </div>
+    }>
       <SimulatorContent />
     </Suspense>
   );
