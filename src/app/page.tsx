@@ -145,14 +145,17 @@ function LoginForm() {
           }
 
           if (hasMfa) {
-            document.cookie = "mfa_pending=1; path=/; max-age=300; SameSite=Lax";
+            // S3-P1-001 FIX: Server sets mfa_pending as HttpOnly cookie.
+            // Client JS cannot manipulate HttpOnly cookies.
+            await fetch('/api/mfa/require', { method: 'POST' }).catch(() => {});
             router.push(`/mfa-verify?redirect=${encodeURIComponent(finalRedirect)}`);
           } else {
             router.push(finalRedirect);
           }
         } catch {
-          const redirectPath = isAdminEmail ? "/admin-sistema" : "/projetos";
-          router.push(redirectPath);
+          // S3-P1-002 FIX: On error, redirect to home (not dashboard).
+          // Do NOT skip MFA or subscription checks.
+          router.push('/?reason=login_error');
         }
         router.refresh();
       }
