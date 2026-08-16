@@ -1357,6 +1357,7 @@ interface PlanoFormState {
   preco: string;
   features: string;
   popular: boolean;
+  maior_economia: boolean;
   ativo: boolean;
   ordem: string;
 }
@@ -1368,6 +1369,7 @@ const EMPTY_PLANO_FORM: PlanoFormState = {
   preco: "",
   features: "",
   popular: false,
+  maior_economia: false,
   ativo: true,
   ordem: "",
 };
@@ -1566,6 +1568,7 @@ function AssinaturasTab({
       preco: String(plano.preco),
       features: featuresArr,
       popular: plano.popular as boolean || false,
+      maior_economia: plano.maior_economia as boolean || false,
       ativo: plano.ativo as boolean ?? true,
       ordem: plano.ordem ? String(plano.ordem) : "",
     });
@@ -1589,6 +1592,7 @@ function AssinaturasTab({
       preco: parseFloat(planoForm.preco),
       features,
       popular: planoForm.popular,
+      maior_economia: planoForm.maior_economia,
       ativo: planoForm.ativo,
     };
     if (planoForm.id) payload.id = planoForm.id;
@@ -1746,6 +1750,9 @@ function AssinaturasTab({
                       {plano.popular && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold">Popular</span>
                       )}
+                      {plano.maior_economia && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold">Maior economia</span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-500 mt-0.5">
                       R$ {Number(plano.preco).toFixed(2).replace(".", ",")} — {(plano.periodo_meses as number)}{"mes" + ((plano.periodo_meses as number) > 1 ? "es" : "")}
@@ -1865,6 +1872,15 @@ function AssinaturasTab({
                     className="rounded border-gray-300"
                   />
                   <span className="text-sm text-gray-700">Popular</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    checked={planoForm.maior_economia}
+                    onChange={(e) => setPlanoForm((p) => ({ ...p, maior_economia: e.target.checked }))}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Maior economia</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer pb-2">
                   <input

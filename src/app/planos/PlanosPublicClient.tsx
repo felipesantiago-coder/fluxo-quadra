@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check, Loader2, CreditCard, Shield, Zap,
   Crown, CalendarDays, Clock, Star, AlertCircle,
-  User, Mail, Lock, Eye, EyeOff, Building2, Tag, X, CheckCircle2,
+  User, Mail, Lock, Eye, EyeOff, Building2, Tag, X, CheckCircle2, TrendingDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -251,10 +251,11 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
             )}
           </AnimatePresence>
 
-          {/* Plan cards grid */}
+          {/* Plan cards */}
           <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
+              const isMelhorEconomia = plano.maior_economia;
               const precoMensal = Number(plano.preco) / plano.periodo_meses;
               const economia = mensalPrice > 0
                 ? Math.round((1 - precoMensal / mensalPrice) * 100)
@@ -262,6 +263,19 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               const semMpId = !plano.mercadopago_plan_id;
               const isHovered = hoveredPlanoId === plano.id;
               const isSelected = selectedPlano?.id === plano.id;
+
+              // Visual highlight is EXCLUSIVE: only the selected card gets it
+              const isSelectedVisual = isSelected;
+
+              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] cursor-pointer ';
+
+              if (isSelectedVisual) {
+                cardClassName += 'border-amber-500 ring-2 ring-amber-300 shadow-xl shadow-amber-200/60 -translate-y-1.5 scale-[1.02]';
+              } else if (isHovered) {
+                cardClassName += 'border-gray-400 shadow-xl shadow-gray-200/60 -translate-y-1.5 scale-[1.02]';
+              } else {
+                cardClassName += 'border-gray-200 shadow-sm';
+              }
 
               return (
                 <motion.div
@@ -271,23 +285,25 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   transition={{ duration: 0.4, delay: 0.08 * index }}
                   onMouseEnter={() => setHoveredPlanoId(plano.id)}
                   onMouseLeave={() => setHoveredPlanoId(null)}
-                  className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] cursor-pointer ${
-                    isSelected
-                      ? 'border-amber-500 ring-2 ring-amber-400 shadow-xl shadow-amber-200 -translate-y-1 scale-[1.02]'
-                      : isPopular
-                        ? isHovered
-                          ? 'border-amber-500 shadow-xl shadow-amber-200 -translate-y-1.5 scale-[1.02]'
-                          : 'border-amber-400 shadow-lg shadow-amber-100'
-                        : isHovered
-                          ? 'border-gray-400 shadow-xl shadow-gray-200 -translate-y-1.5 scale-[1.02]'
-                          : 'border-gray-200 shadow-sm'
-                  }`}
+                  onClick={() => handleSelectPlano(plano)}
+                  className={cardClassName}
                 >
+                  {/* Popular badge — only a label, no card highlight */}
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <Badge className="bg-amber-500 text-white border-0 px-3 py-1 text-xs font-bold shadow-sm">
                         <Star className="w-3 h-3 mr-1" />
                         Mais popular
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Maior economia badge */}
+                  {isMelhorEconomia && !isPopular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <Badge className="bg-emerald-500 text-white border-0 px-3 py-1 text-xs font-bold shadow-sm">
+                        <TrendingDown className="w-3 h-3 mr-1" />
+                        Maior economia
                       </Badge>
                     </div>
                   )}
@@ -338,9 +354,9 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                         </Button>
                       ) : (
                         <Button
-                          onClick={() => handleSelectPlano(plano)}
+                          onClick={(e) => { e.stopPropagation(); handleSelectPlano(plano); }}
                           className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
-                            isPopular
+                            isSelectedVisual
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
                               : 'bg-gray-900 hover:bg-gray-800 text-white'
                           }`}

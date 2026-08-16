@@ -94,6 +94,7 @@ export interface PlanoDB {
   preco: number;
   features: string[];
   popular: boolean;
+  maior_economia: boolean;
   ativo: boolean;
   ordem: number;
   mercadopago_plan_id: string | null;

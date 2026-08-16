@@ -90,13 +90,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Criar novo plano ──
-    const { nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
+    const { nome, descricao, periodo_meses, preco, features, popular, maior_economia, ativo, ordem } = body as {
       nome?: unknown;
       descricao?: unknown;
       periodo_meses?: unknown;
       preco?: unknown;
       features?: unknown;
       popular?: unknown;
+      maior_economia?: unknown;
       ativo?: unknown;
       ordem?: unknown;
     };
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
         preco,
         features: validatedFeatures,
         popular: popular === true,
+        maior_economia: maior_economia === true,
         ativo: ativo !== false,
         ordem: validatedOrdem ?? ((maxOrdem?.ordem || 0) + 1),
       })
@@ -209,7 +211,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, nome, descricao, periodo_meses, preco, features, popular, ativo, ordem } = body as {
+    const { id, nome, descricao, periodo_meses, preco, features, popular, maior_economia, ativo, ordem } = body as {
       id?: string;
       nome?: unknown;
       descricao?: unknown;
@@ -217,6 +219,7 @@ export async function PUT(request: NextRequest) {
       preco?: unknown;
       features?: unknown;
       popular?: unknown;
+      maior_economia?: unknown;
       ativo?: unknown;
       ordem?: unknown;
     };
@@ -287,6 +290,10 @@ export async function PUT(request: NextRequest) {
 
     if (popular !== undefined) {
       updates.popular = popular === true;
+    }
+
+    if (maior_economia !== undefined) {
+      updates.maior_economia = maior_economia === true;
     }
 
     if (ativo !== undefined) {
