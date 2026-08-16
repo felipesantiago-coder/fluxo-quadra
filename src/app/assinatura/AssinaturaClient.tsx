@@ -254,7 +254,8 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                   </div>
 
                   {/* Dados da assinatura */}
-                  <div className="mt-6 grid grid-cols-2 gap-4">
+                  {/* FIX #10: Responsive grid - 2 cols on mobile, 4 on sm+ */}
+                  <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div className="p-3 rounded-xl bg-gray-50">
                       <p className="text-xs text-gray-500">Valor do plano</p>
                       <p className="text-lg font-bold text-gray-900 mt-0.5">
@@ -262,12 +263,12 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                       </p>
                     </div>
                     <div className="p-3 rounded-xl bg-gray-50">
-                      <p className="text-xs text-gray-500">Método de pagamento</p>
+                      <p className="text-xs text-gray-500">Método</p>
                       <p className="text-sm font-semibold text-gray-900 mt-1 capitalize flex items-center gap-1.5">
-                        <CreditCard className="w-4 h-4 text-gray-400" />
-                        {assinatura.metodo_pagamento === 'credit_card' ? 'Cartão de crédito'
+                        <CreditCard className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span className="truncate">{assinatura.metodo_pagamento === 'credit_card' ? 'Cartão'
                           : assinatura.metodo_pagamento === 'pix' ? 'Pix'
-                          : assinatura.metodo_pagamento || '—'}
+                          : assinatura.metodo_pagamento || '—'}</span>
                       </p>
                     </div>
                     <div className="p-3 rounded-xl bg-gray-50">
@@ -276,10 +277,13 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                         {formatDate(assinatura.data_inicio)}
                       </p>
                     </div>
+                    {/* FIX #10: Show data_fim (end date) instead of proximo_ciclo for clarity */}
                     <div className="p-3 rounded-xl bg-gray-50">
-                      <p className="text-xs text-gray-500">Próximo ciclo</p>
+                      <p className="text-xs text-gray-500">{assinatura.status === 'lifetime' ? 'Tipo' : 'Vencimento'}</p>
                       <p className="text-sm font-semibold text-gray-900 mt-1">
-                        {formatDate(assinatura.proximo_ciclo_em)}
+                        {assinatura.status === 'lifetime'
+                          ? 'Vitalício'
+                          : formatDate(assinatura.data_fim)}
                       </p>
                     </div>
                   </div>

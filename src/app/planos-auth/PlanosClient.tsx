@@ -213,8 +213,8 @@ export default function PlanosClient({
             </motion.div>
           )}
 
-          {/* Plan cards */}
-          <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
+          {/* FIX #5: CSS Grid for proper alignment */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const isMelhorEconomia = plano.maior_economia;
@@ -231,7 +231,7 @@ export default function PlanosClient({
               // Visual highlight is EXCLUSIVE: only the selected card gets it
               const isSelectedVisual = isSelected && !isCurrentPlan;
 
-              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] cursor-pointer ';
+              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col cursor-pointer ';
 
               if (isCurrentPlan) {
                 cardClassName += 'ring-2 ring-emerald-400 border-emerald-300 shadow-lg shadow-emerald-100';

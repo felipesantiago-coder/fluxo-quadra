@@ -255,8 +255,8 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
             )}
           </AnimatePresence>
 
-          {/* Plan cards */}
-          <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
+          {/* FIX #5: CSS Grid instead of flex-wrap for proper alignment with any number of cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const isMelhorEconomia = plano.maior_economia;
@@ -271,7 +271,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               // Visual highlight is EXCLUSIVE: only the selected card gets it
               const isSelectedVisual = isSelected;
 
-              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] cursor-pointer ';
+              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col cursor-pointer ';
 
               if (isSelectedVisual) {
                 cardClassName += 'border-amber-500 ring-2 ring-amber-300 shadow-xl shadow-amber-200/60 -translate-y-1.5 scale-[1.02]';
