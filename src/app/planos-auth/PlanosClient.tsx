@@ -46,6 +46,7 @@ export default function PlanosClient({
   const [loadingPlanoId, setLoadingPlanoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<PlanoDB | null>(null);
+  const [hoveredPlanoId, setHoveredPlanoId] = useState<string | null>(null);
 
   const handleSelectPlano = (plano: PlanoDB) => {
     // Verificar se já tem assinatura ativa
@@ -158,7 +159,7 @@ export default function PlanosClient({
 
       {/* Main */}
       <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-8 sm:py-12">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Hero */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -210,7 +211,7 @@ export default function PlanosClient({
           )}
 
           {/* Plan cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 justify-items-center">
+          <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const precoMensal = Number(plano.preco) / plano.periodo_meses;
@@ -220,6 +221,7 @@ export default function PlanosClient({
               const isLoading = loadingPlanoId === plano.id;
               const isCurrentPlan = assinaturaAtiva?.plano?.id === plano.id;
               const semMpId = !plano.mercadopago_plan_id;
+              const isHovered = hoveredPlanoId === plano.id;
 
               return (
                 <motion.div
@@ -227,11 +229,19 @@ export default function PlanosClient({
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.08 * index }}
-                  className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full max-w-sm cursor-pointer ${
-                    isPopular
-                      ? 'border-amber-400 shadow-lg shadow-amber-100'
-                      : 'border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 hover:-translate-y-1'
-                  } ${isCurrentPlan ? 'ring-2 ring-emerald-400' : ''}`}
+                  onMouseEnter={() => setHoveredPlanoId(plano.id)}
+                  onMouseLeave={() => setHoveredPlanoId(null)}
+                  className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)] cursor-pointer ${
+                    isCurrentPlan
+                      ? 'ring-2 ring-emerald-400 border-emerald-300 shadow-lg shadow-emerald-100'
+                      : isPopular
+                        ? isHovered
+                          ? 'border-amber-500 shadow-xl shadow-amber-200 -translate-y-1.5 scale-[1.02]'
+                          : 'border-amber-400 shadow-lg shadow-amber-100'
+                        : isHovered
+                          ? 'border-gray-400 shadow-xl shadow-gray-200 -translate-y-1.5 scale-[1.02]'
+                          : 'border-gray-200 shadow-sm'
+                  }`}
                 >
                   {/* Popular badge */}
                   {isPopular && (
