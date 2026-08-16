@@ -2,24 +2,59 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+// Rate limiting simples in-memory (por IP)
+// Em produção com multiple instances, cada instancia tem seu proprio mapa.
+// Isso é suficiente pois o refresh acontece a cada 4 min — abusos seriam obvios.
+const refreshCounts = new Map<string, { count: number; resetAt: number }>();
+const REFRESH_WINDOW_MS = 60 * 1000; // 1 minuto
+const REFRESH_MAX_PER_WINDOW = 10; // max 10 refreshes por minuto por IP
+
 /**
  * GET /api/subscription-refresh
  *
  * Atualiza o cookie subscription_status com o status real do banco.
- * Chamado periodicamente pelo cliente (a cada 5 min) ou após login.
+ * Chamado periodicamente pelo cliente (a cada 4 min) ou após login.
  *
  * Retorna o status real e configura o cookie com TTL curto (5 min).
- * O cookie curto garante que o middleware sempre tera dados relativamente
- * recentes sem precisar chamar o banco a cada request.
  */
-export async function GET() {
+export async function GET(request: globalThis.Request) {
+  // Rate limiting por IP
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const now = Date.now();
+  const entry = refreshCounts.get(ip);
+
+  if (entry) {
+    if (now > entry.resetAt) {
+      // Janela expirou — resetar
+      refreshCounts.set(ip, { count: 1, resetAt: now + REFRESH_WINDOW_MS });
+    } else {
+      entry.count++;
+      if (entry.count > REFRESH_MAX_PER_WINDOW) {
+        return NextResponse.json(
+          { error: 'Muitas requisicoes. Tente novamente em instantes.' },
+          { status: 429, headers: { 'Retry-After': '60' } }
+        );
+      }
+    }
+  } else {
+    refreshCounts.set(ip, { count: 1, resetAt: now + REFRESH_WINDOW_MS });
+  }
+
+  // Limpar entradas antigas periodicamente (a cada 100 requests, limpar expiradas)
+  if (Math.random() < 0.01) {
+    for (const [key, val] of refreshCounts.entries()) {
+      if (now > val.resetAt) refreshCounts.delete(key);
+    }
+  }
+
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      const response = NextResponse.json({ authenticated: false });
-      // Limpar cookie se deslogado
+      const response = NextResponse.json({ authenticated: false }, {
+        headers: { 'Cache-Control': 'no-store', 'X-Refresh-Status': 'unauthenticated' },
+      });
       response.cookies.set('subscription_status', '', {
         path: '/',
         maxAge: 0,
@@ -43,10 +78,10 @@ export async function GET() {
         authenticated: true,
         status: 'active',
         isAdmin: true,
-      });
+      }, { headers: { 'Cache-Control': 'no-store' } });
       response.cookies.set('subscription_status', 'active', {
         path: '/',
-        maxAge: 300, // 5 minutos
+        maxAge: 300,
         sameSite: 'lax',
       });
       return response;
@@ -69,7 +104,7 @@ export async function GET() {
       if (assinatura.status === 'lifetime') {
         realStatus = 'lifetime';
       } else if (assinatura.data_fim && new Date(assinatura.data_fim) <= new Date()) {
-        realStatus = 'none'; // Expirada
+        realStatus = 'none';
       } else {
         realStatus = 'active';
       }
@@ -87,12 +122,11 @@ export async function GET() {
       authenticated: true,
       status: realStatus,
       isAdmin: false,
-    });
+    }, { headers: { 'Cache-Control': 'no-store' } });
 
-    // Definir cookie com TTL curto (5 min)
     response.cookies.set('subscription_status', realStatus, {
       path: '/',
-      maxAge: 300, // 5 minutos
+      maxAge: 300,
       sameSite: 'lax',
     });
 

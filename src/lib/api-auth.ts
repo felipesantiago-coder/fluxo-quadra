@@ -2,57 +2,32 @@
  * api-auth.ts
  *
  * Helpers compartilhados para autenticação e autorização em API routes.
- * Centraliza a lógica de verificação de admin usada por múltiplas APIs de units.
+ * Evita duplicação de chamadas de autenticação.
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { requireActiveSubscription, subscriptionDeniedResponse } from '@/lib/subscription-guard';
+import { requireActiveSubscription, subscriptionDeniedResponse, SubscriptionGuardResult } from '@/lib/subscription-guard';
 import { NextResponse } from 'next/server';
 
-// E-mails autorizados como admin
+// E-mails autorizados como admin (fallback legado)
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',')
   .map((e) => e.trim().toLowerCase())
   .filter((e) => e.length > 0);
 
 /**
- * Verifica se o usuário autenticado é admin.
- * Usa role do perfil (admin_sistema) como fonte primária.
- */
-async function isAdminFromProfile(): Promise<{ isAdmin: boolean; userId: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { isAdmin: false, userId: '' };
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const isAdmin = (profile as Record<string, unknown> | null)?.role === 'admin_sistema';
-  return { isAdmin, userId: user.id };
-}
-
-/**
  * Verifica se o usuário pode LER dados protegidos.
  * Admin sempre pode. Usuários normais precisam de assinatura ativa.
+ *
+ * Usa requireActiveSubscription() internamente (que já verifica admin),
+ * evitando chamadas duplicadas de autenticação.
  */
 export async function requireReadAccess(): Promise<NextResponse | null> {
-  // Admin tem acesso total
-  const { isAdmin } = await isAdminFromProfile();
-  if (isAdmin) return null;
-
-  // Usuário normal precisa de assinatura ativa
   const guard = await requireActiveSubscription();
   if (!guard.valid) {
     return subscriptionDeniedResponse(guard);
   }
-
-  return null; // Acesso permitido
+  return null;
 }
 
 /**
@@ -75,7 +50,7 @@ export async function requireWriteAccess(): Promise<NextResponse | null> {
     .maybeSingle();
 
   if ((profile as Record<string, unknown> | null)?.role === 'admin_sistema') {
-    return null; // Admin autorizado
+    return null;
   }
 
   // Fallback para e-mail (legado)
@@ -83,6 +58,5 @@ export async function requireWriteAccess(): Promise<NextResponse | null> {
     return null;
   }
 
-  console.warn(`[requireWriteAccess] Nao autorizado: ${user.email}`);
   return NextResponse.json({ error: 'Nao autorizado.' }, { status: 403 });
 }

@@ -1,27 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { timingSafeEqual } from 'crypto';
 
 /**
  * GET /api/cron/expire-subscriptions
  *
- * Vercel Cron Job — executado a cada hora.
+ * Vercel Cron Job — executado uma vez por dia (Hobby plan).
  * Encontra assinaturas ativas cujo data_fim ja passou e as expira.
  * Tambem corrige perfis com subscription_status inconsistente.
  *
- * Segurança: apenas acessível via Vercel Cron (header Authorization).
- * Em desenvolvimento, use ?secret=<CRON_SECRET> para testar.
+ * Segurança: apenas acessível via Vercel Cron (header Authorization)
+ * ou ?secret= para testes manuais.
  */
 export async function GET(request: NextRequest) {
-  // Verificação de autorização do cron
+  // Verificação de autorização do cron (timing-safe)
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
-
-  // Em produção: Vercel envia "Bearer <CRON_SECRET>"
-  // Em dev: query param ?secret=<CRON_SECRET>
   const querySecret = request.nextUrl.searchParams.get('secret');
   const providedSecret = authHeader?.replace('Bearer ', '') || querySecret;
 
-  if (!cronSecret || providedSecret !== cronSecret) {
+  // Timing-safe comparison para evitar timing attacks
+  if (!cronSecret || !safeEqual(providedSecret || '', cronSecret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -36,7 +35,6 @@ export async function GET(request: NextRequest) {
     };
 
     // 1. Encontrar assinaturas ativas com data_fim no passado
-    //    Usamos LTE (<=) em vez de LT (<) para incluir o momento exato do vencimento
     const { data: expiredSubs, error: fetchErr } = await supabase
       .from('assinaturas')
       .select('id, user_id, status, data_fim, plano:planos(nome)')
@@ -46,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (fetchErr) {
       console.error('[cron/expire] Erro ao buscar assinaturas:', fetchErr);
-      return NextResponse.json({ error: 'Erro ao buscar assinaturas.' }, { status: 500 });
+      return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
     }
 
     if (!expiredSubs || expiredSubs.length === 0) {
@@ -74,7 +72,8 @@ export async function GET(request: NextRequest) {
         .eq('status', 'active'); // CAS
 
       if (updateErr) {
-        results.errors.push(`Assinatura ${sub.id}: ${updateErr.message}`);
+        results.errors.push(`Assinatura ${sub.id}: erro ao atualizar.`);
+        console.error(`[cron/expire] Erro ao expirar assinatura ${sub.id}:`, updateErr);
         continue;
       }
 
@@ -126,7 +125,8 @@ export async function GET(request: NextRequest) {
         if (!fixErr) {
           results.profiles_updated = ids.length;
         } else {
-          results.errors.push(`Perfis fix: ${fixErr.message}`);
+          results.errors.push('Erro ao corrigir perfis inconsistentes.');
+          console.error('[cron/expire] Erro ao corrigir perfis:', fixErr);
         }
       }
     }
@@ -143,6 +143,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error('[cron/expire] Erro geral:', err);
+    // NAO revelar detalhes do erro em producao
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
+  }
+}
+
+/**
+ * Timing-safe comparison para evitar timing attacks.
+ */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const encoder = new TextEncoder();
+  try {
+    return timingSafeEqual(encoder.encode(a), encoder.encode(b));
+  } catch {
+    return false;
   }
 }

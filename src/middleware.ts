@@ -5,23 +5,8 @@ import { type NextRequest, NextResponse } from "next/server";
 // A fonte de verdade é o banco de dados, verificado por:
 //   1. subscription-guard.ts nas APIs (a cada request)
 //   2. /api/subscription-refresh (a cada 5 min via cliente)
-//   3. /api/cron/expire-subscriptions (a cada hora)
+//   3. /api/cron/expire-subscriptions (diário)
 const ALLOWED_SUB_STATUS_VALUES = new Set(['active', 'cancelled', 'lifetime', 'none', 'pending']);
-
-// Rotas de API que não precisam de proteção de assinatura
-const PUBLIC_API_PREFIXES = [
-  '/api/cron/',
-  '/api/webhooks/',
-  '/api/subscription-check',
-  '/api/subscription-refresh',
-  '/api/signup-subscribe',
-  '/api/plans/',
-  '/api/cupons/',
-  '/api/incc',
-  '/api/mfa/',
-  '/api/first-login/',
-  '/api/init-schema',
-];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -111,37 +96,38 @@ export async function middleware(request: NextRequest) {
     }
 
     // 4. Verificar assinatura via cookie (HINT de cache curto — 5 min)
-    //    O middleware faz verificação leve via cookie.
-    //    A verificação forte (com data_fim) acontece nas APIs via subscription-guard.
+    //    A verificação forte acontece nas APIs via subscription-guard.
     //
-    //    Comportamento:
-    //    - Cookie ausente ou inválido → permitir (fallback seguro; APIs verificam de verdade)
-    //    - Cookie = 'active'/'lifetime'/'cancelled'/'none' → permitir
+    //    Regras:
+    //    - Cookie ausente/inválido → permitir (fallback; APIs verificam de verdade)
+    //    - Cookie = 'active'/'lifetime' → permitir
     //    - Cookie = 'pending' → redirecionar para aguardando-pagamento
+    //    - Cookie = 'none'/'cancelled' → redirecionar para /assinatura
+    //
+    //    Exceções: admin-sistema e /assinatura nunca são redirecionados por assinatura
     const isAdminRoute = pathname.startsWith("/admin-sistema");
     const isAssinaturaRoute = pathname === "/assinatura";
 
+    // NAO verificar assinatura para rota de assinatura (evita loop de redirect)
+    // ou rotas de admin
     if (!isAdminRoute && !isAssinaturaRoute) {
       const subCookie = allCookies.find(
         (c) => c.name === "subscription_status"
       );
 
-      // Só redirecionar se o valor for 'pending' E estiver na allowlist.
-      if (subCookie && ALLOWED_SUB_STATUS_VALUES.has(subCookie.value) && subCookie.value === 'pending') {
-        const url = request.nextUrl.clone();
-        url.pathname = "/aguardando-pagamento";
-        return NextResponse.redirect(url);
-      }
+      if (subCookie && ALLOWED_SUB_STATUS_VALUES.has(subCookie.value)) {
+        if (subCookie.value === 'pending') {
+          const url = request.nextUrl.clone();
+          url.pathname = "/aguardando-pagamento";
+          return NextResponse.redirect(url);
+        }
 
-      // Se o cookie diz 'none' ou 'cancelled' e não é rota de assinatura,
-      // redirecionar para a página de planos (usuário sem acesso)
-      if (subCookie && ALLOWED_SUB_STATUS_VALUES.has(subCookie.value) &&
-          (subCookie.value === 'none' || subCookie.value === 'cancelled') &&
-          !isAssinaturaRoute && pathname !== "/planos") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/assinatura";
-        url.searchParams.set("reason", "no_subscription");
-        return NextResponse.redirect(url);
+        if (subCookie.value === 'none' || subCookie.value === 'cancelled') {
+          const url = request.nextUrl.clone();
+          url.pathname = "/assinatura";
+          url.searchParams.set("reason", "no_subscription");
+          return NextResponse.redirect(url);
+        }
       }
     }
   } catch {

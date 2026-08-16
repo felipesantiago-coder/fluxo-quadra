@@ -1,26 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getMpSubscription } from '@/lib/mercadopago';
+import { timingSafeEqual } from 'crypto';
 
 /**
  * GET /api/cron/reconcile-mp
  *
- * Vercel Cron Job — executado a cada 6 horas.
+ * Vercel Cron Job — executado uma vez por dia (Hobby plan).
  * Compara o status das assinaturas locais com o status no Mercado Pago.
  * Detecta:
  *  - Assinaturas locais 'active' mas canceladas/pausadas no MP
  *  - Assinaturas locais 'active' com preapproval que não existe mais no MP
+ *  - Assinaturas locais 'active' mas com data_fim ja passou
  *
- * Segurança: apenas acessível via Vercel Cron (header Authorization) ou ?secret=.
+ * Segurança: apenas acessível via Vercel Cron ou ?secret=.
  */
 export async function GET(request: NextRequest) {
-  // Verificação de autorização do cron
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   const querySecret = request.nextUrl.searchParams.get('secret');
   const providedSecret = authHeader?.replace('Bearer ', '') || querySecret;
 
-  if (!cronSecret || providedSecret !== cronSecret) {
+  if (!cronSecret || !safeEqual(providedSecret || '', cronSecret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -30,12 +31,14 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createAdminClient();
-    const agora = new Date().toISOString();
+    const agora = new Date();
+    const agoraISO = agora.toISOString();
     const results = {
       checked: 0,
       synced_cancelled: 0,
       synced_paused: 0,
       synced_missing: 0,
+      synced_expired: 0,
       errors: [] as string[],
     };
 
@@ -48,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     if (fetchErr) {
       console.error('[cron/reconcile-mp] Erro ao buscar assinaturas:', fetchErr);
-      return NextResponse.json({ error: 'Erro ao buscar assinaturas.' }, { status: 500 });
+      return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
     }
 
     if (!activeSubs || activeSubs.length === 0) {
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
         ok: true,
         message: 'Nenhuma assinatura ativa com ID do MP para reconciliar.',
         ...results,
-        checked_at: agora,
+        checked_at: agoraISO,
       });
     }
 
@@ -78,27 +81,27 @@ export async function GET(request: NextRequest) {
         const newStatus = statusMap[mpStatus];
 
         if (newStatus) {
-          const auditoria = `Reconciliado com Mercado Pago (status MP: ${mpStatus}) em ${agora}.`;
+          const auditoria = `Reconciliado com Mercado Pago (status MP: ${mpStatus}) em ${agoraISO}.`;
 
           const { count, error: updateErr } = await supabase
             .from('assinaturas')
             .update({
               status: newStatus,
               motivo_cancelamento: newStatus === 'cancelled' ? auditoria : undefined,
-              cancelado_em: newStatus === 'cancelled' ? agora : undefined,
+              cancelado_em: newStatus === 'cancelled' ? agoraISO : undefined,
               proximo_ciclo_em: null,
-              updated_at: agora,
+              updated_at: agoraISO,
             })
             .eq('id', sub.id)
             .eq('status', 'active'); // CAS
 
           if (updateErr) {
-            results.errors.push(`Sub ${sub.id}: update error: ${updateErr.message}`);
+            results.errors.push(`Sub ${sub.id}: erro ao atualizar.`);
+            console.error(`[cron/reconcile-mp] Erro ao atualizar assinatura ${sub.id}:`, updateErr);
           } else if (count && count > 0) {
             if (newStatus === 'cancelled') results.synced_cancelled++;
             if (newStatus === 'paused') results.synced_paused++;
 
-            // Atualizar perfil
             await supabase
               .from('profiles')
               .update({ subscription_status: 'none' })
@@ -109,21 +112,54 @@ export async function GET(request: NextRequest) {
             );
           }
         }
+
+        // Verificar data_fim localmente mesmo se MP diz active
+        // (caso o cron de expiração ainda não rodou)
+        if (!newStatus && sub.data_fim && new Date(sub.data_fim) <= agora) {
+          const auditoria = `Expirada durante reconciliacao MP em ${agoraISO}. data_fim=${sub.data_fim}.`;
+
+          const { count, error: updateErr } = await supabase
+            .from('assinaturas')
+            .update({
+              status: 'expired',
+              motivo_cancelamento: auditoria,
+              proximo_ciclo_em: null,
+              updated_at: agoraISO,
+            })
+            .eq('id', sub.id)
+            .eq('status', 'active');
+
+          if (!updateErr && count && count > 0) {
+            results.synced_expired++;
+            await supabase
+              .from('profiles')
+              .update({ subscription_status: 'none' })
+              .eq('id', sub.user_id);
+
+            console.log(`[cron/reconcile-mp] Assinatura ${sub.id} expirada (data_fim passou).`);
+          }
+        }
       } catch (mpErr: unknown) {
         const errMsg = mpErr instanceof Error ? mpErr.message : String(mpErr);
 
-        // Verificar se o erro é 404 (assinatura não existe mais no MP)
-        if (errMsg.includes('404') || errMsg.includes('not_found') || errMsg.includes('not found')) {
-          console.warn(`[cron/reconcile-mp] Assinatura ${mpId} nao existe mais no MP. Marcando como cancelled.`);
+        // Detectar 404 de forma mais confiavel: status HTTP no erro
+        const is404 =
+          errMsg.includes('404') ||
+          errMsg.includes('not_found') ||
+          errMsg.includes('Not found') ||
+          errMsg.includes('NOT_FOUND');
+
+        if (is404) {
+          console.warn(`[cron/reconcile-mp] Assinatura ${mpId} nao existe mais no MP.`);
 
           const { count, error: updateErr } = await supabase
             .from('assinaturas')
             .update({
               status: 'cancelled',
-              motivo_cancelamento: `Preapproval ${mpId} nao existe mais no Mercado Pago (reconciliacao em ${agora}).`,
-              cancelado_em: agora,
+              motivo_cancelamento: `Preapproval ${mpId} nao existe mais no Mercado Pago (reconciliacao em ${agoraISO}).`,
+              cancelado_em: agoraISO,
               proximo_ciclo_em: null,
-              updated_at: agora,
+              updated_at: agoraISO,
             })
             .eq('id', sub.id)
             .eq('status', 'active');
@@ -136,7 +172,8 @@ export async function GET(request: NextRequest) {
               .eq('id', sub.user_id);
           }
         } else {
-          results.errors.push(`Sub ${sub.id}: MP error: ${errMsg}`);
+          results.errors.push(`Sub ${sub.id}: erro ao verificar no MP.`);
+          console.error(`[cron/reconcile-mp] Erro ao verificar assinatura ${sub.id} no MP:`, errMsg);
         }
       }
 
@@ -145,17 +182,30 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(
-      `[cron/reconcile-mp] Concluido: ${results.checked} verificadas, ${results.synced_cancelled} canceladas, ${results.synced_paused} pausadas, ${results.synced_missing} removidas do MP.`
+      `[cron/reconcile-mp] Concluido: ${results.checked} verificadas, ${results.synced_cancelled} canceladas, ${results.synced_paused} pausadas, ${results.synced_missing} removidas do MP, ${results.synced_expired} expiradas por data_fim.`
     );
 
     return NextResponse.json({
       ok: true,
       message: `Reconciliacao concluida: ${results.checked} verificadas.`,
       ...results,
-      checked_at: agora,
+      checked_at: agoraISO,
     });
   } catch (err) {
     console.error('[cron/reconcile-mp] Erro geral:', err);
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 });
+  }
+}
+
+/**
+ * Timing-safe comparison para evitar timing attacks.
+ */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const encoder = new TextEncoder();
+  try {
+    return timingSafeEqual(encoder.encode(a), encoder.encode(b));
+  } catch {
+    return false;
   }
 }
