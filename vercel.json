@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/expire-subscriptions",
-      "schedule": "0 * * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/reconcile-mp",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
