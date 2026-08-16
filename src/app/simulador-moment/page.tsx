@@ -449,7 +449,7 @@ function SimulatorContent() {
       "O saldo devedor no financiamento pode ser quitado ou financiado com o banco de preferência.",
       "Importante: Os saldos devedores de todas as parcelas serão corrigidos mensalmente pelo INCC (Índice Nacional de Custo da Construção) até o financiamento.",
       "Captação mínima: A captação durante as obras deve ser de no mínimo 30% do valor do imóvel.",
-      "A Taxa de Decoração de R$ 19.505,00 é dividida em 10 parcelas fixas de R$ 1.950,50, pagas de abril de 2027 a janeiro de 2028 (10 meses antes da entrega).",
+      "A Taxa de Decoração de R$ 20.065,00 é dividida em 10 parcelas fixas de R$ 2.006,50, pagas de abril de 2027 a janeiro de 2028 (10 meses antes da entrega).",
       "Os valores, condições e disponibilidade apresentados podem sofrer alteração sem aviso prévio.",
     ];
     notes.forEach((note) => {
@@ -613,7 +613,7 @@ function SimulatorContent() {
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700">
                   <div className="flex flex-wrap items-center justify-between gap-1">
-                    <span className="font-medium text-slate-900">Taxa de Decoração (R$ 19.505,00):</span>
+                    <span className="font-medium text-slate-900">Taxa de Decoração (R$ 20.065,00):</span>
                     <span className="font-semibold text-slate-900">
                       {`10x de ${formatBRL(result.decorationInstallmentValue)} (abr/2027 a jan/2028)`}
                     </span>
@@ -865,7 +865,7 @@ function SimulatorContent() {
               </div>
               <ul className="space-y-2 text-xs text-slate-500 list-disc list-inside">
                 <li>Captação mínima durante as obras: <strong>30%</strong> do valor do imóvel</li>
-                <li>Taxa de Decoração: <strong>R$ 19.505,00</strong> (10x de abr/2027 a jan/2028)</li>
+                <li>Taxa de Decoração: <strong>R$ 20.065,00</strong> (10x de abr/2027 a jan/2028)</li>
                 <li>Entrega prevista: <strong>Fevereiro de 2028</strong></li>
                 <li>Saldos devedores corrigidos mensalmente pelo INCC até o financiamento</li>
               </ul>
