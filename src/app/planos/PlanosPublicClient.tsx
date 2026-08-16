@@ -251,7 +251,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
           </AnimatePresence>
 
           {/* Plan cards grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 justify-items-center">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const precoMensal = Number(plano.preco) / plano.periodo_meses;
@@ -266,10 +266,10 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.08 * index }}
-                  className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col ${
+                  className={`relative rounded-2xl border-2 transition-all duration-300 flex flex-col w-full max-w-sm cursor-pointer ${
                     isPopular
-                      ? 'border-amber-400 shadow-lg shadow-amber-100 scale-[1.02]'
-                      : 'border-gray-200 shadow-md hover:shadow-lg hover:border-gray-300'
+                      ? 'border-amber-400 shadow-lg shadow-amber-100'
+                      : 'border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 hover:-translate-y-1'
                   }`}
                 >
                   {isPopular && (
@@ -328,7 +328,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                       ) : (
                         <Button
                           onClick={() => handleSelectPlano(plano)}
-                          className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                          className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                             isPopular
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
                               : 'bg-gray-900 hover:bg-gray-800 text-white'
