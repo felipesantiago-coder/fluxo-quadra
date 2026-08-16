@@ -54,11 +54,15 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
   const [cupomId, setCupomId] = useState<string | null>(null);
 
   const handleSelectPlano = (plano: PlanoDB) => {
-    if (!plano.mercadopago_plan_id) {
+    setSelectedPlano(plano);
+  };
+
+  const handleOpenSignup = () => {
+    if (!selectedPlano) return;
+    if (!selectedPlano.mercadopago_plan_id) {
       setError('Este plano ainda nao esta disponivel para compra. Aguarde a configuracao pelo administrador.');
       return;
     }
-    setSelectedPlano(plano);
     setShowSignupDialog(true);
   };
 
@@ -354,7 +358,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                         </Button>
                       ) : (
                         <Button
-                          onClick={(e) => { e.stopPropagation(); handleSelectPlano(plano); }}
+                          onClick={(e) => { e.stopPropagation(); handleOpenSignup(); }}
                           className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                             isSelectedVisual
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
@@ -418,13 +422,15 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
 
       {/* Dialog de cadastro + assinatura */}
       <Dialog open={showSignupDialog} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Criar conta e assinar</DialogTitle>
             <DialogDescription>
               Preencha seus dados para criar a conta. Voce sera redirecionado ao pagamento apos o cadastro.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="overflow-y-auto -mx-1 px-1">
 
           {selectedPlano && (
             <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-100">
@@ -572,8 +578,9 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               </div>
             </div>
           </div>
+          </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+          <DialogFooter className="gap-2 sm:gap-0 mt-4 shrink-0">
             <Button
               variant="outline"
               onClick={handleCloseDialog}
@@ -597,11 +604,6 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               )}
             </Button>
           </DialogFooter>
-
-          <p className="text-[10px] text-gray-400 text-center mt-2">
-            Ao criar sua conta, voce concorda com nossos termos de uso.
-            O acesso sera liberado automaticamente apos a confirmacao do pagamento.
-          </p>
         </DialogContent>
       </Dialog>
     </div>
