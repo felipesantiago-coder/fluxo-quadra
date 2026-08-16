@@ -104,28 +104,49 @@ function LoginForm() {
             if (!hasMfa && passkeyRes.count && passkeyRes.count > 0) hasMfa = true;
           }
 
-          // ── Abordagem B: Verificar subscription_status para o cookie ──
+          // Verificar subscription_status para o cookie (TTL curto: 5 min)
           const isAdmin =
             (!profile && isAdminEmail) || profile?.role === "admin_sistema";
           if (isAdmin) {
             // Admin não precisa de verificação de assinatura
             document.cookie =
-              "subscription_status=active; path=/; max-age=31536000; SameSite=Lax";
+              "subscription_status=active; path=/; max-age=300; SameSite=Lax";
           } else {
-            // Buscar subscription_status do perfil
-            const { data: subProfile } = await supabase
-              .from("profiles")
-              .select("subscription_status")
-              .eq("id", data.user.id)
-              .maybeSingle();
-            const subStatus =
-              (subProfile as Record<string, unknown> | null)?.subscription_status ||
-              "none";
-            // Só define o cookie se o usuário tiver uma assinatura rastreada
-            // (pending, active, cancelled). Usuários legados com 'none' ficam sem
-            // cookie, e o middleware permite passar (backwards-compatible).
-            if (subStatus !== "none") {
-              document.cookie = `subscription_status=${subStatus}; path=/; max-age=31536000; SameSite=Lax`;
+            // Buscar status real via API de refresh (verifica data_fim)
+            try {
+              const refreshRes = await fetch('/api/subscription-refresh');
+              if (refreshRes.ok) {
+                const refreshData = await refreshRes.json();
+                if (refreshData.status) {
+                  document.cookie = `subscription_status=${refreshData.status}; path=/; max-age=300; SameSite=Lax`;
+                }
+              } else {
+                // Fallback: usar status do perfil
+                const { data: subProfile } = await supabase
+                  .from("profiles")
+                  .select("subscription_status")
+                  .eq("id", data.user.id)
+                  .maybeSingle();
+                const subStatus =
+                  (subProfile as Record<string, unknown> | null)?.subscription_status ||
+                  "none";
+                if (subStatus !== "none") {
+                  document.cookie = `subscription_status=${subStatus}; path=/; max-age=300; SameSite=Lax`;
+                }
+              }
+            } catch {
+              // Fallback silencioso — API de refresh falhou
+              const { data: subProfile } = await supabase
+                .from("profiles")
+                .select("subscription_status")
+                .eq("id", data.user.id)
+                .maybeSingle();
+              const subStatus =
+                (subProfile as Record<string, unknown> | null)?.subscription_status ||
+                "none";
+              if (subStatus !== "none") {
+                document.cookie = `subscription_status=${subStatus}; path=/; max-age=300; SameSite=Lax`;
+              }
             }
           }
 

@@ -55,8 +55,8 @@ export default function AguardandoPagamentoClient({
           // Parar polling
           if (intervalRef.current) clearInterval(intervalRef.current);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          // Setar cookie de assinatura ativa (Abordagem B)
-          document.cookie = 'subscription_status=active; path=/; max-age=31536000; SameSite=Lax';
+          // Setar cookie de assinatura ativa (TTL curto: 5 min)
+          document.cookie = 'subscription_status=active; path=/; max-age=300; SameSite=Lax';
           // Redirecionar após breve delay para o usuário ver o sucesso
           setTimeout(() => {
             router.push('/projetos');

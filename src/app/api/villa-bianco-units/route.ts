@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-
-// E-mails autorizados como admin
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter((e) => e.length > 0);
-
-async function isAdmin(supabase: Awaited<ReturnType<typeof createClient>>): Promise<boolean> {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    console.error("[isAdmin] Erro ao obter usuário:", error?.message);
-    return false;
-  }
-  if (ADMIN_EMAILS.length === 0) return false; // Negar acesso se ADMIN_EMAILS não configurado (fail-closed)
-  const isAuthorized = ADMIN_EMAILS.includes(user.email?.toLowerCase() || "");
-  if (!isAuthorized) {
-    console.warn(`[isAdmin] E-mail não autorizado: ${user.email}`);
-  }
-  return isAuthorized;
-}
+import { requireReadAccess, requireWriteAccess } from "@/lib/api-auth";
 
 export async function GET() {
   try {
+    const denied = await requireReadAccess();
+    if (denied) return denied;
+
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -46,12 +30,10 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const denied = await requireWriteAccess();
+    if (denied) return denied;
+
     const supabase = await createClient();
-
-    if (!(await isAdmin(supabase))) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
-    }
-
     const body = await request.json();
     const { bloco, unidade, status } = body;
 
@@ -86,12 +68,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const denied = await requireWriteAccess();
+    if (denied) return denied;
+
     const supabase = await createClient();
-
-    if (!(await isAdmin(supabase))) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
-    }
-
     const body = await request.json();
     const { updates } = body;
 

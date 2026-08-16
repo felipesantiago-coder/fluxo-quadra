@@ -1,20 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireActiveSubscription, subscriptionDeniedResponse } from "@/lib/subscription-guard";
 
 export const dynamic = "force-dynamic";
 
 // Endpoint otimizado: busca empreendimentos + contagem de unidades em 2 queries
-// (antes: N+1 — uma query COUNT por empreendimento)
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    // Verificar assinatura ativa (inclui verificação de data_fim)
+    const guard = await requireActiveSubscription();
+    if (!guard.valid) {
+      return subscriptionDeniedResponse(guard);
     }
+
+    const supabase = await createClient();
 
     // Query 1: Buscar empreendimentos ativos
     const { data: emps, err } = await supabase
@@ -24,17 +23,16 @@ export async function GET() {
       .order("created_at", { ascending: true });
 
     if (err || !emps || emps.length === 0) {
-      return NextResponse.json({ empreendimentos: [], total: 0, mfa_enabled: false });
+      return NextResponse.json({ empreendimentos: [], total: 0 });
     }
 
-    // Query 2: Buscar contagem de unidades em LOTE (uma única query)
+    // Query 2: Buscar contagem de unidades em LOTE
     const empIds = emps.map(e => e.id);
     const { data: counts } = await supabase
       .from("projeto_units")
       .select("empreendimento_id")
       .in("empreendimento_id", empIds);
 
-    // Agrupar contagem por empreendimento_id
     const countMap = new Map<string, number>();
     if (counts) {
       for (const c of counts) {
@@ -48,8 +46,9 @@ export async function GET() {
       unit_count: countMap.get(emp.id) || 0,
     }));
 
-    return NextResponse.json({ empreendimentos: enriched, total: enriched.length, mfa_enabled: false });
-  } catch {
-    return NextResponse.json({ empreendimentos: [], total: 0, mfa_enabled: false });
+    return NextResponse.json({ empreendimentos: enriched, total: enriched.length });
+  } catch (err) {
+    console.error('[GET /api/empreendimentos] Erro:', err);
+    return NextResponse.json({ error: "Erro interno." }, { status: 500 });
   }
 }

@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';  import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';  import { createClient } from '@/lib/supabase/server';  import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * GET /api/subscription-check
- * Verifica se o usuário logado tem assinatura ativa.
+ * Verifica se o usuário logado tem assinatura ativa E dentro do período válido.
  * Usado pela página /aguardando-pagamento para poll.
  */
 export async function GET() {
@@ -14,12 +14,15 @@ export async function GET() {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    // Verificar assinatura ativa ou vitalícia
-    const { data: assinatura } = await supabase
+    // Verificar assinatura ativa ou vitalícia, INCLUINDO verificação de data_fim
+    const admin = createAdminClient();
+    const { data: assinatura } = await admin
       .from('assinaturas')
-      .select('id, status, plano:planos(nome)')
+      .select('id, status, data_fim, plano:planos(nome)')
       .eq('user_id', user.id)
       .in('status', ['active', 'lifetime'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     // Verificar perfil
@@ -30,6 +33,24 @@ export async function GET() {
       .maybeSingle();
 
     if (assinatura) {
+      // Verificar se a assinatura está dentro do período
+      const isExpired = assinatura.status !== 'lifetime' &&
+        assinatura.data_fim &&
+        new Date(assinatura.data_fim) <= new Date();
+
+      if (isExpired) {
+        // Assinatura vencida — não considerar ativa
+        return NextResponse.json({
+          authenticated: true,
+          subscriptionActive: false,
+          subscriptionExpired: true,
+          profile: {
+            displayName: profile?.display_name || '',
+            subscriptionStatus: profile?.subscription_status || 'none',
+          },
+        });
+      }
+
       return NextResponse.json({
         authenticated: true,
         subscriptionActive: true,

@@ -137,11 +137,18 @@ export interface PagamentoDB {
 // ── Helpers ───────────────────────────────────────────────────
 
 /**
- * Verifica se o usuário possui assinatura ativa.
+ * Verifica se o usuário possui assinatura ativa E dentro do período válido.
  */
 export function isSubscriptionActive(assinatura: AssinaturaDB | null): boolean {
   if (!assinatura) return false;
-  return assinatura.status === 'active';
+  if (assinatura.status === 'lifetime') return true;
+  if (assinatura.status !== 'active') return false;
+  // Verificar data_fim
+  if (assinatura.data_fim) {
+    return new Date(assinatura.data_fim) > new Date();
+  }
+  // Sem data_fim (plano pré-migration) — considerar ativo
+  return true;
 }
 
 /**

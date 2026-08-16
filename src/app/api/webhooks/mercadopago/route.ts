@@ -408,7 +408,7 @@ async function handlePreapprovalEvent(
       try {
         const { error: profileErr } = await supabase
           .from('profiles')
-          .update({ subscription_status: ourStatus === 'active' ? 'active' : 'cancelled' })
+          .update({ subscription_status: ourStatus === 'active' ? 'active' : 'none' })
           .eq('id', assinatura.user_id);
         if (profileErr) {
           console.error(`[Webhook MP] Erro ao atualizar perfil ${assinatura.user_id}:`, profileErr);
