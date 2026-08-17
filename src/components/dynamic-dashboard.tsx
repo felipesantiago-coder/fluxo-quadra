@@ -174,6 +174,7 @@ function UnitCard({
   }, [feedback]);
 
   const updateStatus = async (newStatus: UnitStatus) => {
+    if (saving) return;
     if (!onStatusChange || newStatus === unit.status) return;
     setSaving(true);
     setFeedback(null);
@@ -285,7 +286,7 @@ function UnitCard({
                 <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
               )}
               {status.label}
-              {isAdmin && !showStatusMenu && (
+              {isAdmin && !showStatusMenu && !updateMode && (
                 <span className="ml-0.5 opacity-50">▾</span>
               )}
             </button>
