@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Clock, CheckCircle2, Loader2, CreditCard,
@@ -134,11 +135,12 @@ export default function AguardandoPagamentoClient({
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/logo.svg"
                 alt="Logo Fluxo Quadra"
-                className="w-9 h-9 rounded-lg"
+                width={36}
+                height={36}
+                className="rounded-lg"
               />
               <div>
                 <h1 className="text-lg font-bold tracking-tight">
