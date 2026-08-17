@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { requireReadAccess } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error, role } = await getUserAndRole();
-    if (error) return error;
+    // Leitura: admin sempre pode; usuários comuns precisam de assinatura ativa
+    const readDenied = await requireReadAccess();
+    if (readDenied) return readDenied;
 
-    // Apenas coordenador ou admin podem acessar dados de unidades por empreendimento
-    if (!role || (role !== "coordenador" && role !== "admin_sistema")) {
-      return NextResponse.json({ error: "Sem permissão" }, { status: 403 });
-    }
+    const supabase = await createClient();
 
     const { id } = await params;
 

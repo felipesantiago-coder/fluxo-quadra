@@ -64,7 +64,8 @@ export async function requireActiveSubscription(): Promise<SubscriptionGuardResp
     .eq('id', user.id)
     .maybeSingle();
 
-  const isAdmin = (profile as Record<string, unknown> | null)?.role === 'admin_sistema';
+  const userRole = (profile as Record<string, unknown> | null)?.role as string | null;
+  const isAdmin = userRole === 'admin_sistema' || userRole === 'coordenador';
 
   if (isAdmin) {
     return {
