@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { coordenadorHasAccess } from "@/lib/coordinator-access";
 import DynamicDashboard from "@/components/dynamic-dashboard";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,11 @@ export default async function EmpreendimentoPage({
         .select("role")
         .eq("id", user.id)
         .single();
-      if (profile?.role === "admin_sistema" || profile?.role === "coordenador") isAdmin = true;
+      if (profile?.role === "admin_sistema") isAdmin = true;
+      if (profile?.role === "coordenador") {
+        const hasAccess = await coordenadorHasAccess(user.id, id);
+        if (hasAccess) isAdmin = true;
+      }
     } catch {
       // Tabela profiles pode não existir — isAdmin já foi definido pelo email check
     }

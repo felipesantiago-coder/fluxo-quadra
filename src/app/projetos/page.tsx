@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCoordenadorEmpreendimentos } from "@/lib/coordinator-access";
 import ProjetosClient from "./ProjetosClient";
 
 interface EmpreendimentoData {
@@ -139,6 +140,16 @@ export default async function ProjetosPage() {
       ...emp,
       unit_count: countMap.get(emp.id) || 0,
     }));
+
+    // Coordenador: filtrar apenas empreendimentos atribuídos
+    if (userRole === "coordenador") {
+      const allowedIds = await getCoordenadorEmpreendimentos(user.id);
+      if (allowedIds !== null) {
+        // null = tabela não existe = sem restrição (migration não executada)
+        const allowedSet = new Set(allowedIds);
+        empreendimentos = empreendimentos.filter(emp => allowedSet.has(emp.id));
+      }
+    }
   }
 
   return (

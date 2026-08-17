@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import AssinaturasTab from "./AssinaturasTab";
 import CuponsTab from "./CuponsTab";
+import CoordenadorEmpreendimentosModal from "@/components/CoordenadorEmpreendimentosModal";
 
 type AdminTab = "empreendimentos" | "usuarios" | "assinaturas" | "cupons";
 
@@ -110,6 +111,9 @@ export default function AdminSistemaClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [updatingRole, setUpdatingRole] = useState<Record<string, boolean>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Coordenador empreendimentos modal
+  const [empModalUser, setEmpModalUser] = useState<{ id: string; nome: string } | null>(null);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -855,6 +859,7 @@ export default function AdminSistemaClient() {
                       <tr className="border-b border-gray-100 bg-gray-50/50">
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Role</th>
+                        <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Empreendimentos</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Segurança</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Criado em</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -898,6 +903,20 @@ export default function AdminSistemaClient() {
                                 <option value="coordenador">Coordenador</option>
                                 <option value="admin_sistema">Administrador</option>
                               </select>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 hidden lg:table-cell">
+                            {u.role === "coordenador" ? (
+                              <button
+                                onClick={() => setEmpModalUser({ id: u.id, nome: u.display_name || u.email.split("@")[0] })}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                title="Gerenciar empreendimentos"
+                              >
+                                <Building2 className="w-3 h-3" />
+                                Gerenciar
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -1283,6 +1302,16 @@ export default function AdminSistemaClient() {
         )}
       </AnimatePresence>
 
+
+      {/* ── Coordenador Empreendimentos Modal ─────────────────────── */}
+      {empModalUser && (
+        <CoordenadorEmpreendimentosModal
+          coordenadorId={empModalUser.id}
+          coordenadorNome={empModalUser.nome}
+          onClose={() => setEmpModalUser(null)}
+          onSaved={() => addToast("success", `Empreendimentos de ${empModalUser.nome} atualizados`)}
+        />
+      )}
 
       {/* ── Toast Notifications ─────────────────────────────────────────── */}
       <div className="fixed bottom-6 right-6 z-[400] flex flex-col gap-2 max-w-sm">

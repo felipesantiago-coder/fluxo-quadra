@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireReadAccess } from "@/lib/api-auth";
+import { coordenadorHasAccess } from "@/lib/coordinator-access";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { supabase, error, role } = await getUserAndRole();
+    const { supabase, error, role, user } = await getUserAndRole();
     if (error) return error;
 
     if (!role || (role !== "coordenador" && role !== "admin_sistema")) {
@@ -72,6 +73,14 @@ export async function PATCH(
     }
 
     const { id } = await params;
+
+    // Coordenador só pode alterar unidades de empreendimentos atribuídos
+    if (role === "coordenador" && user) {
+      const hasAccess = await coordenadorHasAccess(user.id, id);
+      if (!hasAccess) {
+        return NextResponse.json({ error: "Sem permissão para este empreendimento" }, { status: 403 });
+      }
+    }
     const body = await request.json();
     const { unidade, status } = body;
 
