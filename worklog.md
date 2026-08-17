@@ -29,3 +29,21 @@ Stage Summary:
 - Variável de ambiente necessária: CRON_SECRET (configurar no Vercel)
 
 ---
+---
+Task ID: 2
+Agent: main
+Task: Auditoria completa da integracao Mercado Pago
+
+Work Log:
+- Leitura e analise de 12 arquivos da integracao MP
+- Identificadas 3 falhas criticas + 2 medias + pontos positivos
+
+Falhas criticas corrigidas:
+1. Usuario novo sem sessao apos retorno do MP
+2. cupom_usos.assinatura_id null no signup causava rejeicao de pagamentos com cupom
+3. Renovacoes recorrentes nao estendiam data_fim
+
+Stage Summary:
+- 3 arquivos corrigidos, commit 8b26e9f
+
+---
