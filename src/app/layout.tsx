@@ -14,7 +14,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
 export const metadata: Metadata = {
+  ...(siteUrl && { metadataBase: new URL(siteUrl) }),
   title: "Espelho de Vendas — Empreendimentos",
   description:
     "Espelho de vendas interativo. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
@@ -35,6 +40,20 @@ export const metadata: Metadata = {
     title: "Espelho de Vendas — Empreendimentos",
     description: "Explore todas as unidades disponíveis dos empreendimentos.",
     type: "website",
+    images: [
+      {
+        url: "/og-preview.png",
+        width: 1200,
+        height: 630,
+        alt: "Espelho de Vendas — Empreendimentos",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Espelho de Vendas — Empreendimentos",
+    description: "Explore todas as unidades disponíveis dos empreendimentos.",
+    images: ["/og-preview.png"],
   },
 };
 
