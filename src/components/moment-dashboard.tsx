@@ -11,7 +11,7 @@ import {
   type MomentUnit,
   momentUnits as staticUnits,
 } from "@/lib/moment-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Sun, Calculator } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Sun, Calculator, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,13 @@ const allStatuses: { value: MomentUnit["status"]; label: string; dotColor: strin
   { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
 ];
 
+const statusCycle: MomentUnit["status"][] = ["disponivel", "reservado", "vendido"];
+function getNextStatus(current: MomentUnit["status"]): MomentUnit["status"] {
+  const idx = statusCycle.indexOf(current);
+  if (idx === -1) return statusCycle[0];
+  return statusCycle[(idx + 1) % statusCycle.length];
+}
+
 const statusTypes = ["disponivel", "reservado", "vendido"] as const;
 
 // ─── Unit Card ───
@@ -71,12 +78,14 @@ function UnitCard({
   isBackground,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   unit: MomentUnit;
   onSelect: (unit: MomentUnit) => void;
   isBackground: boolean;
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: MomentUnit["status"]) => void;
+  updateMode?: boolean;
 }) {
   const colors = typeColors[unit.tipologia];
   const status = statusLabels[unit.status];
@@ -97,16 +106,9 @@ function UnitCard({
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isAdmin) setShowStatusMenu(!showStatusMenu);
-  };
-
-  const handleStatusSelect = async (e: React.MouseEvent, newStatus: MomentUnit["status"]) => {
-    e.stopPropagation();
-    setShowStatusMenu(false);
+  const updateStatus = async (newStatus: MomentUnit["status"]) => {
+    if (saving) return;
     if (!onStatusChange || newStatus === unit.status) return;
-
     setSaving(true);
     setFeedback(null);
     try {
@@ -131,6 +133,20 @@ function UnitCard({
       setSaving(false);
     }
   };
+  const handleCardClick = () => {
+    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    onSelect(unit);
+  };
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+  };
+  const handleStatusSelect = async (e: React.MouseEvent, newStatus: MomentUnit["status"]) => {
+    e.stopPropagation();
+    setShowStatusMenu(false);
+    await updateStatus(newStatus);
+  };
 
   return (
     <motion.div
@@ -145,13 +161,14 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
-      onClick={() => onSelect(unit)}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
+      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      onClick={handleCardClick}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        border-gray-100
+        ${updateMode && !isBackground ? "cursor-pointer ring-2 ring-amber-400/60 hover:ring-amber-400 border-amber-200" : "cursor-pointer border-gray-100"}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
@@ -180,7 +197,7 @@ function UnitCard({
                 <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
               )}
               {status.label}
-              {isAdmin && !showStatusMenu && <span className="ml-0.5 opacity-50">▾</span>}
+              {isAdmin && !showStatusMenu && !updateMode && <span className="ml-0.5 opacity-50">▾</span>}
             </button>
 
             {/* Dropdown de status */}
@@ -452,6 +469,7 @@ function FloorSection({
   onToggle,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   floor: number;
   floorUnits: MomentUnit[];
@@ -461,6 +479,7 @@ function FloorSection({
   onToggle: () => void;
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: MomentUnit["status"]) => void;
+  updateMode?: boolean;
 }) {
   const tipologiasInFloor = [...new Set(floorUnits.map((u) => u.tipologia))];
   const totalInFloor = floorUnits.length;

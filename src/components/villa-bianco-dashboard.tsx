@@ -12,7 +12,7 @@ import {
   type VillaBiancoBloco,
   villaBiancoUnits as staticUnits,
 } from "@/lib/villa-bianco-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Calculator, Sun } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, BedDouble, Check, LogOut, Calculator, Sun, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +91,13 @@ const allStatuses: { value: VillaBiancoUnit["status"]; label: string; dotColor: 
   { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
 ];
 
+const statusCycle: VillaBiancoUnit["status"][] = ["disponivel", "reservado", "vendido"];
+function getNextStatus(current: VillaBiancoUnit["status"]): VillaBiancoUnit["status"] {
+  const idx = statusCycle.indexOf(current);
+  if (idx === -1) return statusCycle[0];
+  return statusCycle[(idx + 1) % statusCycle.length];
+}
+
 const statusTypes = ["disponivel", "reservado", "vendido"] as const;
 
 // ─── Posição Solar ───
@@ -109,12 +116,14 @@ function UnitCard({
   isBackground,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   unit: VillaBiancoUnit;
   onSelect: (unit: VillaBiancoUnit) => void;
   isBackground: boolean;
   isAdmin?: boolean;
   onStatusChange?: (bloco: VillaBiancoBloco, unidade: number, newStatus: VillaBiancoUnit["status"]) => void;
+  updateMode?: boolean;
 }) {
   const colors = typeColors[unit.tipologia];
   const status = statusLabels[unit.status];
@@ -135,16 +144,9 @@ function UnitCard({
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isAdmin) setShowStatusMenu(!showStatusMenu);
-  };
-
-  const handleStatusSelect = async (e: React.MouseEvent, newStatus: VillaBiancoUnit["status"]) => {
-    e.stopPropagation();
-    setShowStatusMenu(false);
+  const updateStatus = async (newStatus: VillaBiancoUnit["status"]) => {
+    if (saving) return;
     if (!onStatusChange || newStatus === unit.status) return;
-
     setSaving(true);
     setFeedback(null);
     try {
@@ -169,6 +171,20 @@ function UnitCard({
       setSaving(false);
     }
   };
+  const handleCardClick = () => {
+    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    onSelect(unit);
+  };
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+  };
+  const handleStatusSelect = async (e: React.MouseEvent, newStatus: VillaBiancoUnit["status"]) => {
+    e.stopPropagation();
+    setShowStatusMenu(false);
+    await updateStatus(newStatus);
+  };
 
   return (
     <motion.div
@@ -183,13 +199,14 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
-      onClick={() => onSelect(unit)}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
+      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      onClick={handleCardClick}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        border-gray-100
+        ${updateMode && !isBackground ? "cursor-pointer ring-2 ring-amber-400/60 hover:ring-amber-400 border-amber-200" : "cursor-pointer border-gray-100"}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
@@ -221,7 +238,7 @@ function UnitCard({
                 <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
               )}
               {status.label}
-              {isAdmin && !showStatusMenu && <span className="ml-0.5 opacity-50">▾</span>}
+              {isAdmin && !showStatusMenu && !updateMode && <span className="ml-0.5 opacity-50">▾</span>}
             </button>
 
             {/* Dropdown de status */}
@@ -492,6 +509,7 @@ function BlockSection({
   onToggle,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   bloco: VillaBiancoBloco;
   blockUnits: VillaBiancoUnit[];
@@ -501,6 +519,7 @@ function BlockSection({
   onToggle: () => void;
   isAdmin?: boolean;
   onStatusChange?: (bloco: VillaBiancoBloco, unidade: number, newStatus: VillaBiancoUnit["status"]) => void;
+  updateMode?: boolean;
 }) {
   const tipologiasInBlock = [...new Set(blockUnits.map((u) => u.tipologia))];
   const totalInBlock = blockUnits.length;
@@ -562,6 +581,7 @@ function BlockSection({
                   isBackground={selectedUnit !== null && !(selectedUnit.bloco === unit.bloco && selectedUnit.unidade === unit.unidade)}
                   isAdmin={isAdmin}
                   onStatusChange={onStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>
@@ -592,7 +612,7 @@ function Legend() {
 }
 
 // ─── Main Dashboard ───
-export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
+export default function VillaBiancoDashboard({ isAdmin = false, isCoordinator = false, hideHeader = false }: { isAdmin?: boolean; isCoordinator?: boolean; hideHeader?: boolean }) {
   const router = useRouter();
   const [units, setUnits] = useState<VillaBiancoUnit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<VillaBiancoUnit | null>(null);
@@ -603,6 +623,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
   const [filterStatus, setFilterStatus] = useState<VillaBiancoUnit["status"] | "all">("all");
   const [filterPosicaoSolar, setFilterPosicaoSolar] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"bloco" | "price-asc" | "price-desc">("bloco");
+  const [updateMode, setUpdateMode] = useState(false);
 
   // Buscar dados do Supabase via API + Realtime
   useEffect(() => {
@@ -695,6 +716,8 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
     setSelectedUnit(null);
   }, []);
 
+  useEffect(() => { if (updateMode) setSelectedUnit(null); }, [updateMode]);
+
   const toggleBlock = useCallback((bloco: VillaBiancoBloco) => {
     setCollapsedBlocks((prev) => {
       const next = new Set(prev);
@@ -738,6 +761,12 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   Projetos
                 </a>
+                {isCoordinator && isAdmin && (
+                  <button onClick={() => setUpdateMode(!updateMode)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${updateMode ? "bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"}`} title={updateMode ? "Desativar modo de atualização" : "Ativar modo de atualização"}>
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{updateMode ? "Atualização ON" : "Modo Atualização"}</span>
+                  </button>
+                )}
                 <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real
@@ -753,6 +782,13 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
             </div>
           </div>
         </header>
+      )}
+      {updateMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-center gap-2">
+          <Pencil className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-sm font-semibold text-amber-700">Modo de Atualização Ativado — Clique em qualquer unidade para alterar o status</p>
+          <button onClick={() => setUpdateMode(false)} className="ml-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline underline-offset-2 flex-shrink-0">Desativar</button>
+        </div>
       )}
 
       <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
@@ -896,6 +932,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                   onToggle={() => toggleBlock(bloco)}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               );
             })}
@@ -921,6 +958,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, hideHeader = fal
                   isBackground={false}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>

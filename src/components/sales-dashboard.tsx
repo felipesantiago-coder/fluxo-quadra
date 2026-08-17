@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { floors, areaTypes, statusTypes, formatCurrency, type Unit, units as staticUnits } from "@/lib/units-data";
-import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check, LogOut } from "lucide-react";
+import { Building2, Car, Maximize2, DollarSign, ChevronUp, Filter, X, Sun, BedDouble, Calculator, Check, LogOut, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,13 @@ const allStatuses: { value: Unit["status"]; label: string; dotColor: string }[] 
   { value: "vendido", label: "Vendida", dotColor: "bg-red-500" },
 ];
 
+const statusCycle: Unit["status"][] = ["disponivel", "reservado", "vendido"];
+function getNextStatus(current: Unit["status"]): Unit["status"] {
+  const idx = statusCycle.indexOf(current);
+  if (idx === -1) return statusCycle[0];
+  return statusCycle[(idx + 1) % statusCycle.length];
+}
+
 // ─── Unit Card (compact grid card) ───
 function UnitCard({
   unit,
@@ -60,12 +67,14 @@ function UnitCard({
   isBackground,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   unit: Unit;
   onSelect: (unit: Unit) => void;
   isBackground: boolean;
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
+  updateMode?: boolean;
 }) {
   const colors = typeColors[unit.tipoArea];
   const status = statusLabels[unit.status];
@@ -88,16 +97,9 @@ function UnitCard({
     return () => clearTimeout(timer);
   }, [feedback]);
 
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isAdmin) setShowStatusMenu(!showStatusMenu);
-  };
-
-  const handleStatusSelect = async (e: React.MouseEvent, newStatus: Unit["status"]) => {
-    e.stopPropagation();
-    setShowStatusMenu(false);
+  const updateStatus = async (newStatus: Unit["status"]) => {
+    if (saving) return;
     if (!onStatusChange || newStatus === unit.status) return;
-
     setSaving(true);
     setFeedback(null);
     try {
@@ -123,6 +125,31 @@ function UnitCard({
     }
   };
 
+  const handleCardClick = () => {
+    if (updateMode && isAdmin) {
+      const next = getNextStatus(unit.status);
+      updateStatus(next);
+      return;
+    }
+    onSelect(unit);
+  };
+
+  const handleStatusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updateMode && isAdmin) {
+      const next = getNextStatus(unit.status);
+      updateStatus(next);
+      return;
+    }
+    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+  };
+
+  const handleStatusSelect = async (e: React.MouseEvent, newStatus: Unit["status"]) => {
+    e.stopPropagation();
+    setShowStatusMenu(false);
+    await updateStatus(newStatus);
+  };
+
   return (
     <motion.div
       layout
@@ -136,13 +163,14 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground ? { y: -6, scale: 1.03 } : {}}
-      onClick={() => onSelect(unit)}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
+      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      onClick={handleCardClick}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        border-gray-100
+        ${updateMode && !isBackground ? "cursor-pointer ring-2 ring-amber-400/60 hover:ring-amber-400 border-amber-200" : "cursor-pointer border-gray-100"}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
@@ -169,7 +197,7 @@ function UnitCard({
                 <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
               )}
               {status.label}
-              {isAdmin && !showStatusMenu && <span className="ml-0.5 opacity-50">▾</span>}
+              {isAdmin && !showStatusMenu && !updateMode && <span className="ml-0.5 opacity-50">▾</span>}
             </button>
 
             {/* Dropdown de status */}
@@ -431,6 +459,7 @@ function FloorSection({
   onToggle,
   isAdmin,
   onStatusChange,
+  updateMode = false,
 }: {
   floor: number;
   floorUnits: Unit[];
@@ -440,6 +469,7 @@ function FloorSection({
   onToggle: () => void;
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: Unit["status"]) => void;
+  updateMode?: boolean;
 }) {
   return (
     <motion.div layout className="space-y-4">
@@ -496,6 +526,7 @@ function FloorSection({
                   isBackground={selectedUnit !== null && selectedUnit?.unidade !== unit.unidade}
                   isAdmin={isAdmin}
                   onStatusChange={onStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>
@@ -522,7 +553,7 @@ function Legend() {
 }
 
 // ─── Main Dashboard ───
-export default function SalesDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
+export default function SalesDashboard({ isAdmin = false, isCoordinator = false, hideHeader = false }: { isAdmin?: boolean; isCoordinator?: boolean; hideHeader?: boolean }) {
   const router = useRouter();
   const [units, setUnits] = useState<Unit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -532,6 +563,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
   const [filterVagas, setFilterVagas] = useState<number | "all">("all");
   const [filterStatus, setFilterStatus] = useState<Unit["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<"floor" | "price-asc" | "price-desc">("floor");
+  const [updateMode, setUpdateMode] = useState(false);
 
   // Buscar dados do Supabase via API + Realtime
   useEffect(() => {
@@ -622,6 +654,10 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
     setSelectedUnit(null);
   }, []);
 
+  useEffect(() => {
+    if (updateMode) setSelectedUnit(null);
+  }, [updateMode]);
+
   const toggleFloor = useCallback((floor: number) => {
     setCollapsedFloors((prev) => {
       const next = new Set(prev);
@@ -663,6 +699,22 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   Projetos
                 </a>
+                {isCoordinator && isAdmin && (
+                  <button
+                    onClick={() => setUpdateMode(!updateMode)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      updateMode
+                        ? "bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10"
+                        : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                    title={updateMode ? "Desativar modo de atualização" : "Ativar modo de atualização"}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">
+                      {updateMode ? "Atualização ON" : "Modo Atualização"}
+                    </span>
+                  </button>
+                )}
                 <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real
@@ -678,6 +730,22 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
             </div>
           </div>
         </header>
+      )}
+
+      {/* Update mode banner */}
+      {updateMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-center gap-2">
+          <Pencil className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-sm font-semibold text-amber-700">
+            Modo de Atualização Ativado — Clique em qualquer unidade para alterar o status
+          </p>
+          <button
+            onClick={() => setUpdateMode(false)}
+            className="ml-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline underline-offset-2 flex-shrink-0"
+          >
+            Desativar
+          </button>
+        </div>
       )}
 
       <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
@@ -803,6 +871,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
                   onToggle={() => toggleFloor(floor)}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               );
             })}
@@ -828,6 +897,7 @@ export default function SalesDashboard({ isAdmin = false, hideHeader = false }: 
                   isBackground={false}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>
