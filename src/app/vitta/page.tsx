@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { coordenadorHasAccess } from "@/lib/coordinator-access";
 import VittaDashboard from "@/components/vitta-dashboard";
 
 export default async function VittaPage() {
@@ -20,29 +19,22 @@ export default async function VittaPage() {
   let isAdmin = adminEmails.length === 0 || adminEmails.includes(user.email?.toLowerCase() || "");
   let isCoordinator = false;
 
-  if (!isAdmin) {
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-      if (profile?.role === "admin_sistema") isAdmin = true;
-      if (profile?.role === "coordenador") {
-        isCoordinator = true;
-        const { data: emp } = await supabase
-          .from("empreendimentos")
-          .select("id")
-          .eq("slug", "residencial-vitta")
-          .maybeSingle();
-        if (emp) {
-          const hasAccess = await coordenadorHasAccess(user.id, emp.id);
-          if (hasAccess) isAdmin = true;
-        }
-      }
-    } catch {
-      // Tabela profiles pode não existir
+  // Detectar role INDEPENDENTEMENTE do isAdmin por email
+  // (evita que ADMIN_EMAILS vazio impeça detecção de coordenador)
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (profile?.role === "admin_sistema") isAdmin = true;
+    if (profile?.role === "coordenador") {
+      isCoordinator = true;
+      // Coordenadores têm acesso de escrita nos espelhos legados
+      if (!isAdmin) isAdmin = true;
     }
+  } catch {
+    // Tabela profiles pode não existir
   }
 
   return <VittaDashboard isAdmin={isAdmin} isCoordinator={isCoordinator} />;

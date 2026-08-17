@@ -120,6 +120,13 @@ function UnitCard({
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showStatusMenu]);
 
+  // Cores de borda/ring dinâmicas por status (usado no modo de atualização)
+  const statusBorder: Record<string, string> = {
+    disponivel: "ring-2 ring-emerald-400/60 border-emerald-300 hover:ring-emerald-400",
+    reservado: "ring-2 ring-amber-400/60 border-amber-300 hover:ring-amber-400",
+    vendido: "ring-2 ring-red-400/60 border-red-300 hover:ring-red-400",
+  };
+
   const handleCardClick = () => {
     if (saving || flipping) return;
     if (updateMode && isAdmin) {
@@ -147,7 +154,12 @@ function UnitCard({
   };
 
   return (
-    <motion.div
+    <div style={{ perspective: "800px" }}>
+      <div
+        className={flipping ? "card-flip-anim" : ""}
+        onAnimationEnd={() => setFlipping(false)}
+      >
+        <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{
@@ -165,21 +177,13 @@ function UnitCard({
         relative rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        ${updateMode && !isBackground ? "cursor-pointer ring-2 ring-amber-400/60 hover:ring-amber-400 border-amber-200" : "cursor-pointer border-gray-100"}
+        ${updateMode && !isBackground ? `cursor-pointer ${statusBorder[unit.status] || "border-gray-100"}` : "cursor-pointer border-gray-100"}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
-        perspective: "800px",
       }}
     >
-      <motion.div
-        animate={flipping ? { rotateY: [0, 90, 0] } : { rotateY: 0 }}
-        transition={flipping ? { duration: 0.5, ease: "easeInOut", times: [0, 0.5, 1] } : { duration: 0 }}
-        onAnimationComplete={() => setFlipping(false)}
-        style={{ transformStyle: "preserve-3d" }}
-        className="backface-hidden"
-      >
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
       <div className="p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -249,8 +253,9 @@ function UnitCard({
           </p>
         </div>
       </div>
-      </motion.div>
-    </motion.div>
+        </motion.div>
+      </div>
+    </div>
   );
 }
 
