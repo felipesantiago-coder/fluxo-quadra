@@ -46,6 +46,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    unoptimized: true,
+  },
   // SEC-AUDIT: Security headers aplicados em todas as respostas
   async headers() {
     return [
