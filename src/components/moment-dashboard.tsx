@@ -79,6 +79,8 @@ function UnitCard({
   isAdmin,
   onStatusChange,
   updateMode = false,
+  isSelected = false,
+  onToggleSelect,
 }: {
   unit: MomentUnit;
   onSelect: (unit: MomentUnit) => void;
@@ -86,20 +88,14 @@ function UnitCard({
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: MomentUnit["status"]) => void;
   updateMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (unit: MomentUnit) => void;
 }) {
   const colors = typeColors[unit.tipologia];
   const status = statusLabels[unit.status];
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showCardStatusMenu, setShowCardStatusMenu] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
-  const [flipping, setFlipping] = useState(false);
-
-  useEffect(() => {
-    if (!showStatusMenu) return;
-    const handleClickOutside = () => setShowStatusMenu(false);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [showStatusMenu]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -135,49 +131,28 @@ function UnitCard({
     }
   };
 
-  // Cores de borda/ring dinâmicas por status (usado no modo de atualização)
-  const statusBorder: Record<string, string> = {
-    disponivel: "ring-2 ring-emerald-400/60 border-emerald-300 hover:ring-emerald-400",
-    reservado: "ring-2 ring-amber-400/60 border-amber-300 hover:ring-amber-400",
-    vendido: "ring-2 ring-red-400/60 border-red-300 hover:ring-red-400",
+  // Border color by status (used in update mode)
+  const statusBorderClass: Record<string, string> = {
+    disponivel: "border-emerald-300",
+    reservado: "border-amber-300",
+    vendido: "border-red-300",
   };
 
-  const handleCardClick = () => {
-    if (updateMode && isAdmin) {
-      if (flipping || saving) return;
-      const next = getNextStatus(unit.status);
-      setFlipping(true);
-      if (onStatusChange) onStatusChange(unit.unidade, next);
-      updateStatus(next);
-      return;
-    }
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (e.shiftKey && isAdmin && onToggleSelect) { onToggleSelect(unit); return; }
+    if (updateMode && isAdmin) { if (saving) return; setShowCardStatusMenu((prev) => !prev); return; }
     onSelect(unit);
   };
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (updateMode && isAdmin) {
-      if (flipping || saving) return;
-      const next = getNextStatus(unit.status);
-      setFlipping(true);
-      if (onStatusChange) onStatusChange(unit.unidade, next);
-      updateStatus(next);
-      return;
-    }
-    if (isAdmin) setShowStatusMenu(!showStatusMenu);
+    if (isAdmin) { if (saving) return; const next = getNextStatus(unit.status); updateStatus(next); return; }
   };
-  const handleStatusSelect = async (e: React.MouseEvent, newStatus: MomentUnit["status"]) => {
-    e.stopPropagation();
-    setShowStatusMenu(false);
-    await updateStatus(newStatus);
+  const handleCardStatusSelect = async (e: React.MouseEvent, newStatus: MomentUnit["status"]) => {
+    e.stopPropagation(); setShowCardStatusMenu(false); await updateStatus(newStatus);
   };
 
   return (
-    <div style={{ perspective: "800px" }}>
-      <div
-        className={flipping ? "card-flip-anim" : ""}
-        onAnimationEnd={() => setFlipping(false)}
-      >
-        <motion.div
+    <motion.div
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{
@@ -191,17 +166,25 @@ function UnitCard({
       }}
       whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
       onClick={handleCardClick}
+      data-unit-card
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        ${updateMode && !isBackground ? `cursor-pointer ${statusBorder[unit.status] || "border-gray-100"}` : "cursor-pointer border-gray-100"}
+        ${updateMode && !isBackground ? statusBorderClass[unit.status] || "border-gray-100" : "border-gray-100"}
+        ${isSelected ? "ring-2 ring-blue-500 border-blue-400 shadow-blue-100" : ""}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
       }}
     >
+      {/* Batch selection indicator */}
+      {isSelected && (
+        <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-md bg-blue-500 border-2 border-blue-600 flex items-center justify-center">
+          <Check className="w-3 h-3 text-white" />
+        </div>
+      )}
       {/* Top colored bar */}
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
 
@@ -213,51 +196,18 @@ function UnitCard({
               {unit.unidade}
             </span>
           </div>
-          <div className="relative">
-            <button
-              onClick={handleStatusClick}
-              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color} ${isAdmin ? "cursor-pointer hover:opacity-80 ring-1 ring-offset-1 ring-gray-200 hover:ring-gray-400" : "cursor-default"}`}
-            >
-              {saving ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
-              ) : (
-                <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
-              )}
-              {status.label}
-              {isAdmin && !showStatusMenu && !updateMode && <span className="ml-0.5 opacity-50">▾</span>}
-            </button>
-
-            {/* Dropdown de status */}
-            <AnimatePresence>
-              {showStatusMenu && isAdmin && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[140px] overflow-hidden"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">Alterar status</p>
-                  {allStatuses.map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={(e) => handleStatusSelect(e, s.value)}
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
-                        s.value === unit.status
-                          ? "bg-gray-50 text-gray-400"
-                          : "hover:bg-gray-50 text-gray-700"
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${s.dotColor}`} />
-                      {s.label}
-                      {s.value === unit.status && <Check className="w-3 h-3 ml-auto" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            onClick={handleStatusClick}
+            className={`inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${status.color} ${isAdmin ? "cursor-pointer hover:opacity-80 ring-1 ring-offset-1 ring-gray-200 hover:ring-gray-400" : "cursor-default"}`}
+            title={isAdmin ? "Clique para alterar o status" : undefined}
+          >
+            {saving ? (
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
+            ) : (
+              <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+            )}
+            {status.label}
+          </button>
         </div>
 
         {/* Feedback visual */}
@@ -322,9 +272,32 @@ function UnitCard({
           )}
         </div>
       </div>
-        </motion.div>
-      </div>
-    </div>
+      {/* Card status dropdown (update mode — opened by card click) */}
+      <AnimatePresence>
+        {showCardStatusMenu && updateMode && isAdmin && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowCardStatusMenu(false); }} />
+            <motion.div
+              initial={{ opacity: 0, y: 4, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[160px] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">Alterar status</p>
+              {allStatuses.map((s) => (
+                <button key={s.value} onClick={(e) => handleCardStatusSelect(e, s.value)} className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${s.value === unit.status ? "bg-gray-50 text-gray-400" : "hover:bg-gray-50 text-gray-700"}`}>
+                  <span className={`w-2 h-2 rounded-full ${s.dotColor}`} />
+                  {s.label}
+                  {s.value === unit.status && <Check className="w-3 h-3 ml-auto" />}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -499,6 +472,8 @@ function FloorSection({
   isAdmin,
   onStatusChange,
   updateMode = false,
+  selectedForBatch,
+  onToggleSelect,
 }: {
   floor: number;
   floorUnits: MomentUnit[];
@@ -509,6 +484,8 @@ function FloorSection({
   isAdmin?: boolean;
   onStatusChange?: (unidade: number, newStatus: MomentUnit["status"]) => void;
   updateMode?: boolean;
+  selectedForBatch?: Set<number>;
+  onToggleSelect?: (unit: MomentUnit) => void;
 }) {
   const tipologiasInFloor = [...new Set(floorUnits.map((u) => u.tipologia))];
   const totalInFloor = floorUnits.length;
@@ -572,6 +549,8 @@ function FloorSection({
                   isAdmin={isAdmin}
                   onStatusChange={onStatusChange}
                   updateMode={updateMode}
+                  isSelected={selectedForBatch?.has(unit.unidade) ?? false}
+                  onToggleSelect={onToggleSelect}
                 />
               ))}
             </div>
@@ -601,6 +580,40 @@ function Legend() {
   );
 }
 
+// ─── Batch Action Bar ───
+function BatchActionBar({
+  count,
+  onApplyStatus,
+  onClear,
+  saving,
+}: {
+  count: number;
+  onApplyStatus: (status: "disponivel" | "reservado" | "vendido") => void;
+  onClear: () => void;
+  saving: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 80 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 80 }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-2xl shadow-2xl border border-gray-700"
+    >
+      <span className="text-sm font-semibold whitespace-nowrap">
+        {count} {count === 1 ? "unidade" : "unidades"} selecionada{count !== 1 ? "s" : ""}
+      </span>
+      <div className="w-px h-6 bg-gray-600" />
+      <div className="flex items-center gap-2">
+        <button onClick={() => onApplyStatus("disponivel")} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><span className="w-2 h-2 rounded-full bg-white" />Disponível</button>
+        <button onClick={() => onApplyStatus("reservado")} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><span className="w-2 h-2 rounded-full bg-white" />Reservada</button>
+        <button onClick={() => onApplyStatus("vendido")} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><span className="w-2 h-2 rounded-full bg-white" />Vendida</button>
+      </div>
+      <button onClick={onClear} className="ml-1 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"><X className="w-4 h-4" /></button>
+    </motion.div>
+  );
+}
+
 // ─── Main Dashboard ───
 export default function MomentDashboard({ isAdmin = false, isCoordinator = false, hideHeader = false }: { isAdmin?: boolean; isCoordinator?: boolean; hideHeader?: boolean }) {
   const router = useRouter();
@@ -614,6 +627,8 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
   const [filterStatus, setFilterStatus] = useState<MomentUnit["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<"andar" | "price-asc" | "price-desc">("andar");
   const [updateMode, setUpdateMode] = useState(false);
+  const [selectedForBatch, setSelectedForBatch] = useState<Set<number>>(new Set());
+  const [batchSaving, setBatchSaving] = useState(false);
 
   // Buscar dados do Supabase via API + Realtime
   useEffect(() => {
@@ -698,7 +713,26 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
     return momentAndares.filter((f) => floorSet.has(f));
   }, [filteredUnits]);
 
-  useEffect(() => { if (updateMode) setSelectedUnit(null); }, [updateMode]);
+  useEffect(() => { if (updateMode) { setSelectedUnit(null); setSelectedForBatch(new Set()); } }, [updateMode]);
+
+  const handleBatchToggle = useCallback((unit: MomentUnit) => {
+    setSelectedForBatch((prev) => { const next = new Set(prev); if (next.has(unit.unidade)) next.delete(unit.unidade); else next.add(unit.unidade); return next; });
+  }, []);
+  const handleBatchClear = useCallback(() => setSelectedForBatch(new Set()), []);
+  const handleBatchStatusChange = useCallback(async (newStatus: "disponivel" | "reservado" | "vendido") => {
+    if (batchSaving || selectedForBatch.size === 0) return;
+    setBatchSaving(true);
+    try {
+      const updates = Array.from(selectedForBatch).map(async (unidade) => {
+        const res = await fetch("/api/moment-units", { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ unidade, status: newStatus }) });
+        return { unidade, ok: res.ok };
+      });
+      const results = await Promise.all(updates);
+      const succeeded = results.filter((r) => r.ok).map((r) => r.unidade);
+      setUnits((prev) => prev.map((u) => (succeeded.includes(u.unidade) ? { ...u, status: newStatus } : u)));
+      setSelectedForBatch(new Set());
+    } catch (err) { console.error("Erro ao atualizar em lote:", err); } finally { setBatchSaving(false); }
+  }, [batchSaving, selectedForBatch]);
 
   const handleSelectUnit = useCallback((unit: MomentUnit) => {
     setSelectedUnit(unit);
@@ -780,7 +814,7 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
       {updateMode && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-center gap-2">
           <Pencil className="w-4 h-4 text-amber-600 flex-shrink-0" />
-          <p className="text-sm font-semibold text-amber-700">Modo de Atualização Ativado — Clique em qualquer unidade para alterar o status</p>
+          <p className="text-sm font-semibold text-amber-700">Modo de Atualização Ativado — Clique em qualquer unidade para selecionar o novo status{isAdmin && <span className="font-normal text-amber-600"> · Shift+clique para selecionar em lote</span>}</p>
           <button onClick={() => setUpdateMode(false)} className="ml-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline underline-offset-2 flex-shrink-0">Desativar</button>
         </div>)}
 
@@ -924,6 +958,8 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
                   updateMode={updateMode}
+                  selectedForBatch={selectedForBatch}
+                  onToggleSelect={handleBatchToggle}
                 />
               );
             })}
@@ -950,6 +986,8 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
                   updateMode={updateMode}
+                  isSelected={selectedForBatch.has(unit.unidade)}
+                  onToggleSelect={handleBatchToggle}
                 />
               ))}
             </div>
@@ -984,6 +1022,13 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
       <AnimatePresence>
         {selectedUnit && (
           <ExpandedCard unit={selectedUnit} onClose={handleCloseExpanded} />
+        )}
+      </AnimatePresence>
+
+      {/* Batch action bar */}
+      <AnimatePresence>
+        {selectedForBatch.size > 0 && isAdmin && (
+          <BatchActionBar count={selectedForBatch.size} onApplyStatus={handleBatchStatusChange} onClear={handleBatchClear} saving={batchSaving} />
         )}
       </AnimatePresence>
     </div>
