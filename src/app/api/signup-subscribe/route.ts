@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createMpSubscription } from '@/lib/mercadopago';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
@@ -225,27 +224,34 @@ export async function POST(request: NextRequest) {
         customAmount: cupomValidado ? valorFinal : undefined,
       });
 
-      // 8. Registrar assinatura local como pending
-      const { error: insertSubErr } = await adminClient.from('assinaturas').insert({
+      // 8. Registrar assinatura local como pending (capturar ID para cupom_usos)
+      let assinaturaId: string | null = null;
+      const { data: insertedSub, error: insertSubErr } = await adminClient.from('assinaturas').insert({
         user_id: userId,
         plano_id: planoId,
         mercadopago_subscription_id: mpResult.subscription_id,
         status: 'pending',
         data_inicio: null,
         data_fim: null,
-      });
+      }).select('id').single();
+
+      if (insertedSub) {
+        assinaturaId = insertedSub.id;
+      }
 
       if (insertSubErr) {
         console.error('[signup-subscribe] Erro ao registrar assinatura:', insertSubErr);
         // A assinatura foi criada no MP mas não no banco local
-        // O webhook ainda vai tentar processar e falhar ao encontrar o registro
         // Tentar criar novamente
-        const { error: retryErr } = await adminClient.from('assinaturas').insert({
+        const { data: retrySub, error: retryErr } = await adminClient.from('assinaturas').insert({
           user_id: userId,
           plano_id: planoId,
           mercadopago_subscription_id: mpResult.subscription_id,
           status: 'pending',
-        });
+        }).select('id').single();
+        if (retrySub) {
+          assinaturaId = retrySub.id;
+        }
         if (retryErr) {
           console.error('[signup-subscribe] Retry de assinatura também falhou:', retryErr);
         }
@@ -267,6 +273,7 @@ export async function POST(request: NextRequest) {
         await adminClient.from('cupom_usos').insert({
           cupom_id: cupomValidado.id,
           user_id: userId,
+          assinatura_id: assinaturaId,
           plano_id: planoId,
           valor_original: Number(plano.preco),
           valor_descontado: valorDescontado,
@@ -274,41 +281,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 10. Login automático do usuário (criar sessão)
-      //    Precisamos usar o client anon para autenticar
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-        },
-      });
-
-      const { error: loginErr } = await anonClient.auth.signInWithPassword({
-        email: emailTrimmed,
-        password: senha,
-      });
-
-      if (loginErr) {
-        console.warn('[signup-subscribe] Login automático falhou (usuário pode logar manualmente):', loginErr);
-        // Não é erro fatal — o usuário pode fazer login depois
-      }
-
-      // 11. Retornar URL de checkout + dados para login
-      const responseHeaders = new Headers();
-
-      // Se login automático funcionou, propagar cookies de sessão
-      if (!loginErr) {
-        const session = anonClient.auth.getSession();
-        // Os cookies foram setados no anonClient, mas não no response
-        // O usuário será redirecionado para o MP e voltará precisando logar novamente
-        // Vamos usar um approach diferente: redirecionar para a página de aguardar
-      }
-
+      // 10. Retornar URL de checkout + credenciais para login client-side
+      //     O frontend faz signInWithPassword ANTES de redirecionar para o MP.
+      //     Assim, quando o usuário voltar do MP, a sessão já existe.
       return NextResponse.json({
         checkoutUrl: mpResult.init_point,
-        message: 'Conta criada com sucesso! Complete o pagamento para ativar o acesso.',
+        email: emailTrimmed,
+        needsLogin: true,
+        message: 'Conta criada com sucesso! Redirecionando para o pagamento...',
       });
 
     } catch (innerErr) {

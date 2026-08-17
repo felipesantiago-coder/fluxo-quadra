@@ -171,7 +171,25 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
         return;
       }
 
-      // Sucesso — redirecionar para o checkout do Mercado Pago
+      // Sucesso — fazer login client-side ANTES de redirecionar para o MP
+      // Assim, quando o usuario voltar do MP, a sessao ja existe nos cookies.
+      if (data.needsLogin && data.email && senha) {
+        try {
+          const { createClient } = await import('@/lib/supabase/client');
+          const sbClient = createClient();
+          const { error: loginErr } = await sbClient.auth.signInWithPassword({
+            email: data.email,
+            password: senha,
+          });
+          if (loginErr) {
+            console.warn('[PlanosPublicClient] Login apos cadastro falhou:', loginErr);
+          }
+        } catch (loginErr) {
+          console.warn('[PlanosPublicClient] Login apos cadastro falhou:', loginErr);
+        }
+      }
+
+      // Redirecionar para o checkout do Mercado Pago
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {

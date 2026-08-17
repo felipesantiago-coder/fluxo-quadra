@@ -222,19 +222,22 @@ async function handlePaymentEvent(
       return false;
     }
 
-    // Se pagamento aprovado, atualizar assinatura como ativa
+    // Se pagamento aprovado, atualizar assinatura
     if (normalizedStatus === 'approved' && assinaturaId) {
       // Buscar assinatura com status atual e plano (uma unica query)
       const { data: assinatura } = await supabase
         .from('assinaturas')
-        .select('id, status, data_inicio, plano_id, plano:planos(preco, periodo_meses)')
+        .select('id, status, data_inicio, data_fim, plano_id, plano:planos(preco, periodo_meses)')
         .eq('id', assinaturaId)
         .single();
 
       if (!assinatura) return true;
 
-      // Validar transicao de estado: so ativar se esta em pending ou paused
-      if (!isTransitionValid(assinatura.status, 'active')) {
+      const plano = assinatura.plano as unknown as Record<string, unknown> | null;
+      const isAlreadyActive = assinatura.status === 'active';
+
+      // Para ativacao inicial: validar transicao de estado
+      if (!isAlreadyActive && !isTransitionValid(assinatura.status, 'active')) {
         console.warn(
           `[Webhook MP] Transicao invalida: ${assinatura.status} -> active. Assinatura ${assinaturaId}. Ignorando.`
         );
@@ -244,62 +247,109 @@ async function handlePaymentEvent(
       // FIX SEC-002: Validar valor cobrado vs preco esperado.
       // Se houver cupom vinculado, usar o valor_final do cupom_usos como referencia.
       // Caso contrario, usar preco do plano com tolerancia de 5%.
-      const plano = assinatura.plano as unknown as Record<string, unknown> | null;
       if (plano) {
         const precoPlano = Number(plano.preco) || 0;
 
         // Buscar uso de cupom para esta assinatura
         let valorEsperado = precoPlano;
-        const { data: cupomUso } = await supabase
+
+        // Tentar buscar por assinatura_id primeiro, depois por user_id + plano_id (fallback)
+        let cupomUso = await supabase
           .from('cupom_usos')
           .select('valor_final')
           .eq('assinatura_id', assinaturaId)
           .maybeSingle();
 
-        if (cupomUso && Number(cupomUso.valor_final) > 0) {
-          valorEsperado = Number(cupomUso.valor_final);
+        if (!cupomUso.data && userId) {
+          cupomUso = await supabase
+            .from('cupom_usos')
+            .select('valor_final')
+            .eq('user_id', userId)
+            .eq('plano_id', assinatura.plano_id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        }
+
+        if (cupomUso.data && Number(cupomUso.data.valor_final) > 0) {
+          valorEsperado = Number(cupomUso.data.valor_final);
         }
 
         if (valorEsperado > 0) {
           const diff = Math.abs(valor - valorEsperado) / valorEsperado;
           if (diff > 0.05) {
-            console.error(
-              `[Webhook MP] ALERTA: Valor pago (R$${valor}) diverge do esperado (R$${valorEsperado}) em ${Math.round(diff * 100)}%. ` +
-              `Assinatura ${assinaturaId}, Pagamento ${paymentId}. Requerer intervencao manual.`
-            );
-            return false;
+            // Na renovacao, o valor pode ser o preco cheio (sem cupom)
+            // Logar alerta mas nao bloquear a renovacao
+            if (isAlreadyActive) {
+              console.warn(
+                `[Webhook MP] Valor de renovacao (R$${valor}) difere do esperado (R$${valorEsperado}). ` +
+                `Assinatura ${assinaturaId}. Estendendo data_fim mesmo assim (renovacao).`
+              );
+            } else {
+              console.error(
+                `[Webhook MP] ALERTA: Valor pago (R$${valor}) diverge do esperado (R$${valorEsperado}) em ${Math.round(diff * 100)}%. ` +
+                `Assinatura ${assinaturaId}, Pagamento ${paymentId}. Requerer intervencao manual.`
+              );
+              return false;
+            }
           }
         }
       }
 
       const agora = new Date().toISOString();
+      const meses = plano ? (Number(plano.periodo_meses) || 1) : 1;
 
-      // Calcular data fim com meses calendario reais
-      let dataFim: string | null = null;
+      // Calcular data_fim:
+      // - Ativacao inicial: agora + N meses
+      // - Renovacao (ja active): max(data_fim_atual, agora) + N meses
+      let novaDataFim: string | null = null;
       if (plano) {
-        const meses = Number(plano.periodo_meses) || 1;
-        const fim = new Date();
-        fim.setMonth(fim.getMonth() + meses);
-        dataFim = fim.toISOString();
+        const baseDate = isAlreadyActive && assinatura.data_fim
+          ? new Date(Math.max(new Date(assinatura.data_fim).getTime(), Date.now()))
+          : new Date();
+        baseDate.setMonth(baseDate.getMonth() + meses);
+        novaDataFim = baseDate.toISOString();
       }
 
-      // Atualizar com WHERE para evitar race condition
-      const { error: updateErr } = await supabase
-        .from('assinaturas')
-        .update({
-          status: 'active',
-          data_inicio: dataFim && !assinatura.data_inicio ? agora : undefined,
-          data_fim: dataFim,
-          ultimo_pagamento_em: agora,
-          proximo_ciclo_em: dataFim,
-          metodo_pagamento: metodoNorm,
-        })
-        .eq('id', assinaturaId)
-        .in('status', ['pending', 'paused']); // CAS: so atualiza se ainda esta em estado valido
+      if (isAlreadyActive) {
+        // ── RENOVACAO: estender data_fim sem mudar status ──
+        const { error: renewErr } = await supabase
+          .from('assinaturas')
+          .update({
+            data_fim: novaDataFim,
+            ultimo_pagamento_em: agora,
+            proximo_ciclo_em: novaDataFim,
+          })
+          .eq('id', assinaturaId)
+          .eq('status', 'active');
 
-      if (updateErr) {
-        console.error(`[Webhook MP] Erro ao ativar assinatura ${assinaturaId}:`, updateErr);
-        return false;
+        if (renewErr) {
+          console.error(`[Webhook MP] Erro ao renovar assinatura ${assinaturaId}:`, renewErr);
+          return false;
+        }
+
+        console.log(
+          `[Webhook MP] Assinatura ${assinaturaId} renovada. Novo data_fim: ${novaDataFim}`
+        );
+      } else {
+        // ── ATIVACAO INICIAL: pending/paused -> active ──
+        const { error: updateErr } = await supabase
+          .from('assinaturas')
+          .update({
+            status: 'active',
+            data_inicio: !assinatura.data_inicio ? agora : undefined,
+            data_fim: novaDataFim,
+            ultimo_pagamento_em: agora,
+            proximo_ciclo_em: novaDataFim,
+            metodo_pagamento: metodoNorm,
+          })
+          .eq('id', assinaturaId)
+          .in('status', ['pending', 'paused']); // CAS
+
+        if (updateErr) {
+          console.error(`[Webhook MP] Erro ao ativar assinatura ${assinaturaId}:`, updateErr);
+          return false;
+        }
       }
 
       // ── Abordagem B: Ativar subscription_status do perfil ──
@@ -310,7 +360,6 @@ async function handlePaymentEvent(
           .eq('id', userId);
         if (profileErr) {
           console.error(`[Webhook MP] Erro ao atualizar perfil ${userId}:`, profileErr);
-          // Nao e fatal — a assinatura foi ativada
         }
       } catch {
         // Ignorar erro de perfil
