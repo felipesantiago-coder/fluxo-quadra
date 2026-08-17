@@ -81,6 +81,7 @@ function UnitCard({
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+  const [flipping, setFlipping] = useState(false);
 
   // Fechar o menu ao clicar fora
   useEffect(() => {
@@ -127,7 +128,10 @@ function UnitCard({
 
   const handleCardClick = () => {
     if (updateMode && isAdmin) {
+      if (flipping || saving) return;
       const next = getNextStatus(unit.status);
+      setFlipping(true);
+      if (onStatusChange) onStatusChange(unit.unidade, next);
       updateStatus(next);
       return;
     }
@@ -163,8 +167,7 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
-      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
       onClick={handleCardClick}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
@@ -175,8 +178,16 @@ function UnitCard({
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
+        perspective: "800px",
       }}
     >
+      <motion.div
+        animate={flipping ? { rotateY: [0, 90, 0] } : { rotateY: 0 }}
+        transition={flipping ? { duration: 0.5, ease: "easeInOut", times: [0, 0.5, 1] } : { duration: 0 }}
+        onAnimationComplete={() => setFlipping(false)}
+        style={{ transformStyle: "preserve-3d" }}
+        className="backface-hidden"
+      >
       {/* Top colored bar */}
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
 
@@ -288,6 +299,7 @@ function UnitCard({
           )}
         </div>
       </div>
+      </motion.div>
     </motion.div>
   );
 }

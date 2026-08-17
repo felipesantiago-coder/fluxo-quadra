@@ -111,6 +111,7 @@ function UnitCard({
   const status = statusLabels[unit.status];
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [flipping, setFlipping] = useState(false);
 
   useEffect(() => {
     if (!showStatusMenu) return;
@@ -120,9 +121,10 @@ function UnitCard({
   }, [showStatusMenu]);
 
   const handleCardClick = () => {
-    if (saving) return;
+    if (saving || flipping) return;
     if (updateMode && isAdmin) {
       setSaving(true);
+      setFlipping(true);
       const next = getNextStatus(unit.status);
       if (onStatusChange) onStatusChange(unit.unidade, unit.bloco, unit.andar, next);
       setTimeout(() => setSaving(false), 500);
@@ -133,8 +135,9 @@ function UnitCard({
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (updateMode && isAdmin) {
-      if (saving) return;
+      if (saving || flipping) return;
       setSaving(true);
+      setFlipping(true);
       const next = getNextStatus(unit.status);
       if (onStatusChange) onStatusChange(unit.unidade, unit.bloco, unit.andar, next);
       setTimeout(() => setSaving(false), 500);
@@ -156,8 +159,7 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
-      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
       onClick={handleCardClick}
       className={`
         relative rounded-xl border-2 overflow-visible
@@ -168,8 +170,16 @@ function UnitCard({
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
+        perspective: "800px",
       }}
     >
+      <motion.div
+        animate={flipping ? { rotateY: [0, 90, 0] } : { rotateY: 0 }}
+        transition={flipping ? { duration: 0.5, ease: "easeInOut", times: [0, 0.5, 1] } : { duration: 0 }}
+        onAnimationComplete={() => setFlipping(false)}
+        style={{ transformStyle: "preserve-3d" }}
+        className="backface-hidden"
+      >
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
       <div className="p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -239,6 +249,7 @@ function UnitCard({
           </p>
         </div>
       </div>
+      </motion.div>
     </motion.div>
   );
 }

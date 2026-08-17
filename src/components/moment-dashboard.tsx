@@ -92,6 +92,7 @@ function UnitCard({
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+  const [flipping, setFlipping] = useState(false);
 
   useEffect(() => {
     if (!showStatusMenu) return;
@@ -134,12 +135,26 @@ function UnitCard({
     }
   };
   const handleCardClick = () => {
-    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    if (updateMode && isAdmin) {
+      if (flipping || saving) return;
+      const next = getNextStatus(unit.status);
+      setFlipping(true);
+      if (onStatusChange) onStatusChange(unit.unidade, next);
+      updateStatus(next);
+      return;
+    }
     onSelect(unit);
   };
   const handleStatusClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (updateMode && isAdmin) { const next = getNextStatus(unit.status); updateStatus(next); return; }
+    if (updateMode && isAdmin) {
+      if (flipping || saving) return;
+      const next = getNextStatus(unit.status);
+      setFlipping(true);
+      if (onStatusChange) onStatusChange(unit.unidade, next);
+      updateStatus(next);
+      return;
+    }
     if (isAdmin) setShowStatusMenu(!showStatusMenu);
   };
   const handleStatusSelect = async (e: React.MouseEvent, newStatus: MomentUnit["status"]) => {
@@ -161,8 +176,7 @@ function UnitCard({
         layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
-      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : updateMode && !isBackground ? { scale: 1.02 } : {}}
-      whileTap={!isBackground && updateMode ? { scale: 0.98 } : {}}
+      whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
       onClick={handleCardClick}
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
@@ -173,8 +187,16 @@ function UnitCard({
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
+        perspective: "800px",
       }}
     >
+      <motion.div
+        animate={flipping ? { rotateY: [0, 90, 0] } : { rotateY: 0 }}
+        transition={flipping ? { duration: 0.5, ease: "easeInOut", times: [0, 0.5, 1] } : { duration: 0 }}
+        onAnimationComplete={() => setFlipping(false)}
+        style={{ transformStyle: "preserve-3d" }}
+        className="backface-hidden"
+      >
       {/* Top colored bar */}
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
 
@@ -295,6 +317,7 @@ function UnitCard({
           )}
         </div>
       </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -542,6 +565,7 @@ function FloorSection({
                   isBackground={selectedUnit !== null && selectedUnit.unidade !== unit.unidade}
                   isAdmin={isAdmin}
                   onStatusChange={onStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>
@@ -572,7 +596,7 @@ function Legend() {
 }
 
 // ─── Main Dashboard ───
-export default function MomentDashboard({ isAdmin = false, hideHeader = false }: { isAdmin?: boolean; hideHeader?: boolean }) {
+export default function MomentDashboard({ isAdmin = false, isCoordinator = false, hideHeader = false }: { isAdmin?: boolean; isCoordinator?: boolean; hideHeader?: boolean }) {
   const router = useRouter();
   const [units, setUnits] = useState<MomentUnit[]>(staticUnits);
   const [selectedUnit, setSelectedUnit] = useState<MomentUnit | null>(null);
@@ -583,6 +607,7 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
   const [filterSol, setFilterSol] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<MomentUnit["status"] | "all">("all");
   const [sortBy, setSortBy] = useState<"andar" | "price-asc" | "price-desc">("andar");
+  const [updateMode, setUpdateMode] = useState(false);
 
   // Buscar dados do Supabase via API + Realtime
   useEffect(() => {
@@ -667,6 +692,8 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
     return momentAndares.filter((f) => floorSet.has(f));
   }, [filteredUnits]);
 
+  useEffect(() => { if (updateMode) setSelectedUnit(null); }, [updateMode]);
+
   const handleSelectUnit = useCallback((unit: MomentUnit) => {
     setSelectedUnit(unit);
   }, []);
@@ -723,6 +750,11 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   Projetos
                 </a>
+                {isCoordinator && isAdmin && (
+                  <button onClick={() => setUpdateMode(!updateMode)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${updateMode ? "bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"}`} title={updateMode ? "Desativar modo de atualização" : "Ativar modo de atualização"}>
+                    <Pencil className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{updateMode ? "Atualização ON" : "Modo Atualização"}</span>
+                  </button>)}
                 <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real
@@ -739,6 +771,12 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
           </div>
         </header>
       )}
+      {updateMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-center gap-2">
+          <Pencil className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-sm font-semibold text-amber-700">Modo de Atualização Ativado — Clique em qualquer unidade para alterar o status</p>
+          <button onClick={() => setUpdateMode(false)} className="ml-2 text-xs font-medium text-amber-600 hover:text-amber-800 underline underline-offset-2 flex-shrink-0">Desativar</button>
+        </div>)}
 
       <main className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6 space-y-6 flex-1">
         {/* Filters */}
@@ -879,6 +917,7 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
                   onToggle={() => toggleFloor(floor)}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               );
             })}
@@ -904,6 +943,7 @@ export default function MomentDashboard({ isAdmin = false, hideHeader = false }:
                   isBackground={false}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
+                  updateMode={updateMode}
                 />
               ))}
             </div>
