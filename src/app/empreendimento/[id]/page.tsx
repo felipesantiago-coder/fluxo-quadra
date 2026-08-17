@@ -27,6 +27,7 @@ export default async function EmpreendimentoPage({
 
   // Verificar role (resiliente: se tabela não existir, verifica apenas pelo email)
   let isAdmin = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+  let isCoordinator = false;
   if (!isAdmin) {
     try {
       const { data: profile } = await supabase
@@ -36,6 +37,7 @@ export default async function EmpreendimentoPage({
         .single();
       if (profile?.role === "admin_sistema") isAdmin = true;
       if (profile?.role === "coordenador") {
+        isCoordinator = true;
         const hasAccess = await coordenadorHasAccess(user.id, id);
         if (hasAccess) isAdmin = true;
       }
@@ -52,6 +54,7 @@ export default async function EmpreendimentoPage({
       empreendimentoId={id}
       empreendimentoNome={emp.nome}
       isAdmin={!!isAdmin}
+      isCoordinator={isCoordinator}
       simuladorUrl={simuladorUrl}
     />
   );

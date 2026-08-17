@@ -47,3 +47,27 @@ Stage Summary:
 - 3 arquivos corrigidos, commit 8b26e9f
 
 ---
+---
+Task ID: 1
+Agent: main
+Task: Implementar "Modo de Atualização" para coordenadores no espelho de vendas
+
+Work Log:
+- Analisou o componente DynamicDashboard para entender interação dos cards (onClick → onSelect → expanded card)
+- Identificou que coordenadores usam o mesmo componente que admin_sistema (dynamic-dashboard.tsx)
+- Adicionou prop isCoordinator ao DynamicDashboardProps e à página /empreendimento/[id]/page.tsx
+- Criou helper getNextStatus() para ciclar status: disponível → reservada → vendida → disponível
+- Refatorou UnitCard: extraiu updateStatus() do handleStatusSelect, criou handleCardClick()
+- Em modo de atualização: clicar no card cicla o status (não abre card expandido), botão de status também cicla
+- Adicionou toggle "Modo Atualização" no header (visível só para coordenadores com isAdmin)
+- Adicionado banner amarelo informativo quando modo está ativo, com botão "Desativar"
+- Cards recebem ring amber visual quando update mode está on
+- useEffect fecha card expandido ao ativar update mode
+- Passou updateMode através de FloorSection para UnitCard (sort por andar e por preço)
+- Build Next.js compilou com sucesso, zero erros nos arquivos modificados
+
+Stage Summary:
+- Feature "Modo de Atualização" implementada exclusivamente para coordenadores
+- Admin_sistema e subscribers não são afetados (isCoordinator=false para eles)
+- Legados (Quattre, Villa Bianco, Moment, Vitta) não são afetados (não têm acesso de coordenador)
+- Arquivos modificados: src/components/dynamic-dashboard.tsx, src/app/empreendimento/[id]/page.tsx
