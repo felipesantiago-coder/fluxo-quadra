@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode, Crown } from "lucide-react";
+import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode, Crown, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Region = string;
@@ -57,9 +57,25 @@ interface ProjetosClientProps {
   userRole: string;
   initialEmpreendimentos: EmpreendimentoDB[];
   initialMfaEnabled: boolean;
+  lastUpdatedMap?: Record<string, string | null>;
 }
 
-export default function ProjetosClient({ userRole, initialEmpreendimentos, initialMfaEnabled }: ProjetosClientProps) {
+function formatLastUpdated(isoString: string | null): string {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+  const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  if (diffDays === 0) return `Hoje às ${time}`;
+  if (diffDays === 1) return `Ontem às ${time}`;
+  if (diffDays < 7) return `${diffDays} dias atrás`;
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) + ` às ${time}`;
+}
+
+export default function ProjetosClient({ userRole, initialEmpreendimentos, initialMfaEnabled, lastUpdatedMap = {} }: ProjetosClientProps) {
   const router = useRouter();
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
   const [projects, setProjects] = useState<EmpreendimentoDB[]>(initialEmpreendimentos);
@@ -132,6 +148,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
   };
 
   const isAdminSistema = userRole === "admin_sistema";
+  const canSeeLastUpdated = isAdminSistema || userRole === "coordenador";
   const isLoading = projects.length === 0 && initialEmpreendimentos.length === 0;
 
   return (
@@ -417,6 +434,12 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                           </h3>
                           <p className="text-sm text-gray-500 mt-1.5">{project.regiao}</p>
                           <p className="text-sm text-gray-400 mt-1">{description}</p>
+                          {canSeeLastUpdated && lastUpdatedMap[project.id] && (
+                            <p className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+                              <Clock className="w-3 h-3" />
+                              Última atualização: {formatLastUpdated(lastUpdatedMap[project.id])}
+                            </p>
+                          )}
                           <div className="mt-4 flex items-center justify-between">
                             <span className="text-sm font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
                               Acessar espelho
