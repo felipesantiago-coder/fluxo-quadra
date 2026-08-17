@@ -282,12 +282,20 @@ export async function createMpSubscription(params: {
 }): Promise<{ init_point: string; subscription_id: string }> {
   const client = getPreApprovalClient();
 
+  const backUrl = getBackUrl('/assinatura');
+  if (!backUrl.startsWith('http')) {
+    throw new Error(
+      `NEXT_PUBLIC_APP_URL não configurada. Valor atual: "${process.env.NEXT_PUBLIC_APP_URL || '(vazio)'}". ` +
+      `Defina esta variável no painel do Vercel (ex: https://seudominio.com).`
+    );
+  }
+
   const body: Record<string, unknown> = {
     preapproval_plan_id: params.planoId,
     payer_email: params.userEmail,
     reason: `Assinatura - ${params.planoNome}`,
     status: 'pending',
-    back_url: getBackUrl('/assinatura'),
+    back_url: backUrl,
   };
 
   // Se há valor customizado (cupom), enviar auto_recurring com o desconto

@@ -6,8 +6,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * Retorna planos ativos SEM exigir autenticação.
  * Usado na página pública de planos (abordagem B).
  *
- * SEC-AUDIT FIX: Usa select explícito para não expor campos internos
- * como mercadopago_plan_id, created_at, updated_at.
+ * Colunas selecionadas correspondem ao tipo PlanoDB definido em mercadopago.ts.
+ * mercadopago_plan_id é necessário para o fluxo de checkout no frontend.
  */
 export async function GET() {
   try {
@@ -15,7 +15,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('planos')
-      .select('id, nome, descricao, preco, periodo, features, ativo, ordem, destaque')
+      .select('id, nome, descricao, preco, periodo_meses, features, ativo, ordem, popular, maior_economia, mercadopago_plan_id')
       .eq('ativo', true)
       .order('ordem', { ascending: true });
 
