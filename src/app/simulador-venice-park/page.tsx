@@ -22,7 +22,7 @@ const DELIVERY_YEAR = 2027;
 const DELIVERY_MONTH = 10; // Outubro
 const PAYMENT_LIMIT_YEAR = 2027;
 const PAYMENT_LIMIT_MONTH = 9; // Setembro (mês anterior à entrega)
-const MIN_CAPTATION_PERCENT = 35;
+const MIN_CAPTATION_PERCENT = 30;
 const DEFAULT_UNICA_PERCENT = 14.8;
 
 // ─── Utility Functions ───
