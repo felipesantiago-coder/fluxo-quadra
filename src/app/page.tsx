@@ -216,7 +216,7 @@ function LoginForm() {
             {/* Logo */}
             <div className="mb-6">
               <img
-                src="/quadra-desk-logo.jpeg"
+                src="/quadra-desk-logo.png"
                 alt="Quadra Desk"
                 className="w-full max-w-[240px] sm:max-w-[280px] h-auto"
               />
