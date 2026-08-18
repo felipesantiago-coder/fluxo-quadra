@@ -220,11 +220,11 @@ function LoginForm() {
                 className="h-14 w-auto drop-shadow-sm"
               />
               <div>
-                <h1 className="text-2xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                <h1 className="text-[26px] font-extrabold text-slate-900 leading-none tracking-tight">
                   Fluxo Quadra
                 </h1>
-                <p className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase mt-0.5">
-                  Gestão de Empreendimentos
+                <p className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase mt-1">
+                  Espelhos de Vendas &amp; Simuladores
                 </p>
               </div>
             </div>
@@ -233,7 +233,7 @@ function LoginForm() {
               Bem-vindo de volta
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Acesse o painel para gerenciar seus empreendimentos imobiliários.
+              Acesse espelhos de vendas e simuladores de fluxo de pagamento dos seus empreendimentos.
             </p>
           </div>
 
