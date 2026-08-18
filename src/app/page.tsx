@@ -1,10 +1,38 @@
 "use client";
 
-import { Suspense } from "react";
-import { useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Building2, Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
+import {
+  Building2,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Shield,
+  ArrowRight,
+  LayoutDashboard,
+  BarChart3,
+  Users,
+} from "lucide-react";
+
+const features = [
+  {
+    icon: LayoutDashboard,
+    title: "Espelho de Vendas",
+    desc: "Visão em tempo real de todas as unidades dos seus empreendimentos.",
+  },
+  {
+    icon: BarChart3,
+    title: "Gestão Inteligente",
+    desc: "Controle de disponibilidade, reservas e vendas em um só lugar.",
+  },
+  {
+    icon: Users,
+    title: "Equipe Coordenada",
+    desc: "Coordenadores e corretores com permissões e acessos definidos.",
+  },
+];
 
 function LoginForm() {
   const router = useRouter();
@@ -17,8 +45,18 @@ function LoginForm() {
     const reason = searchParams.get("reason");
     if (reason === "unauthorized") return "Este e-mail não tem permissão de administrador.";
     if (reason === "unauthenticated") return "Faça login para acessar.";
+    if (reason === "login_error") return "Erro inesperado. Tente novamente.";
     return "";
   });
+
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveFeature((prev) => (prev + 1) % features.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,9 +84,6 @@ function LoginForm() {
         try {
           const supabase = createClient();
 
-          // Query resiliente: o Supabase client NÃO lança exceção quando colunas não existem,
-          // ele retorna { data: null, error: {...} }. Verificamos pelo error object.
-          // Estratégia: tenta query completa → fallback com apenas 'role' (sempre existe)
           let profile: Record<string, unknown> | null = null;
 
           const { data: pFull, error: errFull } = await supabase
@@ -60,8 +95,6 @@ function LoginForm() {
           if (!errFull && pFull) {
             profile = pFull as Record<string, unknown> | null;
           } else {
-            // Algumas colunas ainda não existem (mfa_enabled, must_change_password, must_setup_mfa)
-            // Fallback: buscar apenas 'role' que sempre existe no schema base
             const { data: pBase, error: errBase } = await supabase
               .from("profiles")
               .select("role")
@@ -70,7 +103,6 @@ function LoginForm() {
             if (!errBase) profile = pBase as Record<string, unknown> | null;
           }
 
-          // ── Fluxo de primeiro acesso ──────────────────────
           if (profile?.must_change_password) {
             document.cookie = "first_login_step=change_password; path=/; max-age=3600; SameSite=Lax";
             router.push("/change-password");
@@ -85,7 +117,6 @@ function LoginForm() {
             return;
           }
 
-          // ── Verificar MFA (totp e passkeys em paralelo) ──
           let hasMfa = profile?.mfa_enabled ?? false;
           if (!hasMfa) {
             const [totpRes, passkeyRes] = await Promise.all([
@@ -104,15 +135,12 @@ function LoginForm() {
             if (!hasMfa && passkeyRes.count && passkeyRes.count > 0) hasMfa = true;
           }
 
-          // Verificar subscription_status para o cookie (TTL curto: 5 min)
           const isAdmin =
             (!profile && isAdminEmail) || profile?.role === "admin_sistema";
           if (isAdmin) {
-            // Admin não precisa de verificação de assinatura
             document.cookie =
               "subscription_status=active; path=/; max-age=300; SameSite=Lax";
           } else {
-            // Buscar status real via API de refresh (verifica data_fim)
             try {
               const refreshRes = await fetch('/api/subscription-refresh');
               if (refreshRes.ok) {
@@ -121,7 +149,6 @@ function LoginForm() {
                   document.cookie = `subscription_status=${refreshData.status}; path=/; max-age=300; SameSite=Lax`;
                 }
               } else {
-                // Fallback: usar status do perfil
                 const { data: subProfile } = await supabase
                   .from("profiles")
                   .select("subscription_status")
@@ -135,7 +162,6 @@ function LoginForm() {
                 }
               }
             } catch {
-              // Fallback silencioso — API de refresh falhou
               const { data: subProfile } = await supabase
                 .from("profiles")
                 .select("subscription_status")
@@ -150,12 +176,10 @@ function LoginForm() {
             }
           }
 
-          // Determinar redirect baseado no role
           const finalRedirect = isAdmin
             ? "/admin-sistema"
             : "/projetos";
 
-          // Se não é admin e não tem assinatura ativa, redirecionar para aguardar
           if (
             !isAdmin &&
             document.cookie.includes("subscription_status=pending")
@@ -166,16 +190,12 @@ function LoginForm() {
           }
 
           if (hasMfa) {
-            // S3-P1-001 FIX: Server sets mfa_pending as HttpOnly cookie.
-            // Client JS cannot manipulate HttpOnly cookies.
             await fetch('/api/mfa/require', { method: 'POST' }).catch(() => {});
             router.push(`/mfa-verify?redirect=${encodeURIComponent(finalRedirect)}`);
           } else {
             router.push(finalRedirect);
           }
         } catch {
-          // S3-P1-002 FIX: On error, redirect to home (not dashboard).
-          // Do NOT skip MFA or subscription checks.
           router.push('/?reason=login_error');
         }
         router.refresh();
@@ -187,108 +207,228 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
-          <div className="flex items-center h-16 gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">
-                Espelho de <span className="text-gray-400 font-normal">Vendas</span>
-              </h1>
-              <p className="text-[11px] text-gray-400 font-medium">Login</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Login Form */}
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-                <Lock className="w-8 h-8 text-white/80" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* ── Left Panel: Login Form ── */}
+      <div className="flex flex-col justify-center w-full lg:w-[480px] xl:w-[520px] min-h-screen lg:min-h-0 bg-white relative z-10">
+        <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10">
+          {/* Logo + Branding */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
+                <Building2 className="w-5 h-5 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-white">Bem-vindo</h2>
-              <p className="text-white/60 text-sm mt-1">Faça login para acessar o espelho de vendas</p>
-            </div>
-
-            <form onSubmit={handleLogin} className="p-6 space-y-5">
-              {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium">
-                  {error}
-                </div>
-              )}
-
               <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                  E-mail
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
-                    required
-                    className="w-full h-11 pl-10 pr-4 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5 block">
-                  Senha
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full h-11 pl-10 pr-10 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Entrando..." : "Entrar"}
-              </button>
-
-              {/* Link para criar conta via planos (Abordagem B) */}
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-500">
-                  Novo por aqui?{" "}
-                  <a
-                    href="/planos"
-                    className="text-gray-900 font-semibold hover:underline underline-offset-2"
-                  >
-                    Escolha um plano e crie sua conta
-                  </a>
+                <h1 className="text-lg font-bold text-slate-900 leading-tight">
+                  Espelho de Vendas
+                </h1>
+                <p className="text-[11px] font-medium text-slate-400 tracking-wide uppercase">
+                  Gestão de Empreendimentos
                 </p>
               </div>
-            </form>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1.5">
+              Bem-vindo de volta
+            </h2>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Acesse o painel para gerenciar seus empreendimentos imobiliários.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                E-mail
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  autoComplete="username"
+                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Senha
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  className="w-full h-12 pl-11 pr-11 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Entrando...
+                </span>
+              ) : (
+                <>
+                  Entrar
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Sign-up link */}
+          <div className="text-center mt-6">
+            <p className="text-sm text-slate-500">
+              Novo por aqui?{" "}
+              <a
+                href="/planos"
+                className="text-slate-900 font-semibold hover:underline underline-offset-2 transition-all"
+              >
+                Escolha um plano e crie sua conta
+              </a>
+            </p>
+          </div>
+
+          {/* Secure badge */}
+          <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
+            <Shield className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-semibold text-slate-600">Ambiente seguro</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-xs text-slate-400">Criptografia de ponta a ponta</span>
+          </div>
+
+          {/* Footer (desktop only) */}
+          <div className="hidden lg:block mt-8 pt-5 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-400">
+              © {new Date().getFullYear()} Espelho de Vendas. Todos os direitos reservados.
+            </p>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* ── Right Panel: Hero / Features ── */}
+      <div className="hidden lg:flex lg:flex-1 flex-col justify-between relative overflow-hidden bg-slate-900">
+        {/* Background image with overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2670&auto=format&fit=crop')",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-900/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/40 to-transparent" />
+
+        {/* Top: subtle branding */}
+        <div className="relative z-10 p-8 flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs font-medium text-white/50 tracking-wider uppercase">
+            Plataforma ativa
+          </span>
+        </div>
+
+        {/* Center: Feature carousel */}
+        <div className="relative z-10 flex-1 flex items-center justify-center px-12">
+          <div className="max-w-lg">
+            {features.map((feature, idx) => (
+              <div
+                key={feature.title}
+                className={`transition-all duration-700 ${
+                  idx === activeFeature
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4 absolute inset-0 pointer-events-none"
+                }`}
+                style={
+                  idx === activeFeature
+                    ? { position: "relative" }
+                    : undefined
+                }
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6">
+                  <feature.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-3xl xl:text-4xl font-bold text-white mb-3 leading-tight">
+                  {feature.title}
+                </h3>
+                <p className="text-white/60 text-base xl:text-lg leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom: indicators + stats */}
+        <div className="relative z-10 p-8">
+          {/* Feature indicators */}
+          <div className="flex items-center gap-2 mb-6">
+            {features.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveFeature(idx)}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  idx === activeFeature
+                    ? "w-8 bg-white"
+                    : "w-1.5 bg-white/30 hover:bg-white/50"
+                }`}
+                aria-label={`Feature ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-8">
+            <div>
+              <p className="text-2xl font-bold text-white">100%</p>
+              <p className="text-xs text-white/40 mt-0.5">Online</p>
+            </div>
+            <div className="w-px h-8 bg-white/10" />
+            <div>
+              <p className="text-2xl font-bold text-white">SSL</p>
+              <p className="text-xs text-white/40 mt-0.5">Criptografado</p>
+            </div>
+            <div className="w-px h-8 bg-white/10" />
+            <div>
+              <p className="text-2xl font-bold text-white">MFA</p>
+              <p className="text-xs text-white/40 mt-0.5">Autenticação dupla</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile: Bottom safe area (form only on mobile) ── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent h-16 pointer-events-none" />
     </div>
   );
 }
@@ -297,10 +437,10 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center">
+        <div className="min-h-screen bg-white flex items-center justify-center">
           <div className="flex items-center gap-3">
-            <Building2 className="w-6 h-6 text-gray-400 animate-pulse" />
-            <span className="text-sm font-medium text-gray-400">Carregando...</span>
+            <Building2 className="w-6 h-6 text-slate-400 animate-pulse" />
+            <span className="text-sm font-medium text-slate-400">Carregando...</span>
           </div>
         </div>
       }
