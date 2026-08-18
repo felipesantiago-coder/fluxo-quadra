@@ -212,26 +212,27 @@ function LoginForm() {
       <div className="flex flex-col justify-center w-full lg:w-[480px] xl:w-[520px] min-h-screen lg:min-h-0 bg-white relative z-10">
         <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10">
           {/* Logo + Branding */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-5">
+          <div className="mb-10">
+            <div className="flex items-center gap-3.5 mb-6">
               <img
                 src="/logo.svg"
                 alt="Fluxo Quadra"
-                className="h-12 w-auto"
+                className="h-14 w-auto drop-shadow-sm"
               />
               <div>
-                <h1 className="text-xl font-bold text-slate-900 leading-tight">
+                <h1 className="text-2xl font-extrabold text-slate-900 leading-tight tracking-tight">
                   Fluxo Quadra
                 </h1>
-                <p className="text-[11px] font-medium text-slate-400 tracking-wide uppercase">
+                <p className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase mt-0.5">
                   Gestão de Empreendimentos
                 </p>
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-1.5">
+            <div className="w-10 h-1 rounded-full bg-slate-900 mb-6" />
+            <h2 className="text-[22px] font-bold text-slate-800 mb-1.5">
               Bem-vindo de volta
             </h2>
-            <p className="text-slate-500 text-sm leading-relaxed">
+            <p className="text-slate-400 text-sm leading-relaxed">
               Acesse o painel para gerenciar seus empreendimentos imobiliários.
             </p>
           </div>
