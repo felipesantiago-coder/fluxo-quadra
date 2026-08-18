@@ -113,7 +113,7 @@ function UnitCard({
 }) {
   const colors = typeColors[unit.tipo as TipoKey] || typeColors["1 quarto"];
   const status = statusLabels[unit.status];
-  const [showCardStatusMenu, setShowCardStatusMenu] = useState(false);
+  const [flipping, setFlipping] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Border color by status (used in update mode)
@@ -129,10 +129,10 @@ function UnitCard({
       onToggleSelect(unit);
       return;
     }
-    // Update mode: open card dropdown (NOT expanded card)
+    // Update mode: flip card to show status options on back
     if (updateMode && isAdmin) {
-      if (saving) return;
-      setShowCardStatusMenu((prev) => !prev);
+      if (flipping || saving) return;
+      setFlipping(true);
       return;
     }
     onSelect(unit);
@@ -151,12 +151,10 @@ function UnitCard({
     }
   };
 
-  const handleCardStatusSelect = (e: React.MouseEvent, newStatus: VittaUnit["status"]) => {
-    e.stopPropagation();
-    setShowCardStatusMenu(false);
+  const handleFlipStatusSelect = (newStatus: VittaUnit["status"]) => {
+    if (saving) return;
     if (onStatusChange) onStatusChange(unit.unidade, unit.bloco, unit.andar, newStatus);
-    setSaving(true);
-    setTimeout(() => setSaving(false), 500);
+    setFlipping(false);
   };
 
   return (
@@ -193,6 +191,17 @@ function UnitCard({
           <Check className="w-3 h-3 text-white" />
         </div>
       )}
+      {/* Flip container */}
+      <div style={{ perspective: "800px" }}>
+        <div
+          style={{
+            transformStyle: "preserve-3d",
+            transition: "transform 0.5s ease-in-out",
+            transform: flipping ? "rotateY(180deg)" : "rotateY(0deg)",
+          }}
+        >
+          {/* Front face */}
+          <div style={{ backfaceVisibility: "hidden" }}>
       <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
       <div className="p-5 space-y-3">
         <div className="flex items-center justify-between">
@@ -228,41 +237,64 @@ function UnitCard({
           </p>
         </div>
       </div>
-      {/* Card status dropdown (update mode — opened by card click) */}
-      <AnimatePresence>
-        {showCardStatusMenu && updateMode && isAdmin && (
-          <>
-            {/* Invisible backdrop to close menu on outside click */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={(e) => { e.stopPropagation(); setShowCardStatusMenu(false); }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 4, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-200 py-1 min-w-[160px] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">Alterar status</p>
-              {allStatuses.map((s) => (
-                <button
-                  key={s.value}
-                  onClick={(e) => handleCardStatusSelect(e, s.value)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors ${
-                    s.value === unit.status ? "bg-gray-50 text-gray-400" : "hover:bg-gray-50 text-gray-700"
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${s.dotColor}`} />
-                  {s.label}
-                  {s.value === unit.status && <Check className="w-3 h-3 ml-auto" />}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+          {/* Back face */}
+          <div
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+            className="bg-white"
+          >
+            <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
+            <div className="p-5 space-y-4">
+              <div className="text-center space-y-1">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Alterar Status</p>
+                <p className="text-sm font-bold text-gray-900">Bloco {unit.bloco} — Unidade {unit.unidade}</p>
+              </div>
+              <div className="space-y-2">
+                {allStatuses.map((s) => (
+                  <button
+                    key={s.value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFlipStatusSelect(s.value);
+                    }}
+                    disabled={saving || s.value === unit.status}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border-2 text-xs font-semibold transition-all ${
+                      s.value === unit.status
+                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-default"
+                        : s.value === "disponivel"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
+                        : s.value === "reservado"
+                        ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 hover:border-amber-300"
+                        : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300"
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dotColor} ${s.value === unit.status ? "opacity-40" : ""}`} />
+                    {s.label}
+                    {s.value === unit.status && <Check className="w-3.5 h-3.5 ml-auto" />}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFlipping(false);
+                }}
+                className="w-full text-[11px] text-gray-400 hover:text-gray-600 py-1 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </motion.div>
   );
 }
