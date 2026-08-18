@@ -210,29 +210,29 @@ function LoginForm() {
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
       {/* ── Left Panel: Login Form ── */}
       <div className="flex flex-col w-full lg:w-[480px] xl:w-[520px] bg-white relative z-10 shrink-0">
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12">
+        {/* Centered content — no scroll */}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10">
             {/* Logo */}
-            <div className="mb-6">
+            <div className="mb-5">
               <img
                 src="/quadra-desk-logo.png"
                 alt="Quadra Desk"
-                className="w-full max-w-[240px] sm:max-w-[280px] h-auto"
+                className="w-full max-w-[200px] sm:max-w-[240px] h-auto"
               />
             </div>
 
-            <div className="w-full h-px bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 mb-7" />
+            <div className="w-full h-px bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 mb-5" />
 
             <h2 className="text-xl font-bold text-slate-900 mb-1">
               Bem-vindo de volta
             </h2>
-            <p className="text-slate-400 text-sm leading-relaxed mb-6">
+            <p className="text-slate-400 text-sm leading-relaxed mb-5">
               Acesse espelhos de vendas e simuladores de pagamento.
             </p>
 
             {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-3.5">
+            <form onSubmit={handleLogin} className="space-y-3">
               {error && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1">
                   {error}
@@ -306,7 +306,7 @@ function LoginForm() {
             </form>
 
             {/* Sign-up link */}
-            <div className="text-center mt-5">
+            <div className="text-center mt-4">
               <p className="text-sm text-slate-500">
                 Não tem conta?{" "}
                 <a
@@ -319,7 +319,7 @@ function LoginForm() {
             </div>
 
             {/* Secure badge */}
-            <div className="mt-5 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
+            <div className="mt-4 p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
               <Shield className="w-4 h-4 text-emerald-500" />
               <span className="text-xs font-semibold text-slate-600">Ambiente seguro</span>
               <span className="text-slate-300">·</span>
