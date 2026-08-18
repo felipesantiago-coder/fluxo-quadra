@@ -214,17 +214,11 @@ function LoginForm() {
           {/* Logo + Branding */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-slate-900 leading-tight">
-                  Espelho de Vendas
-                </h1>
-                <p className="text-[11px] font-medium text-slate-400 tracking-wide uppercase">
-                  Gestão de Empreendimentos
-                </p>
-              </div>
+              <img
+                src="/logo.svg"
+                alt="Espelho de Vendas"
+                className="h-11 w-auto"
+              />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-1.5">
               Bem-vindo de volta
@@ -311,12 +305,12 @@ function LoginForm() {
           {/* Sign-up link */}
           <div className="text-center mt-6">
             <p className="text-sm text-slate-500">
-              Novo por aqui?{" "}
+              Não tem conta?{" "}
               <a
                 href="/planos"
                 className="text-slate-900 font-semibold hover:underline underline-offset-2 transition-all"
               >
-                Escolha um plano e crie sua conta
+                Criar conta
               </a>
             </p>
           </div>
