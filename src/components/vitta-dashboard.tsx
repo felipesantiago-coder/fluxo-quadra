@@ -787,7 +787,7 @@ export default function VittaDashboard({ isAdmin = false, isCoordinator = false,
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
+                <img src="/qd-logo.png" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
                     Quadra Desk

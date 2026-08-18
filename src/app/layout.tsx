@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: [
-      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/qd-logo.png", type: "image/png" },
     ],
   },
   openGraph: {

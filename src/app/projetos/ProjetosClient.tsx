@@ -159,7 +159,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Image
-                src="/logo.svg"
+                src="/qd-logo.png"
                 alt="Logo Quadra Desk"
                 width={36}
                 height={36}
