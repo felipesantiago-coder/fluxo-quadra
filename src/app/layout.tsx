@@ -20,10 +20,12 @@ const siteUrl =
 
 export const metadata: Metadata = {
   ...(siteUrl && { metadataBase: new URL(siteUrl) }),
-  title: "Espelho de Vendas — Empreendimentos",
+  title: "Fluxo Quadra — Empreendimentos",
   description:
-    "Espelho de vendas interativo. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
+    "Fluxo Quadra: gestão de empreendimentos imobiliários. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
   keywords: [
+    "fluxo quadra",
+    "empreendimentos imobiliários",
     "espelho de vendas",
     "imóveis",
     "empreendimento",
@@ -37,22 +39,22 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Espelho de Vendas — Empreendimentos",
-    description: "Explore todas as unidades disponíveis dos empreendimentos.",
+    title: "Fluxo Quadra — Empreendimentos",
+    description: "Gestão inteligente de empreendimentos imobiliários.",
     type: "website",
     images: [
       {
         url: "/og-preview.png",
         width: 1200,
         height: 630,
-        alt: "Espelho de Vendas — Empreendimentos",
+        alt: "Fluxo Quadra — Empreendimentos",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Espelho de Vendas — Empreendimentos",
-    description: "Explore todas as unidades disponíveis dos empreendimentos.",
+    title: "Fluxo Quadra — Empreendimentos",
+    description: "Gestão inteligente de empreendimentos imobiliários.",
     images: ["/og-preview.png"],
   },
 };

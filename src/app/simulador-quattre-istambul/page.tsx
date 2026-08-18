@@ -680,16 +680,14 @@ function SimulatorContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center shadow-md">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
+              <img src="/logo.svg" alt="Fluxo Quadra" className="h-10 w-auto rounded-xl" />
               <div>
-                <h1 className="text-lg font-bold text-slate-900 tracking-tight">Espelho de <span className="text-slate-400 font-normal">Vendas</span></h1>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">Fluxo <span className="text-slate-400 font-normal">Quadra</span></h1>
                 <p className="text-xs text-slate-500 font-medium hidden sm:block">Simulador de Fluxo de Pagamento</p>
               </div>
             </div>
             <a href="/" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium flex items-center gap-2">
-              <span className="hidden sm:inline">← Voltar ao Espelho de Vendas</span>
+              <span className="hidden sm:inline">← Voltar ao Fluxo Quadra</span>
               <span className="sm:hidden">Voltar</span>
             </a>
           </div>
@@ -1095,7 +1093,7 @@ function SimulatorContent() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-slate-400">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              <span className="font-semibold text-slate-600">Espelho de Vendas</span>
+              <span className="font-semibold text-slate-600">Fluxo Quadra</span>
             </div>
             <span className="hidden sm:inline">•</span>
             <span>Simulador de Fluxo de Pagamento</span>

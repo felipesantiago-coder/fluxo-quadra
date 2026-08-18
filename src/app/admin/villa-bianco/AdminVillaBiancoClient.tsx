@@ -32,7 +32,7 @@ export default function AdminVillaBiancoClient() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Espelho de Vendas</span>
+              <span className="text-sm font-bold tracking-tight">Fluxo Quadra</span>
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 Admin
               </span>

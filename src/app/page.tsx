@@ -19,7 +19,7 @@ import {
 const features = [
   {
     icon: LayoutDashboard,
-    title: "Espelho de Vendas",
+    title: "Vendas em Tempo Real",
     desc: "Visão em tempo real de todas as unidades dos seus empreendimentos.",
   },
   {
@@ -216,9 +216,17 @@ function LoginForm() {
             <div className="flex items-center gap-3 mb-5">
               <img
                 src="/logo.svg"
-                alt="Espelho de Vendas"
-                className="h-11 w-auto"
+                alt="Fluxo Quadra"
+                className="h-12 w-auto"
               />
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">
+                  Fluxo Quadra
+                </h1>
+                <p className="text-[11px] font-medium text-slate-400 tracking-wide uppercase">
+                  Gestão de Empreendimentos
+                </p>
+              </div>
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-1.5">
               Bem-vindo de volta
@@ -326,7 +334,7 @@ function LoginForm() {
           {/* Footer (desktop only) */}
           <div className="hidden lg:block mt-8 pt-5 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">
-              © {new Date().getFullYear()} Espelho de Vendas. Todos os direitos reservados.
+              © {new Date().getFullYear()} Fluxo Quadra. Todos os direitos reservados.
             </p>
           </div>
         </div>

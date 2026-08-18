@@ -217,7 +217,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-tight">
-                  Espelho de <span className="text-gray-400 font-normal">Vendas</span>
+                  Fluxo <span className="text-gray-400 font-normal">Quadra</span>
                 </h1>
                 <p className="text-[11px] text-gray-400 font-medium">Planos de Assinatura</p>
               </div>
@@ -431,7 +431,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Crown className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Espelho de Vendas</span>
+            <span className="font-semibold text-gray-600">Fluxo Quadra</span>
             <span>-</span>
             <span>Planos de Assinatura</span>
           </div>

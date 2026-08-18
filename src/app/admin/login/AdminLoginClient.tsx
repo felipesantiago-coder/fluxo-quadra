@@ -58,7 +58,7 @@ export default function AdminLoginClient() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                Espelho de <span className="text-gray-400 font-normal">Vendas</span>
+                Fluxo <span className="text-gray-400 font-normal">Quadra</span>
               </h1>
               <p className="text-[11px] text-gray-400 font-medium">Login Administrativo</p>
             </div>
@@ -138,7 +138,7 @@ export default function AdminLoginClient() {
 
           <div className="text-center mt-4">
             <a href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-              ← Voltar ao Espelho de Vendas
+              ← Voltar ao Fluxo Quadra
             </a>
           </div>
         </div>

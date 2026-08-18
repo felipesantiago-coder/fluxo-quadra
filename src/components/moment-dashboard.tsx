@@ -823,12 +823,10 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
-                </div>
+                <img src="/logo.svg" alt="Fluxo Quadra" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Espelho de <span className="text-gray-400 font-normal">Vendas</span>
+                    Fluxo <span className="text-gray-400 font-normal">Quadra</span>
                   </h1>
                   <p className="text-[11px] text-gray-400 font-medium">Moment</p>
                 </div>
@@ -1064,7 +1062,7 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
       {/* Footer */}
       <footer className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-4 mt-auto">
         <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Espelho de Vendas • Moment</span>
+          <span>Fluxo Quadra • Moment</span>
           <span>{units.length} unidades • {units.filter((u) => u.status === "disponivel").length} disponíve{units.filter((u) => u.status === "disponivel").length !== 1 ? "is" : "l"}</span>
         </div>
       </footer>
