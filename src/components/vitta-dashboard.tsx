@@ -116,6 +116,11 @@ function UnitCard({
   const [flipping, setFlipping] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Reset flip when update mode is deactivated
+  useEffect(() => {
+    if (!updateMode) setFlipping(false);
+  }, [updateMode]);
+
   // Border color by status (used in update mode)
   const statusBorderClass: Record<string, string> = {
     disponivel: "border-emerald-300",
@@ -177,7 +182,7 @@ function UnitCard({
         relative rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
         transition-all duration-300 ease-out
-        ${updateMode && !isBackground ? statusBorderClass[unit.status] || "border-gray-100" : "border-gray-100"}
+        border-gray-100
         ${isSelected ? "ring-2 ring-blue-500 border-blue-400 shadow-blue-100" : ""}
         ${isBackground ? "pointer-events-none" : ""}
       `}
@@ -263,12 +268,16 @@ function UnitCard({
                     key={s.value}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (s.value === unit.status) {
+                        setFlipping(false);
+                        return;
+                      }
                       handleFlipStatusSelect(s.value);
                     }}
-                    disabled={saving || s.value === unit.status}
+                    disabled={saving}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border-2 text-xs font-semibold transition-all ${
                       s.value === unit.status
-                        ? "bg-gray-50 border-gray-200 text-gray-400 cursor-default"
+                        ? "bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100 hover:border-gray-400"
                         : s.value === "disponivel"
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300"
                         : s.value === "reservado"
@@ -276,7 +285,7 @@ function UnitCard({
                         : "bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300"
                     }`}
                   >
-                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dotColor} ${s.value === unit.status ? "opacity-40" : ""}`} />
+                    <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${s.dotColor}`} />
                     {s.label}
                     {s.value === unit.status && <Check className="w-3.5 h-3.5 ml-auto" />}
                   </button>
