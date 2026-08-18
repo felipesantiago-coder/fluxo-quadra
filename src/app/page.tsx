@@ -207,137 +207,142 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
       {/* ── Left Panel: Login Form ── */}
-      <div className="flex flex-col justify-center w-full lg:w-[480px] xl:w-[520px] min-h-screen lg:min-h-0 bg-white relative z-10">
-        <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10">
-          {/* Logo + Branding */}
-          <div className="mb-10">
-            <div className="flex items-center gap-3.5 mb-6">
-              <img
-                src="/logo.svg"
-                alt="Fluxo Quadra"
-                className="h-14 w-auto drop-shadow-sm"
-              />
-              <div>
-                <h1 className="text-[26px] font-extrabold text-slate-900 leading-none tracking-tight">
-                  Fluxo Quadra
-                </h1>
-                <p className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase mt-1">
-                  Espelhos de Vendas &amp; Simuladores
-                </p>
+      <div className="flex flex-col w-full lg:w-[480px] xl:w-[520px] bg-white relative z-10 shrink-0">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12">
+            {/* Logo + Branding */}
+            <div className="mb-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.svg"
+                  alt="Fluxo Quadra"
+                  className="h-11 w-auto drop-shadow-sm"
+                />
+                <div>
+                  <h1 className="text-[26px] font-extrabold text-slate-900 leading-none tracking-tight">
+                    Fluxo Quadra
+                  </h1>
+                  <p className="text-[10px] font-semibold text-slate-400 tracking-widest uppercase mt-1">
+                    Espelhos de Vendas &amp; Simuladores
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="w-10 h-1 rounded-full bg-slate-900 mb-6" />
-            <h2 className="text-[22px] font-bold text-slate-800 mb-1.5">
+
+            <div className="w-full h-px bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 mb-7" />
+
+            <h2 className="text-xl font-bold text-slate-900 mb-1">
               Bem-vindo de volta
             </h2>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <p className="text-slate-400 text-sm leading-relaxed mb-6">
               Acesse espelhos de vendas e simuladores de fluxo de pagamento dos seus empreendimentos.
             </p>
-          </div>
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                E-mail
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  autoComplete="username"
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-                Senha
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  autoComplete="current-password"
-                  className="w-full h-12 pl-11 pr-11 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Entrando...
-                </span>
-              ) : (
-                <>
-                  Entrar
-                  <ArrowRight className="w-4 h-4" />
-                </>
+            {/* Form */}
+            <form onSubmit={handleLogin} className="space-y-3.5">
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+                  {error}
+                </div>
               )}
-            </button>
-          </form>
 
-          {/* Sign-up link */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-slate-500">
-              Não tem conta?{" "}
-              <a
-                href="/planos"
-                className="text-slate-900 font-semibold hover:underline underline-offset-2 transition-all"
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  E-mail
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    required
+                    autoComplete="username"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Senha
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                    className="w-full h-12 pl-11 pr-11 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Criar conta
-              </a>
-            </p>
-          </div>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Entrando...
+                  </span>
+                ) : (
+                  <>
+                    Entrar
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
 
-          {/* Secure badge */}
-          <div className="mt-6 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
-            <Shield className="w-4 h-4 text-emerald-500" />
-            <span className="text-xs font-semibold text-slate-600">Ambiente seguro</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-xs text-slate-400">Criptografia de ponta a ponta</span>
-          </div>
+            {/* Sign-up link */}
+            <div className="text-center mt-5">
+              <p className="text-sm text-slate-500">
+                Não tem conta?{" "}
+                <a
+                  href="/planos"
+                  className="text-slate-900 font-semibold hover:underline underline-offset-2 transition-all"
+                >
+                  Criar conta
+                </a>
+              </p>
+            </div>
 
-          {/* Footer (desktop only) */}
-          <div className="hidden lg:block mt-8 pt-5 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-400">
-              © {new Date().getFullYear()} Fluxo Quadra. Todos os direitos reservados.
-            </p>
+            {/* Secure badge */}
+            <div className="mt-5 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-semibold text-slate-600">Ambiente seguro</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-xs text-slate-400">Criptografia de ponta a ponta</span>
+            </div>
           </div>
+        </div>
+
+        {/* Fixed footer */}
+        <div className="shrink-0 border-t border-slate-100 py-4 text-center">
+          <p className="text-xs text-slate-400">
+            © {new Date().getFullYear()} Fluxo Quadra. Todos os direitos reservados.
+          </p>
         </div>
       </div>
 
@@ -434,9 +439,6 @@ function LoginForm() {
           </div>
         </div>
       </div>
-
-      {/* ── Mobile: Bottom safe area (form only on mobile) ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/95 to-transparent h-16 pointer-events-none" />
     </div>
   );
 }
