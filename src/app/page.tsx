@@ -362,32 +362,35 @@ function LoginForm() {
 
         {/* Center: Feature carousel */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-12">
-          <div className="max-w-lg">
-            {features.map((feature, idx) => (
-              <div
-                key={feature.title}
-                className={`transition-all duration-700 ${
-                  idx === activeFeature
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4 absolute inset-0 pointer-events-none"
-                }`}
-                style={
-                  idx === activeFeature
-                    ? { position: "relative" }
-                    : undefined
-                }
-              >
-                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6">
-                  <feature.icon className="w-7 h-7 text-white" />
+          <div className="relative max-w-lg w-full h-[180px]">
+            {features.map((feature, idx) => {
+              const isActive = idx === activeFeature;
+              const isPrev = idx === (activeFeature - 1 + features.length) % features.length;
+              const isNext = idx === (activeFeature + 1) % features.length;
+              let translateX = "translate-x-[120%]";
+              if (isActive) translateX = "translate-x-0";
+              else if (isPrev) translateX = "-translate-x-[120%]";
+              return (
+                <div
+                  key={feature.title}
+                  className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                    isActive
+                      ? `opacity-100 ${translateX}`
+                      : `opacity-0 ${translateX} pointer-events-none`
+                  }`}
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6">
+                    <feature.icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-3xl xl:text-4xl font-bold text-white mb-3 leading-tight">
+                    {feature.title}
+                  </h3>
+                  <p className="text-white/60 text-base xl:text-lg leading-relaxed">
+                    {feature.desc}
+                  </p>
                 </div>
-                <h3 className="text-3xl xl:text-4xl font-bold text-white mb-3 leading-tight">
-                  {feature.title}
-                </h3>
-                <p className="text-white/60 text-base xl:text-lg leading-relaxed">
-                  {feature.desc}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
