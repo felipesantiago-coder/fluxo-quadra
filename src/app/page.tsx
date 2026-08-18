@@ -238,7 +238,7 @@ function LoginForm() {
               Bem-vindo de volta
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed mb-6">
-              Acesse espelhos de vendas e simuladores de fluxo de pagamento dos seus empreendimentos.
+              Acesse espelhos de vendas e simuladores de pagamento.
             </p>
 
             {/* Form */}
@@ -338,12 +338,7 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Fixed footer */}
-        <div className="shrink-0 border-t border-slate-100 py-4 text-center">
-          <p className="text-xs text-slate-400">
-            © {new Date().getFullYear()} Fluxo Quadra. Todos os direitos reservados.
-          </p>
-        </div>
+
       </div>
 
       {/* ── Right Panel: Hero / Features ── */}
