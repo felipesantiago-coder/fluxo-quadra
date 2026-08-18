@@ -342,10 +342,12 @@ function LoginForm() {
       </div>
 
       {/* ── Right Panel: Hero / Features ── */}
-      <div className="hidden lg:flex lg:flex-1 flex-col justify-between relative overflow-hidden bg-slate-900">
+      <div className="hidden lg:flex lg:flex-1 flex-col justify-between relative overflow-hidden"
+        style={{ backgroundColor: '#1a2332' }}
+      >
         {/* Background image with overlay */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
           style={{
             backgroundImage: "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2670&auto=format&fit=crop')",
           }}
