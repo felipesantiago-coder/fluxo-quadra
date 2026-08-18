@@ -167,9 +167,8 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
               />
               <div>
                 <h1 className="text-lg font-bold tracking-tight">
-                  Fluxo <span className="text-gray-400 font-normal">Quadra</span>
+                  Fluxo <span className="text-gray-400 font-normal">Quadra</span> <span className="text-gray-500 font-normal text-sm">| Empreendimentos</span>
                 </h1>
-                <p className="text-[11px] text-gray-400 font-medium">Empreendimentos</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -486,7 +485,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
             <span className="font-semibold text-gray-600">Fluxo Quadra</span>
-            <span>•</span>
+            <span>|</span>
             <span>Empreendimentos</span>
           </div>
         </div>
