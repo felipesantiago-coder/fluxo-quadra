@@ -1001,7 +1001,7 @@ export default function AdminSistemaClient() {
       <footer className="mt-auto border-t border-gray-200 bg-white/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-xs text-gray-400">
-            Administração do Sistema • Fluxo Quadra
+            Administração do Sistema • Quadra Desk
           </p>
         </div>
       </footer>

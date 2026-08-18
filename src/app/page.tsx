@@ -213,23 +213,13 @@ function LoginForm() {
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto">
           <div className="w-full max-w-[400px] mx-auto px-6 sm:px-8 lg:px-10 py-8 sm:py-10 lg:py-12">
-            {/* Logo + Branding */}
+            {/* Logo */}
             <div className="mb-6">
-              <div className="flex items-center gap-3">
-                <img
-                  src="/logo.svg"
-                  alt="Fluxo Quadra"
-                  className="h-11 w-auto drop-shadow-sm"
-                />
-                <div>
-                  <h1 className="text-[26px] font-extrabold text-slate-900 leading-none tracking-tight">
-                    Fluxo Quadra
-                  </h1>
-                  <p className="text-[10px] font-semibold text-slate-400 tracking-widest uppercase mt-1">
-                    Espelhos de Vendas &amp; Simuladores
-                  </p>
-                </div>
-              </div>
+              <img
+                src="/quadra-desk-logo.jpeg"
+                alt="Quadra Desk"
+                className="w-full max-w-[240px] sm:max-w-[280px] h-auto"
+              />
             </div>
 
             <div className="w-full h-px bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 mb-7" />

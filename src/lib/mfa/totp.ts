@@ -7,7 +7,7 @@ authenticator.options = { window: 1 };
 /**
  * Gera um novo segredo TOTP e retorna o QR code (data URL) + segredo.
  */
-export async function generateTOTP(email: string, appName: string = "Fluxo Quadra") {
+export async function generateTOTP(email: string, appName: string = "Quadra Desk") {
   const secret = authenticator.generateSecret();
   const otpauth = authenticator.keyuri(email, appName, secret);
   const qrDataUrl = await QRCode.toDataURL(otpauth, { width: 280, margin: 2 });

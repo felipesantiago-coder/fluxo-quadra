@@ -29,14 +29,14 @@ export async function sendNewDeviceEmail(data: LoginNotificationData): Promise<b
     const resend = new Resend(apiKey);
 
     await resend.emails.send({
-      from: "Fluxo Quadra <seguranca@fluxoquadra.com.br>",
+      from: "Quadra Desk <seguranca@fluxoquadra.com.br>",
       to: data.to,
-      subject: "[Fluxo Quadra] Novo acesso detectado na sua conta",
+      subject: "[Quadra Desk] Novo acesso detectado na sua conta",
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #1a1a1a;">Novo acesso detectado</h2>
           <p>Olá${data.displayName ? ` ${data.displayName}` : ""},</p>
-          <p>Um novo acesso à sua conta no <strong>Fluxo Quadra</strong> foi detectado:</p>
+          <p>Um novo acesso à sua conta no <strong>Quadra Desk</strong> foi detectado:</p>
           <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
             <tr>
               <td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: 600; width: 40%;">Data/Hora</td>
@@ -53,7 +53,7 @@ export async function sendNewDeviceEmail(data: LoginNotificationData): Promise<b
           </table>
           <p style="color: #6b7280; font-size: 14px;">Se você não reconhece esse acesso, considere alterar sua senha e ativar a autenticação de dois fatores nas configurações de segurança.</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-          <p style="color: #9ca3af; font-size: 12px;">Esta é uma notificação automática do Fluxo Quadra. Não responda a este e-mail.</p>
+          <p style="color: #9ca3af; font-size: 12px;">Esta é uma notificação automática do Quadra Desk. Não responda a este e-mail.</p>
         </div>
       `,
     });

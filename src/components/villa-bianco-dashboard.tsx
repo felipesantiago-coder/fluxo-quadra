@@ -928,10 +928,10 @@ export default function VillaBiancoDashboard({ isAdmin = false, isCoordinator = 
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <img src="/logo.svg" alt="Fluxo Quadra" className="h-9 w-auto rounded-lg" />
+                <img src="/logo.svg" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Fluxo <span className="text-gray-400 font-normal">Quadra</span>
+                    Quadra Desk
                   </h1>
                   <p className="text-[11px] text-gray-400 font-medium">Villa Bianco</p>
                 </div>
@@ -1171,7 +1171,7 @@ export default function VillaBiancoDashboard({ isAdmin = false, isCoordinator = 
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Fluxo Quadra</span>
+            <span className="font-semibold text-gray-600">Quadra Desk</span>
           </div>
         </div>
       </footer>

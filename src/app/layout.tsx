@@ -20,11 +20,11 @@ const siteUrl =
 
 export const metadata: Metadata = {
   ...(siteUrl && { metadataBase: new URL(siteUrl) }),
-  title: "Fluxo Quadra",
+  title: "Quadra Desk",
   description:
-    "Fluxo Quadra: gestão de empreendimentos imobiliários. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
+    "Quadra Desk: gestão de empreendimentos imobiliários. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
   keywords: [
-    "fluxo quadra",
+    "quadra desk",
     "empreendimentos imobiliários",
     "espelho de vendas",
     "imóveis",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Fluxo Quadra",
+    title: "Quadra Desk",
     description: "Gestão inteligente de empreendimentos imobiliários.",
     type: "website",
     images: [
@@ -47,13 +47,13 @@ export const metadata: Metadata = {
         url: "/og-preview.png",
         width: 1200,
         height: 630,
-        alt: "Fluxo Quadra",
+        alt: "Quadra Desk",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Fluxo Quadra",
+    title: "Quadra Desk",
     description: "Gestão inteligente de empreendimentos imobiliários.",
     images: ["/og-preview.png"],
   },
