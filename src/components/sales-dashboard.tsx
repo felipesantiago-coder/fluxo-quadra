@@ -126,12 +126,6 @@ function UnitCard({
     }
   };
 
-  // Border color by status (used in update mode)
-  const statusBorderClass: Record<string, string> = {
-    disponivel: "border-emerald-300",
-    reservado: "border-amber-300",
-    vendido: "border-red-300",
-  };
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Batch selection: Shift+click
@@ -191,6 +185,7 @@ function UnitCard({
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
+        borderColor: isSelected ? undefined : "rgb(243 244 246)",
       }}
     >
       {/* Batch selection indicator */}

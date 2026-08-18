@@ -241,12 +241,6 @@ function UnitCard({
   const displayArea = unit.area_str || formatArea(unit.area);
   const sqm = pricePerSqm(unit.valor_venda, unit.area);
 
-  // Border color by status (used in update mode)
-  const statusBorderClass: Record<string, string> = {
-    disponivel: "border-emerald-300",
-    reservado: "border-amber-300",
-    vendido: "border-red-300",
-  };
 
   return (
     <motion.div
@@ -274,6 +268,7 @@ function UnitCard({
       `}
       style={{
         filter: isBackground ? "blur(2px)" : "none",
+        borderColor: isSelected ? undefined : "rgb(243 244 246)",
       }}
     >
       {/* Batch selection indicator */}
