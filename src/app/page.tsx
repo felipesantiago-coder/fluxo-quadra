@@ -19,20 +19,20 @@ const slides = [
   {
     type: "desktop" as const,
     image: "/mock-desktop-01.png",
-    title: "Espelhos de vendas no desktop",
-    desc: "Acompanhe todas as unidades, status e valores em uma tela ampla e intuitiva.",
+    title: "Espelho de vendas atualizado em tempo real",
+    desc: "Disponibilidade, status e preços de todas as unidades ao seu alcance, direto do computador.",
   },
   {
     type: "mobile" as const,
     image: "/mock-mobile-01.webp",
-    title: "Mesma potência no celular",
-    desc: "Acesse espelhos e simuladores direto do seu smartphone, onde estiver.",
+    title: "Acesse de qualquer lugar",
+    desc: "Mesmas informações completas no celular. Consulte espelhos e preços onde estiver.",
   },
   {
     type: "desktop" as const,
     image: "/mock-desktop-02.png",
-    title: "Simuladores de pagamento",
-    desc: "Simule fluxos de pagamento personalizados para cada unidade.",
+    title: "Simule e gere propostas em PDF",
+    desc: "Crie simulações de pagamento personalizadas e exporte a proposta pronta para envio ao cliente.",
   },
 ];
 
