@@ -11,26 +11,28 @@ import {
   EyeOff,
   Shield,
   ArrowRight,
-  LayoutDashboard,
-  BarChart3,
-  Users,
+  Monitor,
+  Smartphone,
 } from "lucide-react";
 
-const features = [
+const slides = [
   {
-    icon: LayoutDashboard,
-    title: "Vendas em Tempo Real",
-    desc: "Visão em tempo real de todas as unidades dos seus empreendimentos.",
+    type: "desktop" as const,
+    image: "/mock-desktop-01.png",
+    title: "Espelhos de vendas no desktop",
+    desc: "Acompanhe todas as unidades, status e valores em uma tela ampla e intuitiva.",
   },
   {
-    icon: BarChart3,
-    title: "Gestão Inteligente",
-    desc: "Controle de disponibilidade, reservas e vendas em um só lugar.",
+    type: "mobile" as const,
+    image: "/mock-mobile-01.webp",
+    title: "Mesma potência no celular",
+    desc: "Acesse espelhos e simuladores direto do seu smartphone, onde estiver.",
   },
   {
-    icon: Users,
-    title: "Equipe Coordenada",
-    desc: "Coordenadores e corretores com permissões e acessos definidos.",
+    type: "desktop" as const,
+    image: "/mock-desktop-02.png",
+    title: "Simuladores de pagamento",
+    desc: "Simule fluxos de pagamento personalizados para cada unidade.",
   },
 ];
 
@@ -53,7 +55,7 @@ function LoginForm() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % features.length);
+      setActiveFeature((prev) => (prev + 1) % slides.length);
     }, 4000);
     return () => clearInterval(interval);
   }, []);
@@ -353,34 +355,95 @@ function LoginForm() {
           </span>
         </div>
 
-        {/* Center: Feature carousel */}
+        {/* Center: Device mockup carousel */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-12">
-          <div className="relative max-w-lg w-full h-[180px]">
-            {features.map((feature, idx) => {
+          <div className="relative max-w-xl w-full">
+            {slides.map((slide, idx) => {
               const isActive = idx === activeFeature;
-              const isPrev = idx === (activeFeature - 1 + features.length) % features.length;
-              const isNext = idx === (activeFeature + 1) % features.length;
+              const isPrev = idx === (activeFeature - 1 + slides.length) % slides.length;
+              const isNext = idx === (activeFeature + 1) % slides.length;
               let translateX = "translate-x-[120%]";
               if (isActive) translateX = "translate-x-0";
               else if (isPrev) translateX = "-translate-x-[120%]";
               return (
                 <div
-                  key={feature.title}
+                  key={slide.title}
                   className={`absolute inset-0 transition-all duration-700 ease-in-out ${
                     isActive
                       ? `opacity-100 ${translateX}`
                       : `opacity-0 ${translateX} pointer-events-none`
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center mb-6">
-                    <feature.icon className="w-7 h-7 text-white" />
+                  {/* Device frame */}
+                  <div className="flex items-center justify-center mb-6">
+                    {slide.type === "desktop" ? (
+                      <div className="relative w-full max-w-[460px]">
+                        {/* Monitor bezel */}
+                        <div className="rounded-xl border-2 border-white/20 bg-black/40 backdrop-blur-sm p-2 shadow-2xl shadow-black/40">
+                          {/* Screen */}
+                          <div className="relative rounded-lg overflow-hidden bg-slate-800">
+                            <img
+                              src={slide.image}
+                              alt={slide.title}
+                              className="w-full h-auto block"
+                              loading="eager"
+                            />
+                          </div>
+                        </div>
+                        {/* Monitor stand */}
+                        <div className="flex justify-center">
+                          <div className="w-24 h-4 bg-gradient-to-b from-white/20 to-white/5 rounded-b-lg" />
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-white/10 rounded-b" />
+                        </div>
+                        {/* Base */}
+                        <div className="flex justify-center -mt-0.5">
+                          <div className="w-32 h-1 bg-white/15 rounded-full" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        {/* Phone frame */}
+                        <div className="w-[200px] rounded-[2rem] border-2 border-white/20 bg-black/40 backdrop-blur-sm p-2 shadow-2xl shadow-black/40">
+                          {/* Notch */}
+                          <div className="flex justify-center mb-1">
+                            <div className="w-20 h-4 bg-black rounded-b-xl" />
+                          </div>
+                          {/* Screen */}
+                          <div className="rounded-[1.2rem] overflow-hidden bg-slate-800">
+                            <img
+                              src={slide.image}
+                              alt={slide.title}
+                              className="w-full h-auto block"
+                              loading="eager"
+                            />
+                          </div>
+                          {/* Home indicator */}
+                          <div className="flex justify-center mt-2">
+                            <div className="w-24 h-1 bg-white/20 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-3xl xl:text-4xl font-bold text-white mb-3 leading-tight">
-                    {feature.title}
-                  </h3>
-                  <p className="text-white/60 text-base xl:text-lg leading-relaxed">
-                    {feature.desc}
-                  </p>
+                  {/* Text */}
+                  <div className="text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-3">
+                      {slide.type === "desktop" ? (
+                        <Monitor className="w-3.5 h-3.5 text-white/70" />
+                      ) : (
+                        <Smartphone className="w-3.5 h-3.5 text-white/70" />
+                      )}
+                      <span className="text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                        {slide.type === "desktop" ? "Desktop" : "Mobile"}
+                      </span>
+                    </div>
+                    <h3 className="text-2xl xl:text-3xl font-bold text-white mb-2 leading-tight">
+                      {slide.title}
+                    </h3>
+                    <p className="text-white/50 text-sm xl:text-base leading-relaxed">
+                      {slide.desc}
+                    </p>
+                  </div>
                 </div>
               );
             })}
@@ -391,7 +454,7 @@ function LoginForm() {
         <div className="relative z-10 p-8">
           {/* Feature indicators */}
           <div className="flex items-center gap-2 mb-6">
-            {features.map((_, idx) => (
+            {slides.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveFeature(idx)}
