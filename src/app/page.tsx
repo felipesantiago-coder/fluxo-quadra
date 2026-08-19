@@ -356,91 +356,83 @@ function LoginForm() {
         </div>
 
         {/* Center: Device mockup carousel */}
-        <div className="relative z-10 flex-1 flex items-center justify-center px-12">
-          <div className="relative max-w-xl w-full">
+        <div className="relative z-10 flex-1 flex items-center justify-center px-12 overflow-hidden">
+          <div className="relative w-full max-w-xl flex flex-col items-center">
             {slides.map((slide, idx) => {
               const isActive = idx === activeFeature;
               const isPrev = idx === (activeFeature - 1 + slides.length) % slides.length;
-              const isNext = idx === (activeFeature + 1) % slides.length;
               let translateX = "translate-x-[120%]";
               if (isActive) translateX = "translate-x-0";
               else if (isPrev) translateX = "-translate-x-[120%]";
               return (
                 <div
                   key={slide.title}
-                  className={`absolute inset-0 transition-all duration-700 ease-in-out ${
+                  className={`w-full flex flex-col items-center transition-all duration-700 ease-in-out ${
                     isActive
-                      ? `opacity-100 ${translateX}`
-                      : `opacity-0 ${translateX} pointer-events-none`
+                      ? `opacity-100 ${translateX} relative`
+                      : `opacity-0 ${translateX} pointer-events-none absolute inset-0 justify-center`
                   }`}
                 >
                   {/* Device frame */}
-                  <div className="flex items-center justify-center mb-6">
-                    {slide.type === "desktop" ? (
-                      <div className="relative w-full max-w-[460px]">
-                        {/* Monitor bezel */}
-                        <div className="rounded-xl border-2 border-white/20 bg-black/40 backdrop-blur-sm p-2 shadow-2xl shadow-black/40">
-                          {/* Screen */}
-                          <div className="relative rounded-lg overflow-hidden bg-slate-800">
-                            <img
-                              src={slide.image}
-                              alt={slide.title}
-                              className="w-full h-auto block"
-                              loading="eager"
-                            />
-                          </div>
-                        </div>
-                        {/* Monitor stand */}
-                        <div className="flex justify-center">
-                          <div className="w-24 h-4 bg-gradient-to-b from-white/20 to-white/5 rounded-b-lg" />
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-white/10 rounded-b" />
-                        </div>
-                        {/* Base */}
-                        <div className="flex justify-center -mt-0.5">
-                          <div className="w-32 h-1 bg-white/15 rounded-full" />
+                  {slide.type === "desktop" ? (
+                    <div className="w-full max-w-[420px]">
+                      {/* Monitor bezel */}
+                      <div className="rounded-xl border-2 border-white/20 bg-black/40 backdrop-blur-sm p-1.5 shadow-2xl shadow-black/40">
+                        <div className="rounded-lg overflow-hidden bg-slate-800">
+                          <img
+                            src={slide.image}
+                            alt={slide.title}
+                            className="w-full h-auto block"
+                            loading="eager"
+                          />
                         </div>
                       </div>
-                    ) : (
-                      <div className="relative">
-                        {/* Phone frame */}
-                        <div className="w-[200px] rounded-[2rem] border-2 border-white/20 bg-black/40 backdrop-blur-sm p-2 shadow-2xl shadow-black/40">
-                          {/* Notch */}
-                          <div className="flex justify-center mb-1">
-                            <div className="w-20 h-4 bg-black rounded-b-xl" />
-                          </div>
-                          {/* Screen */}
-                          <div className="rounded-[1.2rem] overflow-hidden bg-slate-800">
-                            <img
-                              src={slide.image}
-                              alt={slide.title}
-                              className="w-full h-auto block"
-                              loading="eager"
-                            />
-                          </div>
-                          {/* Home indicator */}
-                          <div className="flex justify-center mt-2">
-                            <div className="w-24 h-1 bg-white/20 rounded-full" />
-                          </div>
+                      {/* Stand + base */}
+                      <div className="flex flex-col items-center mt-1">
+                        <div className="w-20 h-3 bg-gradient-to-b from-white/20 to-white/5" />
+                        <div className="w-28 h-1 bg-white/15 rounded-full mt-0.5" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center" style={{ height: "280px" }}>
+                      {/* Phone frame */}
+                      <div className="w-[140px] rounded-[1.6rem] border-2 border-white/20 bg-black/40 backdrop-blur-sm p-1.5 shadow-2xl shadow-black/40">
+                        {/* Notch */}
+                        <div className="flex justify-center mb-0.5">
+                          <div className="w-14 h-3 bg-black rounded-b-lg" />
+                        </div>
+                        {/* Screen */}
+                        <div className="rounded-[1rem] overflow-hidden bg-slate-800">
+                          <img
+                            src={slide.image}
+                            alt={slide.title}
+                            className="w-full h-auto block"
+                            loading="eager"
+                          />
+                        </div>
+                        {/* Home indicator */}
+                        <div className="flex justify-center mt-1.5">
+                          <div className="w-16 h-0.5 bg-white/20 rounded-full" />
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   {/* Text */}
-                  <div className="text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-3">
+                  <div className="text-center mt-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-2">
                       {slide.type === "desktop" ? (
-                        <Monitor className="w-3.5 h-3.5 text-white/70" />
+                        <Monitor className="w-3 h-3 text-white/70" />
                       ) : (
-                        <Smartphone className="w-3.5 h-3.5 text-white/70" />
+                        <Smartphone className="w-3 h-3 text-white/70" />
                       )}
-                      <span className="text-[11px] font-medium text-white/60 uppercase tracking-wider">
+                      <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
                         {slide.type === "desktop" ? "Desktop" : "Mobile"}
                       </span>
                     </div>
-                    <h3 className="text-2xl xl:text-3xl font-bold text-white mb-2 leading-tight">
+                    <h3 className="text-xl xl:text-2xl font-bold text-white mb-1.5 leading-tight">
                       {slide.title}
                     </h3>
-                    <p className="text-white/50 text-sm xl:text-base leading-relaxed">
+                    <p className="text-white/50 text-xs xl:text-sm leading-relaxed">
                       {slide.desc}
                     </p>
                   </div>
