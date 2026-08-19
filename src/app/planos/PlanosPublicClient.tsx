@@ -206,7 +206,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
   const mensalPrice = planos.find(p => p.periodo_meses === 1)?.preco || 49.9;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
+    <div className="h-screen lg:h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col overflow-hidden">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
@@ -233,23 +233,23 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
       </header>
 
       {/* Main */}
-      <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-8 sm:py-12">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-4 lg:py-6 overflow-y-auto">
+        <div className="max-w-5xl mx-auto">
           {/* Hero */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-10 sm:mb-14"
+            className="text-center mb-6 lg:mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-2">
               <Zap className="w-3.5 h-3.5" />
               Crie sua conta e comece agora
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               Escolha seu plano
             </h2>
-            <p className="text-sm sm:text-base text-gray-500 mt-3 max-w-xl mx-auto">
+            <p className="text-sm text-gray-500 mt-2 max-w-lg mx-auto">
               Cadastre-se e pague para ter acesso completo ao espelho de vendas
               de todos os empreendimentos. Cancele quando quiser, sem multa.
             </p>
@@ -262,7 +262,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="mb-8 p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3"
+                className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3"
               >
                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
                 <p className="text-sm text-red-700 flex-1">{error}</p>
@@ -274,7 +274,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
           </AnimatePresence>
 
           {/* FIX #5: CSS Grid instead of flex-wrap for proper alignment with any number of cards */}
-          <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
+          <div className="flex flex-wrap justify-center gap-4 lg:gap-5">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const isMelhorEconomia = plano.maior_economia;
@@ -308,7 +308,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   onMouseEnter={() => setHoveredPlanoId(plano.id)}
                   onMouseLeave={() => setHoveredPlanoId(null)}
                   onClick={() => handleSelectPlano(plano)}
-                  className={`${cardClassName} w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]`}
+                  className={`${cardClassName} w-full sm:w-[calc(50%-10px)] lg:w-[calc(25%-15px)]`}
                 >
                   {/* Popular badge — only a label, no card highlight */}
                   {isPopular && (
@@ -330,13 +330,13 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                     </div>
                   )}
 
-                  <div className="p-5 sm:p-6 flex flex-col flex-1">
-                    <h3 className="text-lg font-bold text-gray-900">{plano.nome}</h3>
-                    <p className="text-xs text-gray-500 mt-1">{plano.descricao}</p>
+                  <div className="p-4 sm:p-5 flex flex-col flex-1">
+                    <h3 className="text-base font-bold text-gray-900">{plano.nome}</h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{plano.descricao}</p>
 
-                    <div className="mt-4 mb-5">
+                    <div className="mt-3 mb-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl sm:text-4xl font-bold text-gray-900">
+                        <span className="text-2xl sm:text-3xl font-bold text-gray-900">
                           R$ {Number(plano.preco).toFixed(2).replace('.', ',')}
                         </span>
                       </div>
@@ -357,20 +357,20 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                       )}
                     </div>
 
-                    <ul className="space-y-2.5 flex-1">
+                    <ul className="space-y-2 flex-1">
                       {(plano.features as string[]).map((feature, i) => (
                         <li key={i} className="flex items-start gap-2.5">
-                          <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                          <span className="text-sm text-gray-700">{feature}</span>
+                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span className="text-xs text-gray-700">{feature}</span>
                         </li>
                       ))}
                     </ul>
 
-                    <div className="mt-6">
+                    <div className="mt-4">
                       {semMpId ? (
                         <Button
                           disabled
-                          className="w-full h-11 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed"
+                          className="w-full h-10 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed"
                         >
                           Em breve
                         </Button>
@@ -399,36 +399,36 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6"
+            className="mt-6 lg:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4"
           >
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center text-center p-2">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
                 <Shield className="w-5 h-5 text-gray-600" />
               </div>
-              <p className="text-sm font-semibold text-gray-800">Pagamento seguro</p>
-              <p className="text-xs text-gray-500 mt-1">Pix e cartao via Mercado Pago</p>
+              <p className="text-xs font-semibold text-gray-800">Pagamento seguro</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Pix e cartao via Mercado Pago</p>
             </div>
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center text-center p-2">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
                 <CalendarDays className="w-5 h-5 text-gray-600" />
               </div>
-              <p className="text-sm font-semibold text-gray-800">Cancele quando quiser</p>
-              <p className="text-xs text-gray-500 mt-1">Sem multa ou taxa de cancelamento</p>
+              <p className="text-xs font-semibold text-gray-800">Cancele quando quiser</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Sem multa ou taxa de cancelamento</p>
             </div>
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+            <div className="flex flex-col items-center text-center p-2">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
                 <Clock className="w-5 h-5 text-gray-600" />
               </div>
-              <p className="text-sm font-semibold text-gray-800">Acesso imediato</p>
-              <p className="text-xs text-gray-500 mt-1">Liberacao automatica apos pagamento</p>
+              <p className="text-xs font-semibold text-gray-800">Acesso imediato</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Liberacao automatica apos pagamento</p>
             </div>
           </motion.div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm mt-auto">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
+      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm shrink-0">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-3">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Crown className="w-4 h-4" />
             <span className="font-semibold text-gray-600">Quadra Desk</span>
