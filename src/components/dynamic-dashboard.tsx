@@ -1345,8 +1345,7 @@ export default function DynamicDashboard({
                 <img src="/qd-logo.png" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Fluxo{" "}
-                    <span className="text-gray-400 font-normal">Quadra</span>
+                    Quadra Desk
                   </h1>
                   <p className="text-[11px] text-gray-400 font-medium">
                     {empreendimentoNome}
