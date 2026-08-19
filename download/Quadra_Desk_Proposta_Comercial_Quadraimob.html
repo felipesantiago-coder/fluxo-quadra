@@ -6,17 +6,20 @@
 <title>Quadra Desk - Proposta Comercial</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+/* ===== PAGE SETUP ===== */
 @page {
     size: 794px 1123px;
     margin: 0;
 }
 @page body {
     size: 794px 1123px;
-    margin-top: 55px;
-    margin-right: 80px;
-    margin-bottom: 40px;
-    margin-left: 90px;
+    margin-top: 60px;
+    margin-right: 75px;
+    margin-bottom: 50px;
+    margin-left: 85px;
 }
+
+/* ===== VARIABLES ===== */
 :root {
     --c-navy: #0A1628;
     --c-navy-mid: #0F2140;
@@ -42,17 +45,28 @@
     --c-gray-900: #111827;
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+/* ===== BASE ===== */
 *, *::before, *::after { box-sizing: border-box; }
 html, body {
     margin: 0;
     padding: 0;
     width: 794px;
-    background: var(--c-offwhite);
+    background: #FFFFFF;
     font-family: var(--font), sans-serif;
     color: var(--c-gray-800);
     -webkit-font-smoothing: antialiased;
+    /* Anti-truncation & hyphenation */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    /* Orphan / widow control */
+    orphans: 3;
+    widows: 3;
 }
-@média screen {
+@media screen {
     html {
         height: auto;
         display: flex;
@@ -60,6 +74,7 @@ html, body {
         background: #E2E8F0;
     }
     body {
+        background: var(--c-offwhite);
         transform-origin: top center;
         margin: 20px auto;
         box-shadow: 0 25px 60px rgba(0,0,0,0.3);
@@ -78,7 +93,7 @@ html, body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0 90px;
+    padding: 0 85px;
 }
 .cover::before {
     content: '';
@@ -187,8 +202,8 @@ html, body {
 .cover-confidential {
     position: absolute;
     bottom: 50px;
-    left: 90px;
-    right: 80px;
+    left: 85px;
+    right: 75px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -206,7 +221,7 @@ html, body {
 .main-content {
     page: body;
     padding: 0;
-    background: var(--c-white);
+    background: #FFFFFF;
 }
 
 /* Section headers */
@@ -217,7 +232,7 @@ html, body {
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--c-blue);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .section-title {
     font-size: 22px;
@@ -232,14 +247,14 @@ html, body {
     font-weight: 400;
     color: var(--c-gray-500);
     line-height: 1.4;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .section-divider {
     width: 36px;
     height: 3px;
     background: var(--c-blue);
     border-radius: 2px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 /* Body text */
@@ -247,22 +262,25 @@ html, body {
     font-size: 12.5px;
     font-weight: 400;
     color: var(--c-gray-700);
-    line-height: 1.55;
+    line-height: 1.6;
     margin-bottom: 8px;
     text-align: justify;
+    orphans: 3;
+    widows: 3;
 }
 
 /* Subsection */
 .subsection {
-    margin-top: 10px;
+    margin-top: 12px;
     margin-bottom: 2px;
 }
 .subsection-title {
     font-size: 14px;
     font-weight: 700;
     color: var(--c-gray-800);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     line-height: 1.35;
+    break-after: avoid;   /* don't leave subtitle alone at page bottom */
 }
 .subsection-title .num {
     color: var(--c-blue);
@@ -286,13 +304,13 @@ html, body {
     font-size: 13px;
     font-weight: 700;
     color: var(--c-gray-800);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 .problem-card-text {
     font-size: 12px;
     font-weight: 400;
     color: var(--c-gray-600);
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 /* Module cards */
@@ -303,10 +321,6 @@ html, body {
     padding: 12px 14px;
     margin-bottom: 6px;
     break-inside: avoid;
-    transition: box-shadow 0.2s;
-}
-.module-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 .module-card-num {
     display: inline-block;
@@ -319,7 +333,7 @@ html, body {
     color: var(--c-white);
     font-size: 13px;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .module-card-title {
     font-size: 13.5px;
@@ -331,14 +345,15 @@ html, body {
     font-size: 12px;
     font-weight: 400;
     color: var(--c-gray-600);
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 /* Chapter header group */
 .chapter-header {
-    break-after: avoid;
-    break-inside: avoid;
-    margin-top: 18px;
+    break-before: avoid;  /* don't strand header at page bottom */
+    break-after: avoid;   /* keep at least some content on same page */
+    break-inside: avoid;  /* never split the header block */
+    margin-top: 16px;
 }
 
 /* Tables */
@@ -358,6 +373,9 @@ table {
     width: 100%;
     border-collapse: collapse;
     font-size: 12.5px;
+}
+thead {
+    break-inside: avoid;  /* keep header with at least one data row */
 }
 thead th {
     background: var(--c-navy);
@@ -395,7 +413,7 @@ table.pricing-highlight tbody tr.highlight td {
 /* KPI cards row */
 .kpi-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     margin: 8px 0 8px 0;
     break-inside: avoid;
 }
@@ -462,7 +480,7 @@ table.comparison tbody tr:last-child td {
 .callout-text {
     font-size: 12px;
     color: var(--c-gray-600);
-    line-height: 1.6;
+    line-height: 1.55;
 }
 
 /* Next steps */
@@ -500,9 +518,7 @@ table.comparison tbody tr:last-child td {
     line-height: 1.45;
 }
 
-/* Page margins handled by @page body */
-
-/* Ending page */
+/* ===== ENDING PAGE ===== */
 .ending {
     width: 794px;
     height: 1123px;
@@ -612,12 +628,12 @@ table.comparison tbody tr:last-child td {
 
     <div class="problem-card accent">
         <div class="problem-card-title">1.2 &nbsp; Simulações manuais e propostas em papel</div>
-        <div class="problem-card-text">Quando um corretor atende um cliente interessado em um empreendimento, o processo de simulação de fluxo de pagamento é quase inteiramente manual. O corretor utiliza uma calculadora ou faz cálculos no papel, montando cenários de parcelamento, valores de entrada, taxas e prazos. Se o cliente solicita um segundo cenário com diferentes parâmetros, o processo inteiro se repete. Uma única simulação pode levar de 15 a 30 minutos, e a proposta final e frequentemente entregue em uma folha de papel sulfite com cálculos feitos a mão, o que transmite uma imagem pouco profissional. Em um mercado em que o cliente pode facilmente contatar a concorrência, cada minuto de espera durante o atendimento representa uma oportunidade de venda perdida.</div>
+        <div class="problem-card-text">Quando um corretor atende um cliente interessado em um empreendimento, o processo de simulação de fluxo de pagamento é quase inteiramente manual. O corretor utiliza uma calculadora ou faz cálculos no papel, montando cenários de parcelamento, valores de entrada, taxas e prazos. Se o cliente solicita um segundo cenário com diferentes parâmetros, o processo inteiro se repete. Uma única simulação pode levar de 15 a 30 minutos, e a proposta final é frequentemente entregue em uma folha de papel sulfite com cálculos feitos a mão, o que transmite uma imagem pouco profissional. Em um mercado em que o cliente pode facilmente contatar a concorrência, cada minuto de espera durante o atendimento representa uma oportunidade de venda perdida.</div>
     </div>
 
     <div class="problem-card">
         <div class="problem-card-title">1.3 &nbsp; Gestão de disponibilidade por planilhas</div>
-        <div class="problem-card-text">A atualização do status de disponibilidade das unidades é realizada por meio de edição direta em arquivos Excel. Cada vez que uma unidade é reservada ou vendida, é necessário localizar a unidade, alterar o status, salvar o arquivo, gerar um novo PDF e redistribui-lo. Além de ser um processo demorado e suscetível a erros humanos, ele cria um intervalo de tempo significativo entre a alteração real e a visibilidade da mudança. Durante esse intervalo, é perfeitamente possível que a mesma unidade seja oferecida a clientes diferentes, gerando conflitos e insatisfação.</div>
+        <div class="problem-card-text">A atualização do status de disponibilidade das unidades é realizada por meio de edição direta em arquivos Excel. Cada vez que uma unidade é reservada ou vendida, é necessário localizar a unidade, alterar o status, salvar o arquivo, gerar um novo PDF e redistribuí-lo. Além de ser um processo demorado e suscetível a erros humanos, ele cria um intervalo de tempo significativo entre a alteração real e a visibilidade da mudança. Durante esse intervalo, é perfeitamente possível que a mesma unidade seja oferecida a clientes diferentes, gerando conflitos e insatisfação.</div>
     </div>
 
     <!-- SECTION 2 -->
@@ -630,7 +646,7 @@ table.comparison tbody tr:last-child td {
 
     <p class="body-text">O Quadra Desk é um sistema desenvolvido para centralizar e otimizar três pilares fundamentais da operação de uma imobiliária: o acesso a informações de empreendimentos, a simulação e geração de propostas comerciais e a gestão em tempo real da disponibilidade de unidades. Diferentemente de ferramentas genéricas, como CRMs ou planilhas, o Quadra Desk foi construído especificamente para o fluxo de trabalho de corretores de imóveis, eliminando os principais pontos de fricção descritos anteriormente.</p>
 
-    <p class="body-text">O sistema opera na nuvem, é acessível por qualquer dispositivo com navegador web e não exige instalação ou configuração técnica. A interface foi projetada para ser intuitiva, permitindo que corretores com diferentes níveis de familiaridade com tecnologia possam utiliza-la desde o primeiro dia, com mínima necessidade de treinamento. Além disso, toda a informação é atualizada em tempo real, garantindo que os usuários trabalhem com dados sempre sincronizados e precisos.</p>
+    <p class="body-text">O sistema opera na nuvem, é acessível por qualquer dispositivo com navegador web e não exige instalação ou configuração técnica. A interface foi projetada para ser intuitiva, permitindo que corretores com diferentes níveis de familiaridade com tecnologia possam utilizá-la desde o primeiro dia, com mínima necessidade de treinamento. Além disso, toda a informação é atualizada em tempo real, garantindo que os usuários trabalhem com dados sempre sincronizados e precisos.</p>
 
     <div class="module-card">
         <div class="module-card-num">1</div>
@@ -647,7 +663,7 @@ table.comparison tbody tr:last-child td {
     <div class="module-card">
         <div class="module-card-num">3</div>
         <div class="module-card-title">Gestão de Disponibilidade</div>
-        <div class="module-card-text">Permite atualizar o status de cada unidade com poucos cliques, refletindo instantâneamente a alteração no sistema. O que antes exigia editar planilhas, gerar PDFs e redistribui-los agora acontece em segundos, eliminando o risco de conflitos de disponibilidade entre corretores.</div>
+        <div class="module-card-text">Permite atualizar o status de cada unidade com poucos cliques, refletindo instantaneamente a alteração no sistema. O que antes exigia editar planilhas, gerar PDFs e redistribuí-los agora acontece em segundos, eliminando o risco de conflitos de disponibilidade entre corretores.</div>
     </div>
 
     <!-- SECTION 3 -->
@@ -708,7 +724,7 @@ table.comparison tbody tr:last-child td {
         <div class="section-divider"></div>
     </div>
 
-    <p class="body-text">Para dimensionar o impacto financeiro do Quadra Desk na operação da Quadraimob, e necessário traduzir os ganhos de eficiência em números concretos. A análise abaixo utiliza estimativas conservadoras baseadas no cenário considerado, com 150 corretores ativos e uma média de 3 simulações por corretor por semana.</p>
+    <p class="body-text">Para dimensionar o impacto financeiro do Quadra Desk na operação da Quadraimob, é necessário traduzir os ganhos de eficiência em números concretos. A análise abaixo utiliza estimativas conservadoras baseadas no cenário considerado, com 150 corretores ativos e uma média de 3 simulações por corretor por semana.</p>
 
     <div class="subsection">
         <div class="subsection-title"><span class="num">4.1</span> Economia de tempo nas simulações</div>
@@ -885,7 +901,7 @@ table.comparison tbody tr:last-child td {
         <div class="step-num">3</div>
         <div class="step-content">
             <div class="step-title">Período experimental de 15 dias</div>
-            <div class="step-text">5 corretores selecionados utilizam o sistema no dia a dia, sem custo adicional, para validação pratica.</div>
+            <div class="step-text">5 corretores selecionados utilizam o sistema no dia a dia, sem custo adicional, para validação prática.</div>
         </div>
     </div>
 
@@ -904,7 +920,7 @@ table.comparison tbody tr:last-child td {
 <!-- ===== ENDING PAGE ===== -->
 <div class="ending">
     <div class="ending-brand">Quadra <span>Desk</span></div>
-    <div class="ending-text">Transformando a operação imobiliária com tecnologia, ágilidade e profissionalismo.</div>
+    <div class="ending-text">Transformando a operação imobiliária com tecnologia, agilidade e profissionalismo.</div>
     <div class="ending-contact">Agosto de 2026 &nbsp;|&nbsp; Documento Confidencial</div>
 </div>
 
