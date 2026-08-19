@@ -161,8 +161,8 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                 <Crown className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight">Minha Assinatura</h1>
-                <p className="text-[11px] text-gray-400 font-medium">Gerencie seu plano</p>
+                <h1 className="text-lg font-bold tracking-tight">Gerenciar Plano</h1>
+                <p className="text-[11px] text-gray-400 font-medium">Informacoes da sua assinatura</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -287,6 +287,45 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                       </p>
                     </div>
                   </div>
+
+                  {/* Dias restantes para plano ativo */}
+                  {isActive && assinatura.data_fim && (
+                    <div className="mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <p className="text-xs font-semibold text-emerald-700">Seu plano vence em</p>
+                        </div>
+                        <p className="text-sm font-bold text-emerald-800">
+                          {(() => {
+                            const diffMs = new Date(assinatura.data_fim!).getTime() - Date.now();
+                            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                            if (diffDays <= 0) return 'Hoje';
+                            if (diffDays === 1) return '1 dia';
+                            return `${diffDays} dias`;
+                          })()}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-emerald-600 mt-1 ml-6">
+                        {new Date(assinatura.data_fim).toLocaleDateString('pt-BR', {
+                          day: '2-digit', month: 'long', year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Badge vitalício */}
+                  {assinatura.status === 'lifetime' && (
+                    <div className="mt-4 p-3 rounded-xl bg-amber-50 border border-amber-100">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-amber-700">Acesso vitalício</p>
+                          <p className="text-[11px] text-amber-600 mt-0.5">Sua conta possui acesso permanente ao sistema, sem data de vencimento.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Motivo do cancelamento */}
                   {(assinatura.status === 'cancelled' || assinatura.status === 'cancelled_by_user') && assinatura.motivo_cancelamento && (

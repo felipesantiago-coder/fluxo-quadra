@@ -34,11 +34,11 @@ export default async function ProjetosPage() {
   const isAdminEmail = user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
   let userRole = isAdminEmail ? "admin_sistema" : "coordenador";
 
-  // Buscar tudo em paralelo: profile + empreendimentos + MFA (totp + passkeys)
-  const [profileResult, empsResult, totpResult, passkeyResult] = await Promise.all([
+  // Buscar tudo em paralelo: profile + empreendimentos + MFA + assinatura
+  const [profileResult, empsResult, totpResult, passkeyResult, assinaturaResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("role, mfa_enabled")
+      .select("role, mfa_enabled, subscription_status")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -56,6 +56,14 @@ export default async function ProjetosPage() {
       .from("user_passkeys")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id),
+    supabase
+      .from("assinaturas")
+      .select("id, status, data_fim, plano:planos(id, nome, periodo_meses, preco)")
+      .eq("user_id", user.id)
+      .in("status", ["active", "lifetime"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!profileResult.error && profileResult.data?.role) {
@@ -152,12 +160,31 @@ export default async function ProjetosPage() {
     }
   }
 
+  // Determinar se usuário tem plano ativo ou vitalício
+  type PlanoInfo = { id: string; nome: string; periodo_meses: number; preco: number } | null;
+  type AssinaturaSummary = {
+    status: string;
+    data_fim: string | null;
+    plano: PlanoInfo;
+  } | null;
+
+  const assinaturaAtiva: AssinaturaSummary = assinaturaResult.data
+    ? {
+        status: assinaturaResult.data.status as string,
+        data_fim: assinaturaResult.data.data_fim as string | null,
+        plano: (Array.isArray(assinaturaResult.data.plano) ? assinaturaResult.data.plano[0] : assinaturaResult.data.plano) as PlanoInfo,
+      }
+    : null;
+
+  const hasActivePlan = assinaturaAtiva !== null;
+
   return (
     <ProjetosClient
       userRole={userRole}
       initialEmpreendimentos={empreendimentos}
       initialMfaEnabled={hasVerifiedMfa}
       lastUpdatedMap={lastUpdatedMap}
+      hasActivePlan={hasActivePlan}
     />
   );
 }

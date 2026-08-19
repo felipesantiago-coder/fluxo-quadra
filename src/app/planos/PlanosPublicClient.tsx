@@ -208,18 +208,18 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
   return (
     <div className="h-screen lg:h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg shrink-0">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-12 lg:h-14">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight">
+                <h1 className="text-base lg:text-lg font-bold tracking-tight">
                   Quadra Desk
                 </h1>
-                <p className="text-[11px] text-gray-400 font-medium">Planos de Assinatura</p>
+                <p className="text-[10px] lg:text-[11px] text-gray-400 font-medium">Planos de Assinatura</p>
               </div>
             </div>
             <a
@@ -233,23 +233,23 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
       </header>
 
       {/* Main */}
-      <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-4 lg:py-6 overflow-y-auto">
+      <main className="flex-1 w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-3 lg:py-4 overflow-y-auto">
         <div className="max-w-5xl mx-auto">
           {/* Hero */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-6 lg:mb-8"
+            className="text-center mb-4 lg:mb-5"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-2">
+            <div className="hidden lg:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold mb-2">
               <Zap className="w-3.5 h-3.5" />
               Crie sua conta e comece agora
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
               Escolha seu plano
             </h2>
-            <p className="text-sm text-gray-500 mt-2 max-w-lg mx-auto">
+            <p className="text-xs lg:text-sm text-gray-500 mt-1 lg:mt-2 max-w-lg mx-auto">
               Cadastre-se e pague para ter acesso completo ao espelho de vendas
               de todos os empreendimentos. Cancele quando quiser, sem multa.
             </p>
@@ -274,7 +274,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
           </AnimatePresence>
 
           {/* FIX #5: CSS Grid instead of flex-wrap for proper alignment with any number of cards */}
-          <div className="flex flex-wrap justify-center gap-4 lg:gap-5">
+          <div className="flex flex-wrap justify-center gap-3 lg:gap-4 pt-2 lg:pt-3">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const isMelhorEconomia = plano.maior_economia;
@@ -289,12 +289,12 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               // Visual highlight is EXCLUSIVE: only the selected card gets it
               const isSelectedVisual = isSelected;
 
-              let cardClassName = 'relative rounded-2xl border-2 transition-all duration-300 flex flex-col cursor-pointer ';
+              let cardClassName = 'relative rounded-2xl border transition-all duration-300 flex flex-col cursor-pointer ';
 
               if (isSelectedVisual) {
-                cardClassName += 'border-amber-500 ring-2 ring-amber-300 shadow-xl shadow-amber-200/60 -translate-y-1.5 scale-[1.02]';
+                cardClassName += 'border-amber-500 ring-2 ring-amber-300 shadow-xl shadow-amber-200/60 scale-[1.02]';
               } else if (isHovered) {
-                cardClassName += 'border-gray-400 shadow-xl shadow-gray-200/60 -translate-y-1.5 scale-[1.02]';
+                cardClassName += 'border-gray-400 shadow-xl shadow-gray-200/60 scale-[1.02]';
               } else {
                 cardClassName += 'border-gray-200 shadow-sm';
               }
@@ -308,12 +308,12 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   onMouseEnter={() => setHoveredPlanoId(plano.id)}
                   onMouseLeave={() => setHoveredPlanoId(null)}
                   onClick={() => handleSelectPlano(plano)}
-                  className={`${cardClassName} w-full sm:w-[calc(50%-10px)] lg:w-[calc(25%-15px)]`}
+                  className={`${cardClassName} w-full sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]`}
                 >
                   {/* Popular badge — only a label, no card highlight */}
                   {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge className="bg-amber-500 text-white border-0 px-3 py-1 text-xs font-bold shadow-sm">
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
+                      <Badge className="bg-amber-500 text-white border-0 px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
                         <Star className="w-3 h-3 mr-1" />
                         Mais popular
                       </Badge>
@@ -322,26 +322,26 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
 
                   {/* Maior economia badge */}
                   {isMelhorEconomia && !isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge className="bg-emerald-500 text-white border-0 px-3 py-1 text-xs font-bold shadow-sm">
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
+                      <Badge className="bg-emerald-500 text-white border-0 px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
                         <TrendingDown className="w-3 h-3 mr-1" />
                         Maior economia
                       </Badge>
                     </div>
                   )}
 
-                  <div className="p-4 sm:p-5 flex flex-col flex-1">
-                    <h3 className="text-base font-bold text-gray-900">{plano.nome}</h3>
-                    <p className="text-[11px] text-gray-500 mt-0.5">{plano.descricao}</p>
+                  <div className="p-3 sm:p-4 lg:p-4 flex flex-col flex-1">
+                    <h3 className="text-sm lg:text-base font-bold text-gray-900">{plano.nome}</h3>
+                    <p className="text-[10px] lg:text-[11px] text-gray-500 mt-0.5">{plano.descricao}</p>
 
-                    <div className="mt-3 mb-4">
+                    <div className="mt-2 mb-3">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        <span className="text-xl sm:text-2xl lg:text-2xl font-bold text-gray-900">
                           R$ {Number(plano.preco).toFixed(2).replace('.', ',')}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-500">
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs lg:text-sm text-gray-500">
                           {periodoLabels[plano.periodo_meses] || `/${plano.periodo_meses} meses`}
                         </span>
                         {economia > 0 && (
@@ -351,33 +351,33 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                         )}
                       </div>
                       {plano.periodo_meses > 1 && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-[11px] lg:text-xs text-gray-400 mt-0.5">
                           Equivalente a R$ {precoMensal.toFixed(2).replace('.', ',')}/mes
                         </p>
                       )}
                     </div>
 
-                    <ul className="space-y-2 flex-1">
+                    <ul className="space-y-1.5 flex-1">
                       {(plano.features as string[]).map((feature, i) => (
-                        <li key={i} className="flex items-start gap-2.5">
-                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span className="text-xs text-gray-700">{feature}</span>
+                        <li key={i} className="flex items-start gap-2">
+                          <Check className="w-3 h-3 text-emerald-500 shrink-0 mt-0.5" />
+                          <span className="text-[11px] lg:text-xs text-gray-700">{feature}</span>
                         </li>
                       ))}
                     </ul>
 
-                    <div className="mt-4">
+                    <div className="mt-3">
                       {semMpId ? (
                         <Button
                           disabled
-                          className="w-full h-10 rounded-xl text-sm font-semibold bg-gray-100 text-gray-400 cursor-not-allowed"
+                          className="w-full h-9 rounded-xl text-xs font-semibold bg-gray-100 text-gray-400 cursor-not-allowed"
                         >
                           Em breve
                         </Button>
                       ) : (
                         <Button
                           onClick={(e) => { e.stopPropagation(); handleOpenSignup(); }}
-                          className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                          className={`w-full h-9 lg:h-10 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                             isSelectedVisual
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
                               : 'bg-gray-900 hover:bg-gray-800 text-white'
@@ -399,28 +399,34 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mt-6 lg:mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4"
+            className="mt-4 lg:mt-5 hidden sm:grid sm:grid-cols-3 gap-3"
           >
-            <div className="flex flex-col items-center text-center p-2">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
-                <Shield className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-2 justify-center text-center px-2">
+              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs font-semibold text-gray-800">Pagamento seguro</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Pix e cartao via Mercado Pago</p>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-800">Pagamento seguro</p>
+                <p className="text-[10px] text-gray-500">Pix e cartao via Mercado Pago</p>
+              </div>
             </div>
-            <div className="flex flex-col items-center text-center p-2">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
-                <CalendarDays className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-2 justify-center text-center px-2">
+              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <CalendarDays className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs font-semibold text-gray-800">Cancele quando quiser</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Sem multa ou taxa de cancelamento</p>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-800">Cancele quando quiser</p>
+                <p className="text-[10px] text-gray-500">Sem multa ou taxa de cancelamento</p>
+              </div>
             </div>
-            <div className="flex flex-col items-center text-center p-2">
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mb-2">
-                <Clock className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center gap-2 justify-center text-center px-2">
+              <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs font-semibold text-gray-800">Acesso imediato</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Liberacao automatica apos pagamento</p>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-800">Acesso imediato</p>
+                <p className="text-[10px] text-gray-500">Liberacao automatica apos pagamento</p>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -428,8 +434,8 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
 
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm shrink-0">
-        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-3">
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-2">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
             <Crown className="w-4 h-4" />
             <span className="font-semibold text-gray-600">Quadra Desk</span>
             <span>-</span>

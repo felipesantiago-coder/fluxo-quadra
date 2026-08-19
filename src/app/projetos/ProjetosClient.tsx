@@ -58,6 +58,7 @@ interface ProjetosClientProps {
   initialEmpreendimentos: EmpreendimentoDB[];
   initialMfaEnabled: boolean;
   lastUpdatedMap?: Record<string, string | null>;
+  hasActivePlan?: boolean;
 }
 
 function formatLastUpdated(isoString: string | null): string {
@@ -75,7 +76,7 @@ function formatLastUpdated(isoString: string | null): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) + ` às ${time}`;
 }
 
-export default function ProjetosClient({ userRole, initialEmpreendimentos, initialMfaEnabled, lastUpdatedMap = {} }: ProjetosClientProps) {
+export default function ProjetosClient({ userRole, initialEmpreendimentos, initialMfaEnabled, lastUpdatedMap = {}, hasActivePlan = false }: ProjetosClientProps) {
   const router = useRouter();
   const [filterRegion, setFilterRegion] = useState<Region | "all">("all");
   const [projects, setProjects] = useState<EmpreendimentoDB[]>(initialEmpreendimentos);
@@ -181,13 +182,23 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                   Administração
                 </a>
               )}
-              <a
-                href="/planos"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-semibold transition-colors border border-amber-500/20"
-              >
-                <Crown className="w-3.5 h-3.5" />
-                Planos
-              </a>
+              {hasActivePlan ? (
+                <a
+                  href="/assinatura"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-semibold transition-colors border border-emerald-500/20"
+                >
+                  <Crown className="w-3.5 h-3.5" />
+                  Gerenciar plano
+                </a>
+              ) : (
+                <a
+                  href="/planos"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-semibold transition-colors border border-amber-500/20"
+                >
+                  <Crown className="w-3.5 h-3.5" />
+                  Planos
+                </a>
+              )}
               <a
                 href="/mfa-setup"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors"

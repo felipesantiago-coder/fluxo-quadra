@@ -80,30 +80,35 @@ function LoginForm() {
         return;
       }
 
-      if (data.user) {
-        const isAdminEmail = data.user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
+      if (!data.user) {
+        setError("Sessão não encontrada. Tente novamente.");
+        setLoading(false);
+        return;
+      }
 
-        try {
-          const supabase = createClient();
+      const isAdminEmail = data.user.email?.toLowerCase() === "prosperosdirecional@gmail.com";
 
-          let profile: Record<string, unknown> | null = null;
+      try {
+        const supabase = createClient();
 
-          const { data: pFull, error: errFull } = await supabase
+        let profile: Record<string, unknown> | null = null;
+
+        const { data: pFull, error: errFull } = await supabase
+          .from("profiles")
+          .select("role, mfa_enabled, must_change_password, must_setup_mfa")
+          .eq("id", data.user.id)
+          .maybeSingle();
+
+        if (!errFull && pFull) {
+          profile = pFull as Record<string, unknown> | null;
+        } else {
+          const { data: pBase, error: errBase } = await supabase
             .from("profiles")
-            .select("role, mfa_enabled, must_change_password, must_setup_mfa")
+            .select("role")
             .eq("id", data.user.id)
             .maybeSingle();
-
-          if (!errFull && pFull) {
-            profile = pFull as Record<string, unknown> | null;
-          } else {
-            const { data: pBase, error: errBase } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", data.user.id)
-              .maybeSingle();
-            if (!errBase) profile = pBase as Record<string, unknown> | null;
-          }
+          if (!errBase) profile = pBase as Record<string, unknown> | null;
+        }
 
           if (profile?.must_change_password) {
             document.cookie = "first_login_step=change_password; path=/; max-age=3600; SameSite=Lax";
@@ -144,7 +149,10 @@ function LoginForm() {
               "subscription_status=active; path=/; max-age=300; SameSite=Lax";
           } else {
             try {
-              const refreshRes = await fetch('/api/subscription-refresh');
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 8000);
+              const refreshRes = await fetch('/api/subscription-refresh', { signal: controller.signal });
+              clearTimeout(timeoutId);
               if (refreshRes.ok) {
                 const refreshData = await refreshRes.json();
                 if (refreshData.status) {
@@ -197,12 +205,14 @@ function LoginForm() {
           } else {
             router.push(finalRedirect);
           }
-        } catch {
-          router.push('/?reason=login_error');
+        } catch (err) {
+          console.error('[Login] Erro no pós-login:', err);
+          setError("Erro ao processar login. Tente novamente.");
+          setLoading(false);
+          return;
         }
-        router.refresh();
-      }
-    } catch {
+    } catch (err) {
+      console.error('[Login] Erro de conexão:', err);
       setError("Erro ao conectar com o servidor");
       setLoading(false);
     }

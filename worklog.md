@@ -48,6 +48,57 @@ Stage Summary:
 
 ---
 ---
+Task ID: 4
+Agent: main
+Task: Investigar e corrigir login travado em "Entrando..."
+
+Work Log:
+- Analisou fluxo completo de handleLogin em src/app/page.tsx
+- Identificou 3 bugs no pós-login:
+  1. Se data.user é null (conta suspensa/email não confirmado), código caía fora sem setLoading(false)
+  2. O catch interno fazia router.push('/') quando já estava em '/' — não desmontava o componente e não chamava setLoading(false)
+  3. router.refresh() era chamado após router.push(), podendo interferir na navegação
+- Corrigiu: adicionado check !data.user com setError + setLoading(false)
+- Corrigiu: catch interno agora mostra erro e reseta loading
+- Corrigido: router.refresh() removido do pós-login
+- Adicionado: AbortController com timeout de 8s no fetch de subscription-refresh (evita travamento)
+- Removida: chave '}' órfã do antigo bloco if (data.user)
+
+Stage Summary:
+- Botão "Entrando..." agora sempre reseta para "Entrar" em caso de erro
+- Erros no pós-login são exibidos ao usuário em vez de travar a UI
+- Fetch de subscription-refresh tem timeout de 8s para evitar travamentos
+- Arquivos: src/app/page.tsx
+
+---
+---
+Task ID: 3
+Agent: main
+Task: Otimizar página de planos para viewport e implementar botão 'Gerenciar Plano'
+
+Work Log:
+- Reduziu header de h-16 para h-12 lg:h-14 na página de planos públicos
+- Reduziu padding do main de py-4 lg:py-6 para py-3 lg:py-4
+- Reduziu hero section: mb-6/8 → mb-4/5, badge oculto em mobile, fontes menores
+- Cards: padding p-4/5 → p-3/4, features space-y-2 → 1.5, botão h-10/11 → h-9/10
+- Removeu translate-y dos cards (economiza espaço vertical)
+- Badges de popular/economia menores (text-[10px], px-2.5, -top-2.5)
+- Trust indicators: layout horizontal inline, ocultos em mobile, fontes menores
+- Footer: py-3 → py-2, text-sm → text-xs
+- Adicionou shrink-0 ao header
+- Passou assinatura ativa do servidor para ProjetosClient via prop hasActivePlan
+- Botão 'Planos' agora é condicional: se hasActivePlan, mostra 'Gerenciar plano' (verde) → /assinatura
+- Adicionou banner 'dias restantes' na página /assinatura para planos ativos
+- Adicionou banner 'Acesso vitalício' para contas lifetime
+- Atualizou título da página /assinatura para 'Gerenciar Plano'
+
+Stage Summary:
+- Página de planos ocupa significativamente menos espaço vertical no desktop
+- Usuários com plano ativo/vitalício veem 'Gerenciar plano' em vez de 'Planos'
+- Página /assinatura mostra dias restantes para vencimento ou badge vitalício
+- Arquivos: PlanosPublicClient.tsx, ProjetosClient.tsx, projetos/page.tsx, AssinaturaClient.tsx
+
+---
 Task ID: 1
 Agent: main
 Task: Implementar "Modo de Atualização" para coordenadores no espelho de vendas
