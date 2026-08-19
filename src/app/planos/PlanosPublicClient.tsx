@@ -274,7 +274,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
           </AnimatePresence>
 
           {/* FIX #5: CSS Grid instead of flex-wrap for proper alignment with any number of cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          <div className="flex flex-wrap justify-center gap-5 sm:gap-6">
             {planos.map((plano, index) => {
               const isPopular = plano.popular;
               const isMelhorEconomia = plano.maior_economia;
@@ -308,7 +308,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                   onMouseEnter={() => setHoveredPlanoId(plano.id)}
                   onMouseLeave={() => setHoveredPlanoId(null)}
                   onClick={() => handleSelectPlano(plano)}
-                  className={cardClassName}
+                  className={`${cardClassName} w-full sm:w-[calc(50%-12px)] lg:w-[calc(25%-18px)]`}
                 >
                   {/* Popular badge — only a label, no card highlight */}
                   {isPopular && (
