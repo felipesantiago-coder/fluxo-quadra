@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quadra Desk - Proposta Comercial</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@page {
+    size: 794px 1123px;
+    margin: 0;
+}
+:root {
+    --c-navy: #0A1628;
+    --c-navy-mid: #0F2140;
+    --c-blue: #2563EB;
+    --c-blue-light: #3B82F6;
+    --c-blue-pale: #EFF6FF;
+    --c-blue-muted: #DBEAFE;
+    --c-green: #059669;
+    --c-green-pale: #ECFDF5;
+    --c-amber: #D97706;
+    --c-amber-pale: #FFFBEB;
+    --c-white: #FFFFFF;
+    --c-offwhite: #F8FAFC;
+    --c-gray-50: #F9FAFB;
+    --c-gray-100: #F3F4F6;
+    --c-gray-200: #E5E7EB;
+    --c-gray-300: #D1D5DB;
+    --c-gray-400: #9CA3AF;
+    --c-gray-500: #6B7280;
+    --c-gray-600: #4B5563;
+    --c-gray-700: #374151;
+    --c-gray-800: #1F2937;
+    --c-gray-900: #111827;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 794px;
+    background: var(--c-offwhite);
+    font-family: var(--font), sans-serif;
+    color: var(--c-gray-800);
+    -webkit-font-smoothing: antialiased;
+}
+@media screen {
+    html {
+        height: auto;
+        display: flex;
+        justify-content: center;
+        background: #E2E8F0;
+    }
+    body {
+        transform-origin: top center;
+        margin: 20px auto;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+    }
+}
+
+/* ===== COVER ===== */
+.cover {
+    width: 794px;
+    height: 1123px;
+    position: relative;
+    background: var(--c-navy);
+    overflow: hidden;
+    break-after: page;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 72px;
+}
+.cover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.08);
+    pointer-events: none;
+}
+.cover::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.05);
+    pointer-events: none;
+}
+.cover-accent-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--c-blue) 0%, rgba(37, 99, 235, 0.1) 100%);
+}
+.cover-grid {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+}
+.cover-content {
+    position: relative;
+    z-index: 2;
+}
+.cover-label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--c-blue-light);
+    margin-bottom: 40px;
+}
+.cover-brand {
+    font-size: 56px;
+    font-weight: 900;
+    color: var(--c-white);
+    line-height: 1.05;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+}
+.cover-brand span {
+    color: var(--c-blue-light);
+}
+.cover-title {
+    font-size: 22px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+    margin-bottom: 56px;
+    max-width: 480px;
+}
+.cover-divider {
+    width: 56px;
+    height: 3px;
+    background: var(--c-blue);
+    border-radius: 2px;
+    margin-bottom: 56px;
+}
+.cover-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.cover-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.cover-meta-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    width: 100px;
+}
+.cover-meta-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+}
+.cover-confidential {
+    position: absolute;
+    bottom: 40px;
+    left: 72px;
+    right: 72px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+}
+.cover-confidential span {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    padding: 44px 60px 36px 60px;
+    background: var(--c-white);
+}
+
+/* Section headers */
+.section-number {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--c-blue);
+    margin-bottom: 8px;
+}
+.section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--c-gray-900);
+    line-height: 1.2;
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+}
+.section-subtitle {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--c-gray-500);
+    line-height: 1.4;
+    margin-bottom: 16px;
+}
+.section-divider {
+    width: 36px;
+    height: 3px;
+    background: var(--c-blue);
+    border-radius: 2px;
+    margin-bottom: 16px;
+}
+
+/* Body text */
+.body-text {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--c-gray-700);
+    line-height: 1.65;
+    margin-bottom: 12px;
+    text-align: justify;
+}
+
+/* Subsection */
+.subsection {
+    margin-top: 18px;
+    margin-bottom: 6px;
+}
+.subsection-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-gray-800);
+    margin-bottom: 8px;
+    line-height: 1.35;
+}
+.subsection-title .num {
+    color: var(--c-blue);
+    margin-right: 6px;
+}
+
+/* Problem cards */
+.problem-card {
+    background: var(--c-offwhite);
+    border-left: 4px solid var(--c-gray-300);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    break-inside: avoid;
+}
+.problem-card.accent {
+    border-left-color: var(--c-blue);
+    background: var(--c-blue-pale);
+}
+.problem-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-gray-800);
+    margin-bottom: 6px;
+}
+.problem-card-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--c-gray-600);
+    line-height: 1.6;
+}
+
+/* Module cards */
+.module-card {
+    background: var(--c-white);
+    border: 1px solid var(--c-gray-200);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    break-inside: avoid;
+    transition: box-shadow 0.2s;
+}
+.module-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.module-card-num {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 7px;
+    background: var(--c-blue);
+    color: var(--c-white);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.module-card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--c-gray-800);
+    margin-bottom: 4px;
+}
+.module-card-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--c-gray-600);
+    line-height: 1.6;
+}
+
+/* Chapter header group */
+.chapter-header {
+    break-after: avoid;
+    break-inside: avoid;
+    margin-top: 28px;
+}
+
+/* Tables */
+.table-container {
+    margin: 14px 0 16px 0;
+    break-inside: avoid;
+}
+.table-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--c-gray-400);
+    margin-bottom: 10px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+thead th {
+    background: var(--c-navy);
+    color: var(--c-white);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-align: left;
+    padding: 10px 14px;
+}
+thead th:first-child { border-radius: 8px 0 0 0; }
+thead th:last-child { border-radius: 0 8px 0 0; }
+tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--c-gray-100);
+    color: var(--c-gray-700);
+    line-height: 1.45;
+    vertical-align: top;
+    font-size: 12px;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:last-child td:first-child { border-radius: 0 0 0 8px; }
+tbody tr:last-child td:last-child { border-radius: 0 0 8px 0; }
+tbody tr:nth-child(even) { background: var(--c-gray-50); }
+
+/* Highlight table for pricing */
+table.pricing-highlight tbody tr.highlight {
+    background: var(--c-blue-pale);
+}
+table.pricing-highlight tbody tr.highlight td {
+    color: var(--c-gray-800);
+    font-weight: 600;
+}
+
+/* KPI cards row */
+.kpi-row {
+    display: flex;
+    gap: 12px;
+    margin: 14px 0 16px 0;
+    break-inside: avoid;
+}
+.kpi-card {
+    flex: 1;
+    background: var(--c-offwhite);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    border: 1px solid var(--c-gray-100);
+}
+.kpi-card.green {
+    background: var(--c-green-pale);
+    border-color: rgba(5, 150, 105, 0.15);
+}
+.kpi-card.blue {
+    background: var(--c-blue-pale);
+    border-color: rgba(37, 99, 235, 0.15);
+}
+.kpi-card.amber {
+    background: var(--c-amber-pale);
+    border-color: rgba(217, 119, 6, 0.15);
+}
+.kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 3px;
+}
+.kpi-card.green .kpi-value { color: var(--c-green); }
+.kpi-card.blue .kpi-value { color: var(--c-blue); }
+.kpi-card.amber .kpi-value { color: var(--c-amber); }
+.kpi-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--c-gray-500);
+    line-height: 1.3;
+}
+
+/* Comparison table accent */
+table.comparison tbody tr:last-child {
+    background: var(--c-blue-pale);
+}
+table.comparison tbody tr:last-child td {
+    font-weight: 600;
+    color: var(--c-navy);
+}
+
+/* Annual callout */
+.callout {
+    background: var(--c-green-pale);
+    border: 1px solid rgba(5, 150, 105, 0.2);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 14px 0;
+    break-inside: avoid;
+}
+.callout-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-green);
+    margin-bottom: 4px;
+}
+.callout-text {
+    font-size: 12px;
+    color: var(--c-gray-600);
+    line-height: 1.6;
+}
+
+/* Next steps */
+.step-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 12px;
+    break-inside: avoid;
+}
+.step-num {
+    display: flex;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: var(--c-blue);
+    color: var(--c-white);
+    font-size: 13px;
+    font-weight: 700;
+}
+.step-content {
+    flex: 1;
+}
+.step-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-gray-800);
+    margin-bottom: 3px;
+}
+.step-text {
+    font-size: 12px;
+    color: var(--c-gray-600);
+    line-height: 1.55;
+}
+
+/* Page footer */
+.page-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 68px;
+    font-size: 9px;
+    color: var(--c-gray-400);
+    letter-spacing: 0.5px;
+}
+
+/* Ending page */
+.ending {
+    width: 794px;
+    height: 1123px;
+    box-sizing: border-box;
+    break-before: page;
+    overflow: hidden;
+    background: var(--c-navy);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+.ending::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    border: 1px solid rgba(37, 99, 235, 0.08);
+}
+.ending-brand {
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--c-white);
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+.ending-brand span { color: var(--c-blue-light); }
+.ending-text {
+    font-size: 16px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.6;
+    max-width: 400px;
+}
+.ending-contact {
+    margin-top: 40px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+}
+
+/* Pill tag */
+.pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.pill-blue { background: var(--c-blue-pale); color: var(--c-blue); }
+.pill-green { background: var(--c-green-pale); color: var(--c-green); }
+</style>
+</head>
+<body>
+
+<!-- ===== COVER PAGE ===== -->
+<div class="cover">
+    <div class="cover-accent-line"></div>
+    <div class="cover-grid"></div>
+    <div class="cover-content">
+        <div class="cover-label">Proposta Comercial</div>
+        <div class="cover-brand">Quadra <span>Desk</span></div>
+        <div class="cover-title">Sistema de gestao para imobiliarias: espelho de vendas digital, simulador de fluxo de pagamento e gestao centralizada de disponibilidade de unidades.</div>
+        <div class="cover-divider"></div>
+        <div class="cover-meta">
+            <div class="cover-meta-item">
+                <span class="cover-meta-label">Preparado para</span>
+                <span class="cover-meta-value">Quadraimob</span>
+            </div>
+            <div class="cover-meta-item">
+                <span class="cover-meta-label">Data</span>
+                <span class="cover-meta-value">Agosto de 2025</span>
+            </div>
+        </div>
+    </div>
+    <div class="cover-confidential">
+        <span>Documento Confidencial</span>
+        <span>Quadra Desk</span>
+    </div>
+</div>
+
+<!-- ===== BODY CONTENT ===== -->
+<div class="main-content">
+
+    <!-- SECTION 1 -->
+    <div class="chapter-header">
+        <div class="section-number">01</div>
+        <div class="section-title">O Cenario Atual</div>
+        <div class="section-subtitle">Pontos de friccao que impactam a eficiencia operacional</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">Tenho como objetivo apresentar uma solucao para um cenario de intensa competitividade no mercado imobiliario brasileiro. A Quadraimob possui mais de 150 corretores associados e pode se beneficiar de processos operacionais mais ageis, especialmente no atendimento ao cliente e na velocidade de conversao dos negocios.</p>
+
+    <p class="body-text">O fluxo de trabalho tipico de um corretor envolve multiplos pontos de friccao que, somados, resultam em perda de tempo, risco de erros e uma experiencia de atendimento alem do que o cliente espera. Esses problemas se manifestam em tres dimensoes criticas que o Quadra Desk foi desenhado para eliminar, transformando a operacao da imobiliaria em um processo agil, centralizado e profissional.</p>
+
+    <div class="problem-card">
+        <div class="problem-card-title">1.1 &nbsp; Espelho de vendas fragmentado</div>
+        <div class="problem-card-text">Atualmente, cada corretor precisa baixar individualmente arquivos PDF separados para acessar a tabela de precos e a tabela de unidades disponiveis de cada empreendimento. Esses documentos frequentemente ficam desatualizados, pois qualquer alteracao de preco ou de status de uma unidade exige a geracao de um novo PDF e sua redistribuicao. O resultado e um cenario em que corretores frequentemente trabalham com informacoes desatualizadas, o que pode gerar situacoes constrangedoras diante dos clientes, como oferecer unidades ja vendidas ou apresentar precos defasados. Alem disso, a dependencia de multiplos PDFs espalhados por e-mails e grupos de WhatsApp torna a busca por informacoes lenta e ineficiente.</div>
+    </div>
+
+    <div class="problem-card accent">
+        <div class="problem-card-title">1.2 &nbsp; Simulacoes manuais e propostas em papel</div>
+        <div class="problem-card-text">Quando um corretor atende um cliente interessado em um empreendimento, o processo de simulacao de fluxo de pagamento e quase inteiramente manual. O corretor utiliza uma calculadora ou faz calculos no papel, montando cenarios de parcelamento, valores de entrada, taxas e prazos. Se o cliente solicita um segundo cenario com diferentes parametros, o processo inteiro se repete. Uma unica simulacao pode levar de 15 a 30 minutos, e a proposta final e frequentemente entregue em uma folha de papel sulfite com calculos feitos a mao, o que transmite uma imagem pouco profissional. Em um mercado em que o cliente pode facilmente contatar a concorrencia, cada minuto de espera durante o atendimento representa uma oportunidade de venda perdida.</div>
+    </div>
+
+    <div class="problem-card">
+        <div class="problem-card-title">1.3 &nbsp; Gestao de disponibilidade por planilhas</div>
+        <div class="problem-card-text">A atualizacao do status de disponibilidade das unidades e realizada por meio de edicao direta em arquivos Excel. Cada vez que uma unidade e reservada ou vendida, e necessario localizar a unidade, alterar o status, salvar o arquivo, gerar um novo PDF e redistribui-lo. Alem de ser um processo demorado e suscetivel a erros humanos, ele cria um intervalo de tempo significativo entre a alteracao real e a visibilidade da mudanca. Durante esse intervalo, e perfeitamente possivel que a mesma unidade seja oferecida a clientes diferentes, gerando conflitos e insatisfacao.</div>
+    </div>
+
+    <!-- SECTION 2 -->
+    <div class="chapter-header">
+        <div class="section-number">02</div>
+        <div class="section-title">A Solucao: Quadra Desk</div>
+        <div class="section-subtitle">Plataforma integrada para centralizar e otimizar a operacao imobiliaria</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">O Quadra Desk e um sistema desenvolvido para centralizar e otimizar tres pilares fundamentais da operacao de uma imobiliaria: o acesso a informacoes de empreendimentos, a simulacao e geracao de propostas comerciais e a gestao em tempo real da disponibilidade de unidades. Diferentemente de ferramentas genericas, como CRMs ou planilhas, o Quadra Desk foi construido especificamente para o fluxo de trabalho de corretores de imoveis, eliminando os principais pontos de friccao descritos anteriormente.</p>
+
+    <p class="body-text">O sistema opera na nuvem, e acessivel por qualquer dispositivo com navegador web e nao exige instalacao ou configuracao tecnica. A interface foi projetada para ser intuitiva, permitindo que corretores com diferentes niveis de familiaridade com tecnologia possam utiliza-la desde o primeiro dia, com minima necessidade de treinamento. Alem disso, toda a informacao e atualizada em tempo real, garantindo que os usuarios trabalhem com dados sempre sincronizados e precisos.</p>
+
+    <div class="module-card">
+        <div class="module-card-num">1</div>
+        <div class="module-card-title">Espelho de Vendas Digital</div>
+        <div class="module-card-text">Substitui os PDFs desatualizados por uma interface centralizada, na qual e possivel acessar tabelas de precos e disponibilidade de unidades em tempo real, sem necessidade de baixar arquivos ou verificar versoes. Todos os dados sao atualizados automaticamente, garantindo que o corretor trabalhe sempre com informacoes precisas e atuais.</div>
+    </div>
+
+    <div class="module-card">
+        <div class="module-card-num">2</div>
+        <div class="module-card-title">Simulador de Pagamento</div>
+        <div class="module-card-text">Permite montar simulacoes de fluxo de parcelamento de forma intuitiva, ajustando valores de entrada, prazos e taxas com poucos cliques e gerando um PDF profissional da proposta para envio imediato ao cliente. O que antes levava de 15 a 30 minutos agora e feito em poucos minutos, com precisao e apresentacao profissional.</div>
+    </div>
+
+    <div class="module-card">
+        <div class="module-card-num">3</div>
+        <div class="module-card-title">Gestao de Disponibilidade</div>
+        <div class="module-card-text">Permite atualizar o status de cada unidade com poucos cliques, refletindo instantaneamente a alteracao no sistema. O que antes exigia editar planilhas, gerar PDFs e redistribui-los agora acontece em segundos, eliminando o risco de conflitos de disponibilidade entre corretores.</div>
+    </div>
+
+    <!-- SECTION 3 -->
+    <div class="chapter-header">
+        <div class="section-number">03</div>
+        <div class="section-title">Funcionalidades Principais</div>
+        <div class="section-subtitle">Visao geral dos modulos, problemas resolvidos e beneficios diretos</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">A tabela abaixo resume as funcionalidades do Quadra Desk, organizadas por modulo, com a descricao do problema que cada uma resolve e o beneficio direto para a operacao da imobiliaria. Cada funcionalidade foi projetada para eliminar um ponto de friccao especifico identificado no cenario atual.</p>
+
+    <div class="table-container">
+        <div class="table-label">Tabela 1 &mdash; Funcionalidades do Quadra Desk por modulo</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:18%">Modulo</th>
+                    <th style="width:42%">Funcionalidade</th>
+                    <th style="width:40%">Beneficio direto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Espelho de Vendas</td>
+                    <td>Acesso centralizado a tabelas de precos e unidades disponiveis</td>
+                    <td>Fim dos PDFs desatualizados e da busca por arquivos</td>
+                </tr>
+                <tr>
+                    <td>Espelho de Vendas</td>
+                    <td>Atualizacao em tempo real por empreendimento</td>
+                    <td>Dados sempre atualizados</td>
+                </tr>
+                <tr>
+                    <td>Simulador</td>
+                    <td>Simulacao de fluxo de pagamento com ajustes interativos</td>
+                    <td>De 20 minutos para 3 minutos por simulacao</td>
+                </tr>
+                <tr>
+                    <td>Simulador</td>
+                    <td>Geracao de PDF profissional da proposta comercial</td>
+                    <td>Entrega imediata ao cliente via WhatsApp ou e-mail</td>
+                </tr>
+                <tr>
+                    <td>Disponibilidade</td>
+                    <td>Atualizacao de status de unidades com poucos cliques</td>
+                    <td>De minutos para segundos; visibilidade instantanea</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SECTION 4 -->
+    <div class="chapter-header">
+        <div class="section-number">04</div>
+        <div class="section-title">Retorno sobre o Investimento</div>
+        <div class="section-subtitle">Impacto financeiro e operacional mensuravel</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">Para dimensionar o impacto financeiro do Quadra Desk na operacao da Quadraimob, e necessario traduzir os ganhos de eficiencia em numeros concretos. A analise abaixo utiliza estimativas conservadoras baseadas no cenario considerado, com 150 corretores ativos e uma media de 3 simulacoes por corretor por semana.</p>
+
+    <div class="subsection">
+        <div class="subsection-title"><span class="num">4.1</span> Economia de tempo nas simulacoes</div>
+    </div>
+
+    <p class="body-text">Hoje, cada simulacao de fluxo de pagamento leva, em media, 20 minutos quando feita manualmente. Com o Quadra Desk, esse tempo cai para aproximadamente 3 minutos, incluindo a geracao do PDF da proposta. Considerando 3 simulacoes por semana por corretor, sao 450 simulacoes semanais. A economia por simulacao e de 17 minutos, totalizando 7.650 minutos por semana, ou aproximadamente 128 horas semanais economizadas.</p>
+
+    <div class="kpi-row">
+        <div class="kpi-card green">
+            <div class="kpi-value">128h</div>
+            <div class="kpi-label">Horas economizadas por semana</div>
+        </div>
+        <div class="kpi-card blue">
+            <div class="kpi-value">3 min</div>
+            <div class="kpi-label">Tempo medio por simulacao</div>
+        </div>
+        <div class="kpi-card amber">
+            <div class="kpi-value">450</div>
+            <div class="kpi-label">Simulacoes realizadas por semana</div>
+        </div>
+    </div>
+
+    <div class="subsection">
+        <div class="subsection-title"><span class="num">4.2</span> Impacto na conversao de vendas</div>
+    </div>
+
+    <p class="body-text">Alem da economia de tempo, um dos principais impactos do Quadra Desk esta na qualidade do atendimento. Quando um corretor apresenta ao cliente uma proposta bem formatada, com calculos precisos e visual profissional, em vez de uma folha de papel com calculos feitos a mao, a percepcao de seriedade e confiabilidade da imobiliaria pode aumentar significativamente. A agilidade no atendimento tambem e um fator relevante para a conversao de vendas. Como hipotese de impacto, se o sistema evitar a perda de apenas 1 venda a cada 50 corretores por mes, isso representaria ate 3 vendas adicionais por mes considerando 150 corretores.</p>
+
+    <div class="subsection">
+        <div class="subsection-title"><span class="num">4.3</span> Eliminacao de conflitos de disponibilidade</div>
+    </div>
+
+    <p class="body-text">Com a atualizacao em tempo real da disponibilidade de unidades, o risco de dois corretores oferecerem a mesma unidade simultaneamente e drasticamente reduzido. Esse tipo de conflito pode gerar constrangimento diante do cliente, desgaste nas relacoes profissionais, necessidade de intervencao para resolver disputas e a possibilidade de perda de clientes para a concorrencia. O Quadra Desk torna esse processo automatizado e instantaneo, permitindo que a unidade reservada deixe de aparecer no espelho de vendas no momento em que a alteracao e registrada.</p>
+
+    <!-- SECTION 5 -->
+    <div class="chapter-header">
+        <div class="section-number">05</div>
+        <div class="section-title">Investimento e Condicoes Comerciais</div>
+        <div class="section-subtitle">Modelo de contratacao simples e previsivel</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">O modelo de contratacao do Quadra Desk foi desenhado para ser simples e previsivel. A Quadraimob contrata o sistema como um servico corporativo, com acesso para os usuarios contemplados na contratacao. O investimento e mensal, sem fidelidade longa, e inclui suporte tecnico e atualizacoes continuas da plataforma.</p>
+
+    <div class="table-container">
+        <div class="table-label">Tabela 2 &mdash; Condicoes do Plano Corporate</div>
+        <table class="pricing-highlight">
+            <thead>
+                <tr>
+                    <th style="width:35%">Item</th>
+                    <th style="width:65%">Detalhe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Modalidade</td>
+                    <td>Corporate (acesso para os usuarios contemplados na contratacao)</td>
+                </tr>
+                <tr>
+                    <td>Usuarios incluidos</td>
+                    <td>150 corretores + usuarios administrativos contemplados na contratacao</td>
+                </tr>
+                <tr>
+                    <td>Modulos incluidos</td>
+                    <td>Espelho de Vendas Digital, Simulador de Pagamento, Gestao de Disponibilidade</td>
+                </tr>
+                <tr class="highlight">
+                    <td>Investimento mensal</td>
+                    <td>R$ 3.100,00/mes</td>
+                </tr>
+                <tr class="highlight">
+                    <td>Custo por corretor</td>
+                    <td>R$ 20,67/mes por corretor</td>
+                </tr>
+                <tr>
+                    <td>Periodo minimo</td>
+                    <td>3 meses</td>
+                </tr>
+                <tr>
+                    <td>Suporte</td>
+                    <td>Prioritario via e-mail e WhatsApp, SLA de 24 horas</td>
+                </tr>
+                <tr>
+                    <td>Treinamento</td>
+                    <td>Sessao inicial de onboarding incluida</td>
+                </tr>
+                <tr>
+                    <td>Atualizacoes</td>
+                    <td>Continuas, sem custo adicional</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="subsection">
+        <div class="subsection-title"><span class="num">5.1</span> Comparativo com o mercado</div>
+    </div>
+
+    <p class="body-text">Para contextualizar o investimento, e relevante comparar o custo do Quadra Desk com ferramentas existentes no mercado imobiliario. Sistemas de CRM imobiliario apresentam custos superiores por corretor em determinadas modalidades, enquanto o Quadra Desk reune recursos de consulta de disponibilidade, simulacao e emissao de proposta em uma unica solucao.</p>
+
+    <div class="table-container">
+        <div class="table-label">Tabela 3 &mdash; Comparativo de custos com o mercado</div>
+        <table class="comparison">
+            <thead>
+                <tr>
+                    <th style="width:25%">Sistema</th>
+                    <th style="width:30%">Custo/corretor/mes</th>
+                    <th style="width:45%">Escopo</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Zap Imoveis Pro</td>
+                    <td>R$ 60,00 &ndash; R$ 80,00</td>
+                    <td>Portal de imoveis + CRM basico</td>
+                </tr>
+                <tr>
+                    <td>Imobi Panel</td>
+                    <td>R$ 40,00 &ndash; R$ 60,00</td>
+                    <td>Gestao de leads + anuncios</td>
+                </tr>
+                <tr>
+                    <td>Casa Minha</td>
+                    <td>R$ 30,00 &ndash; R$ 50,00</td>
+                    <td>CRM imobiliario</td>
+                </tr>
+                <tr>
+                    <td><strong>Quadra Desk</strong></td>
+                    <td><strong>R$ 20,67</strong></td>
+                    <td><strong>Espelho + Simulador + Gestao</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="subsection">
+        <div class="subsection-title"><span class="num">5.2</span> Condicoes de contrato anual (opcional)</div>
+    </div>
+
+    <p class="body-text">Para imobiliarias que optarem pelo compromisso anual, o Quadra Desk oferece uma condicao especial com reducao significativa no valor mensal. Nessa modalidade, o investimento mensal passa a R$ 2.500,00, o que representa uma economia de R$ 7.200,00 ao longo de 12 meses em relacao ao plano mensal. Essa condicao reconhece o compromisso de parceria de longo prazo e proporciona previsibilidade orcamentaria para a imobiliaria, com um custo total anual de R$ 30.000,00, contra R$ 37.200,00 no plano mensal.</p>
+
+    <div class="callout">
+        <div class="callout-title">Economia anual: R$ 7.200,00</div>
+        <div class="callout-text">Contrato anual a R$ 2.500/mes = R$ 30.000/ano &mdash; contra R$ 37.200/ano no plano mensal. Previsibilidade orcamentaria com reducao significativa de custo.</div>
+    </div>
+
+    <!-- SECTION 6 -->
+    <div class="chapter-header">
+        <div class="section-number">06</div>
+        <div class="section-title">Proximos Passos</div>
+        <div class="section-subtitle">Processo simples e rapido de implantacao</div>
+        <div class="section-divider"></div>
+    </div>
+
+    <p class="body-text">Para iniciar a operacao do Quadra Desk na Quadraimob, o processo de onboarding e simples e rapido. Recomendo que a imobiliaria inicie com um periodo experimental de 15 dias com 5 corretores selecionados, permitindo validar o sistema no dia a dia antes da adesao completa. Esse periodo nao gera custos adicionais e serve para que a Quadraimob confirme, na pratica, os beneficios descritos nesta proposta.</p>
+
+    <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+            <div class="step-title">Reuniao de configuracao</div>
+            <div class="step-text">Os empreendimentos da imobiliaria serao cadastrados no sistema com suas respectivas tabelas de precos e unidades.</div>
+        </div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+            <div class="step-title">Sessao de treinamento</div>
+            <div class="step-text">Apresentacao das funcionalidades e dos procedimentos de utilizacao para a equipe selecionada.</div>
+        </div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+            <div class="step-title">Periodo experimental de 15 dias</div>
+            <div class="step-text">5 corretores selecionados utilizam o sistema no dia a dia, sem custo adicional, para validacao pratica.</div>
+        </div>
+    </div>
+
+    <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content">
+            <div class="step-title">Expansao gradual</div>
+            <div class="step-text">Apos a validacao, a expansao para os demais usuarios pode ser feita de forma gradual, com acompanhamento do suporte tecnico em cada etapa.</div>
+        </div>
+    </div>
+
+    <p class="body-text" style="margin-top: 24px;">Estou a disposicao para agendar a reuniao de configuracao e iniciar o processo de onboarding. Meu objetivo e que a Quadraimob tenha o sistema operacional e gerando resultados concretos no menor prazo possivel.</p>
+
+</div>
+
+<!-- ===== ENDING PAGE ===== -->
+<div class="ending">
+    <div class="ending-brand">Quadra <span>Desk</span></div>
+    <div class="ending-text">Transformando a operacao imobiliaria com tecnologia, agilidade e profissionalismo.</div>
+    <div class="ending-contact">Agosto de 2025 &nbsp;|&nbsp; Documento Confidencial</div>
+</div>
+
+</body>
+</html>
