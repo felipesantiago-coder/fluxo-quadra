@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-no-katex>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -56,12 +56,11 @@ html, body {
     font-family: var(--font), sans-serif;
     color: var(--c-gray-800);
     -webkit-font-smoothing: antialiased;
-    /* Anti-truncation & hyphenation */
+    /* Anti-truncation */
     overflow-wrap: break-word;
     word-wrap: break-word;
-    word-break: break-word;
-    hyphens: auto;
-    -webkit-hyphens: auto;
+    hyphens: manual;
+    -webkit-hyphens: manual;
     /* Orphan / widow control */
     orphans: 3;
     widows: 3;
@@ -601,7 +600,6 @@ table.comparison tbody tr:last-child td {
         </div>
     </div>
     <div class="cover-confidential">
-        <span>Documento Confidencial</span>
         <span>Quadra Desk</span>
     </div>
 </div>
@@ -921,7 +919,7 @@ table.comparison tbody tr:last-child td {
 <div class="ending">
     <div class="ending-brand">Quadra <span>Desk</span></div>
     <div class="ending-text">Transformando a operação imobiliária com tecnologia, agilidade e profissionalismo.</div>
-    <div class="ending-contact">Agosto de 2026 &nbsp;|&nbsp; Documento Confidencial</div>
+    <div class="ending-contact">Agosto de 2026</div>
 </div>
 
 </body>

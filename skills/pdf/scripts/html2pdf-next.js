@@ -181,8 +181,9 @@ async function preRenderHooks(page) {
     }
   }
 
-  // 2. Trigger KaTeX math rendering
-  const katexStatus = await page.evaluate(() => ({
+  // 2. Trigger KaTeX math rendering (skip if data-no-katex is set)
+  const noKatex = await page.evaluate(() => document.documentElement.hasAttribute('data-no-katex'));
+  const katexStatus = noKatex ? { lib: false, rendered: false, raw: false } : await page.evaluate(() => ({
     lib: typeof renderMathInElement === 'function' || typeof katex !== 'undefined',
     rendered: document.querySelectorAll('.katex').length > 0,
     raw: /\$[^$]+\$|\$\$[^$]+\$\$|\\\(.*?\\\)|\\\[.*?\\\]/.test(document.body.innerText),
