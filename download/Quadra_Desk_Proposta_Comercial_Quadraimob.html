@@ -10,6 +10,13 @@
     size: 794px 1123px;
     margin: 0;
 }
+@page body {
+    size: 794px 1123px;
+    margin-top: 55px;
+    margin-right: 80px;
+    margin-bottom: 40px;
+    margin-left: 90px;
+}
 :root {
     --c-navy: #0A1628;
     --c-navy-mid: #0F2140;
@@ -67,6 +74,7 @@ html, body {
     background: var(--c-navy);
     overflow: hidden;
     break-after: page;
+    page: cover;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -151,7 +159,7 @@ html, body {
     height: 3px;
     background: var(--c-blue);
     border-radius: 2px;
-    margin-bottom: 48px;
+    margin-bottom: 40px;
 }
 .cover-meta {
     display: flex;
@@ -196,7 +204,8 @@ html, body {
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
-    padding: 80px 80px 58px 90px;
+    page: body;
+    padding: 0;
     background: var(--c-white);
 }
 
@@ -215,7 +224,7 @@ html, body {
     font-weight: 800;
     color: var(--c-gray-900);
     line-height: 1.2;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     letter-spacing: -0.3px;
 }
 .section-subtitle {
@@ -223,7 +232,7 @@ html, body {
     font-weight: 400;
     color: var(--c-gray-500);
     line-height: 1.4;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .section-divider {
     width: 36px;
@@ -238,15 +247,15 @@ html, body {
     font-size: 12.5px;
     font-weight: 400;
     color: var(--c-gray-700);
-    line-height: 1.65;
-    margin-bottom: 10px;
+    line-height: 1.55;
+    margin-bottom: 8px;
     text-align: justify;
 }
 
 /* Subsection */
 .subsection {
-    margin-top: 14px;
-    margin-bottom: 4px;
+    margin-top: 10px;
+    margin-bottom: 2px;
 }
 .subsection-title {
     font-size: 14px;
@@ -265,8 +274,8 @@ html, body {
     background: var(--c-offwhite);
     border-left: 4px solid var(--c-gray-300);
     border-radius: 0 8px 8px 0;
-    padding: 12px 16px;
-    margin-bottom: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
     break-inside: avoid;
 }
 .problem-card.accent {
@@ -283,7 +292,7 @@ html, body {
     font-size: 12px;
     font-weight: 400;
     color: var(--c-gray-600);
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 /* Module cards */
@@ -291,8 +300,8 @@ html, body {
     background: var(--c-white);
     border: 1px solid var(--c-gray-200);
     border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
     break-inside: avoid;
     transition: box-shadow 0.2s;
 }
@@ -322,19 +331,19 @@ html, body {
     font-size: 12px;
     font-weight: 400;
     color: var(--c-gray-600);
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 /* Chapter header group */
 .chapter-header {
     break-after: avoid;
     break-inside: avoid;
-    margin-top: 22px;
+    margin-top: 18px;
 }
 
 /* Tables */
 .table-container {
-    margin: 10px 0 12px 0;
+    margin: 8px 0 8px 0;
     break-inside: avoid;
 }
 .table-label {
@@ -343,7 +352,7 @@ html, body {
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--c-gray-400);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 table {
     width: 100%;
@@ -387,14 +396,14 @@ table.pricing-highlight tbody tr.highlight td {
 .kpi-row {
     display: flex;
     gap: 12px;
-    margin: 10px 0 12px 0;
+    margin: 8px 0 8px 0;
     break-inside: avoid;
 }
 .kpi-card {
     flex: 1;
     background: var(--c-offwhite);
     border-radius: 10px;
-    padding: 14px;
+    padding: 12px;
     text-align: center;
     border: 1px solid var(--c-gray-100);
 }
@@ -411,7 +420,7 @@ table.pricing-highlight tbody tr.highlight td {
     border-color: rgba(217, 119, 6, 0.15);
 }
 .kpi-value {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
     line-height: 1.1;
     margin-bottom: 3px;
@@ -440,8 +449,8 @@ table.comparison tbody tr:last-child td {
     background: var(--c-green-pale);
     border: 1px solid rgba(5, 150, 105, 0.2);
     border-radius: 10px;
-    padding: 14px 16px;
-    margin: 10px 0;
+    padding: 12px 14px;
+    margin: 8px 0;
     break-inside: avoid;
 }
 .callout-title {
@@ -460,7 +469,7 @@ table.comparison tbody tr:last-child td {
 .step-item {
     display: flex;
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     break-inside: avoid;
 }
 .step-num {
@@ -488,30 +497,17 @@ table.comparison tbody tr:last-child td {
 .step-text {
     font-size: 12px;
     color: var(--c-gray-600);
-    line-height: 1.55;
+    line-height: 1.45;
 }
 
-/* Page footer */
-.page-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 90px;
-    font-size: 9px;
-    color: var(--c-gray-400);
-    letter-spacing: 0.5px;
-}
+/* Page margins handled by @page body */
 
 /* Ending page */
 .ending {
     width: 794px;
     height: 1123px;
     box-sizing: border-box;
+    page: ending;
     break-before: page;
     overflow: hidden;
     background: var(--c-navy);
@@ -901,7 +897,7 @@ table.comparison tbody tr:last-child td {
         </div>
     </div>
 
-    <p class="body-text" style="margin-top: 24px;">Estou à disposição para agendar a reunião de configuração e iniciar o processo de onboarding. Meu objetivo é que a Quadraimob tenha o sistema operacional e gerando resultados concretos no menor prazo possível.</p>
+    <p class="body-text" style="margin-top: 16px;">Estou à disposição para agendar a reunião de configuração e iniciar o processo de onboarding. Meu objetivo é que a Quadraimob tenha o sistema operacional e gerando resultados concretos no menor prazo possível.</p>
 
 </div>
 
