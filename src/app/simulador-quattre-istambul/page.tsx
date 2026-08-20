@@ -414,6 +414,7 @@ function SimulatorContent() {
         ["Andar", initialAndar ? `${initialAndar}º Andar` : "—"],
         ["Valor do Imóvel", formatBRL(propertyValue)],
         ["Valor com Desconto", formatBRL(result.finalPropertyValue)],
+        ["Entrega Prevista", "Novembro de 2027"],
       ],
       theme: "grid",
       headStyles: { fillColor: primaryColor, textColor: 255 },

@@ -145,8 +145,7 @@ function SimulatorContent() {
   const [semesterValueInput, setSemesterValueInput] = useState("");
   const [unicaValueInput, setUnicaValueInput] = useState("");
   const [unicaTouched, setUnicaTouched] = useState(false);
-  const [maxMonthly, setMaxMonthly] = useState("48");
-  const [maxSemester, setMaxSemester] = useState("6");
+  // Venice Park: parcelas mensais e semestrais calculadas automaticamente pelos meses restantes
   const [activeTab, setActiveTab] = useState<"sinal" | "mensal" | "semestral" | "unica" | "habitese">("sinal");
   const [showResults, setShowResults] = useState(false);
 
@@ -197,10 +196,9 @@ function SimulatorContent() {
     const paymentLimit = new Date(Date.UTC(PAYMENT_LIMIT_YEAR, PAYMENT_LIMIT_MONTH - 1, 30));
     const totalMonths = Math.max(0, monthsBetween(dpDate, paymentLimit));
 
-    const maxM = parseInt(maxMonthly);
-    const maxS = parseInt(maxSemester);
-    const mInstallments = Math.min(totalMonths, maxM);
-    const sInstallments = Math.min(Math.floor(totalMonths / 6), maxS);
+    // Venice Park: todas as parcelas mensais/semestrais cabem na obra (sem limite fixo)
+    const mInstallments = totalMonths;
+    const sInstallments = Math.floor(totalMonths / 6);
 
     // INCC: fator de correção para o período total
     const inccCorrectionFactor = totalMonths > 0 && inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, totalMonths) : 1;
@@ -218,20 +216,20 @@ function SimulatorContent() {
 
     for (let month = 1; month <= totalMonths; month++) {
       // Parcela mensal
-      if (mCount < maxM && mCount < mInstallments) {
+      if (mCount < mInstallments) {
         mCount++;
         saldo -= monthlyVal;
         mPaid += monthlyVal;
         const inccFactorForMonth = inccMonthlyRate > 0 ? Math.pow(1 + inccMonthlyRate / 100, month) : 1;
         monthlyRows.push({
-          parcela: `${mCount}/${maxM}`,
+          parcela: `${mCount}/${mInstallments}`,
           data: formatDateBR(addMonthsToDate(dpDate, month)),
           valor: formatBRL(monthlyVal * inccFactorForMonth),
         });
       }
 
       // Parcela semestral (a cada 6 meses)
-      if (semesterPaymentMonths.has(month) && sCount < maxS) {
+      if (semesterPaymentMonths.has(month) && sCount < sInstallments) {
         sCount++;
         saldo -= semesterVal;
         sPaid += semesterVal;
@@ -260,8 +258,8 @@ function SimulatorContent() {
     const totalCaptation = downPaymentValue + mPaid + sPaid + unicaVal;
     const captPct = finalPropertyValue > 0 ? (totalCaptation / finalPropertyValue) * 100 : 0;
     const habitese = Math.max(0, finalPropertyValue - totalCaptation);
-    const mRemaining = Math.max(0, monthlyVal * maxM - mPaid);
-    const sRemaining = Math.max(0, semesterVal * maxS - sPaid);
+    const mRemaining = Math.max(0, monthlyVal * mInstallments - mPaid);
+    const sRemaining = Math.max(0, semesterVal * sInstallments - sPaid);
     const hBalance = Math.max(0, habitese - mRemaining - sRemaining);
 
     // ── Fase 2: Aplicar correção INCC aos saldos devedores remanescentes ──
@@ -315,7 +313,7 @@ function SimulatorContent() {
       unicaDate: formatDateBR(unicaDate),
       unicaScheduleRows,
     };
-  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, unicaVal, maxMonthly, maxSemester, finalPropertyValue, inccMonthlyRate, inccMode]);
+  }, [propertyValue, discount, downPaymentValue, downPaymentDate, downPaymentInstallments, monthlyVal, semesterVal, unicaVal, finalPropertyValue, inccMonthlyRate, inccMode]);
 
   // Show results when there's meaningful data
   useEffect(() => {
@@ -370,12 +368,23 @@ function SimulatorContent() {
     setUnicaValueInput("");
     setUnicaTouched(false);
     setDownPaymentInstallments("1");
-    setMaxMonthly("48");
-    setMaxSemester("6");
+
     setDownPaymentDate(getTodayISO());
     setShowResults(false);
     setInccMode("none");
   };
+
+  // Compute dynamic installment counts for display
+  const dynamicMaxMonthly = useMemo(() => {
+    const dpDate = new Date(Date.UTC(
+      parseInt(downPaymentDate.split("-")[0]),
+      parseInt(downPaymentDate.split("-")[1]) - 1,
+      parseInt(downPaymentDate.split("-")[2])
+    ));
+    const paymentLimit = new Date(Date.UTC(PAYMENT_LIMIT_YEAR, PAYMENT_LIMIT_MONTH - 1, 30));
+    return Math.max(0, monthsBetween(dpDate, paymentLimit));
+  }, [downPaymentDate]);
+  const dynamicMaxSemester = Math.floor(dynamicMaxMonthly / 6);
 
   // PDF generation
   const generatePDF = useCallback(async () => {
@@ -667,8 +676,8 @@ function SimulatorContent() {
   const resultRows = useMemo(() => {
     const rows: { description: string; value: string; percent: string; note: string; bold: boolean; isHighlight: boolean; isIncc: boolean }[] = [
       { description: "Sinal", value: formatBRL(result.downPaymentValue), percent: result.downPaymentPercent.toFixed(2), note: "Ate 2 parcelas com INCC", bold: false, isHighlight: false, isIncc: false },
-      { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent.toFixed(2), note: `${result.monthlyInstallments} de ${maxMonthly} parcelas`, bold: false, isHighlight: false, isIncc: false },
-      { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent.toFixed(2), note: `${result.semesterInstallments} de ${maxSemester} parcelas`, bold: false, isHighlight: false, isIncc: false },
+      { description: "Parcelas Mensais", value: formatBRL(result.monthlyPaid), percent: result.monthlyPaidPercent.toFixed(2), note: `${result.monthlyInstallments} parcelas (automatico)`, bold: false, isHighlight: false, isIncc: false },
+      { description: "Parcelas Semestrais", value: formatBRL(result.semesterPaid), percent: result.semesterPaidPercent.toFixed(2), note: `${result.semesterInstallments} parcelas (automatico)`, bold: false, isHighlight: false, isIncc: false },
     ];
     if (result.unicaValue > 0) {
       rows.push({ description: "Unica", value: formatBRL(result.unicaValue), percent: result.unicaPercent.toFixed(2), note: `1 parcela em ${result.unicaDate}`, bold: false, isHighlight: true, isIncc: false });
@@ -679,7 +688,7 @@ function SimulatorContent() {
     }
     rows.push({ description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: "100", note: "", bold: true, isHighlight: false, isIncc: false });
     return rows;
-  }, [result, inccMode, inccMonthlyRate, maxMonthly, maxSemester]);
+  }, [result, inccMode, inccMonthlyRate]);
 
 
   // ——— Render ———
@@ -828,9 +837,9 @@ function SimulatorContent() {
                     placeholder="Ex: R$ 1.500,00"
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right"
                   />
-                  {monthlyVal > 0 && (
+                  {monthlyVal > 0 && dynamicMaxMonthly > 0 && (
                     <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
-                      <span className="font-medium">Total mensal: {formatBRL(monthlyVal * parseInt(maxMonthly))} ({maxMonthly}x)</span>
+                      <span className="font-medium">Total mensal: {formatBRL(monthlyVal * dynamicMaxMonthly)} ({dynamicMaxMonthly}x automatico)</span>
                     </div>
                   )}
                 </div>
@@ -844,34 +853,24 @@ function SimulatorContent() {
                     placeholder="Ex: R$ 10.000,00"
                     className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all placeholder:text-slate-400 text-right"
                   />
-                  {semesterVal > 0 && (
+                  {semesterVal > 0 && dynamicMaxSemester > 0 && (
                     <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-sm text-slate-600">
-                      <span className="font-medium">Total semestral: {formatBRL(semesterVal * parseInt(maxSemester))} ({maxSemester}x)</span>
+                      <span className="font-medium">Total semestral: {formatBRL(semesterVal * dynamicMaxSemester)} ({dynamicMaxSemester}x automatico)</span>
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Número Máximo de Parcelas Mensais</label>
-                    <select
-                      value={maxMonthly}
-                      onChange={(e) => setMaxMonthly(e.target.value)}
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
-                    >
-                      <option value="48">48 parcelas</option>
-                      <option value="36">36 parcelas</option>
-                    </select>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Parcelas Mensais (automatico)</label>
+                    <div className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-500 flex items-center">
+                      {dynamicMaxMonthly} parcela{dynamicMaxMonthly !== 1 ? 's' : ''} ate a entrega
+                    </div>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Número Máximo de Parcelas Semestrais</label>
-                    <select
-                      value={maxSemester}
-                      onChange={(e) => setMaxSemester(e.target.value)}
-                      className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
-                    >
-                      <option value="6">6 parcelas</option>
-                      <option value="4">4 parcelas</option>
-                    </select>
+                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Parcelas Semestrais (automatico)</label>
+                    <div className="w-full h-12 px-4 rounded-xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-500 flex items-center">
+                      {dynamicMaxSemester} parcela{dynamicMaxSemester !== 1 ? 's' : ''} ate a entrega
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -1243,8 +1242,8 @@ function SimulatorContent() {
               </div>
               <ul className="space-y-2 text-xs text-slate-500 list-disc list-inside">
                 <li>O sinal pode ser dividido em até 2 vezes com correção de INCC</li>
-                <li>As parcelas mensais começam no mês seguinte ao sinal</li>
-                <li>A primeira parcela semestral é 6 meses após o sinal</li>
+                <li>As parcelas mensais começam no mês seguinte ao sinal e vão ate o mes anterior a entrega</li>
+                <li>As parcelas semestrais ocorrem a cada 6 meses, calculadas automaticamente</li>
                 <li>A parcela única (padrão {DEFAULT_UNICA_PERCENT}%) é paga no mês anterior à entrega</li>
                 <li>As parcelas não pagas durante as obras serão incluídas no financiamento</li>
                 <li>Captação mínima durante as obras: <strong>{MIN_CAPTATION_PERCENT}%</strong> do valor do imóvel</li>
