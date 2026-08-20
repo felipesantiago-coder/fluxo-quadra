@@ -911,6 +911,12 @@ export default function VillaBiancoDashboard({ isAdmin = false, isCoordinator = 
 
   const getBlockToggle = useCallback((bloco: VillaBiancoBloco) => () => toggleBlock(bloco), [toggleBlock]);
 
+  const handleLogout = useCallback(async () => {
+    await createClient().auth.signOut();
+    router.push("/");
+    router.refresh();
+  }, [router]);
+
   const mobileMenuItems = useMemo(() => [
     { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
     ...(isCoordinator && isAdmin ? [{
@@ -923,12 +929,6 @@ export default function VillaBiancoDashboard({ isAdmin = false, isCoordinator = 
     { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
     { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
   ], [isCoordinator, isAdmin, updateMode, handleLogout]);
-
-  const handleLogout = useCallback(async () => {
-    await createClient().auth.signOut();
-    router.push("/");
-    router.refresh();
-  }, [router]);
 
   const hasActiveFilters = filterBloco !== "all" || filterTipologia !== "all" || filterVagas !== "all" || filterPosicaoSolar !== "all" || filterStatus !== "all" || sortBy !== "bloco";
 
