@@ -28,6 +28,12 @@ export default function MfaSetupPage() {
   const [webauthnError, setWebauthnError] = useState("");
   const [webauthnSuccess, setWebauthnSuccess] = useState(false);
 
+  // Disable MFA dialog
+  const [showDisableDialog, setShowDisableDialog] = useState(false);
+  const [disableTotpCode, setDisableTotpCode] = useState("");
+  const [disableLoading, setDisableLoading] = useState(false);
+  const [disableError, setDisableError] = useState("");
+
   // General
   const [loading, setLoading] = useState(true);
 
@@ -138,16 +144,56 @@ export default function MfaSetupPage() {
   };
 
   // ─── Disable ─────────────────────────────────────────
-  const disableMfa = async () => {
-    if (!confirm("Tem certeza que deseja desativar a autenticação de dois fatores?")) return;
+  const openDisableDialog = () => {
+    setDisableTotpCode("");
+    setDisableError("");
+    setShowDisableDialog(true);
+  };
+
+  const cancelDisable = () => {
+    setShowDisableDialog(false);
+    setDisableTotpCode("");
+    setDisableError("");
+    setDisableLoading(false);
+  };
+
+  const confirmDisableMfa = async () => {
+    // Se TOTP está configurado, exige código de 6 dígitos
+    if (totpConfigured && disableTotpCode.length !== 6) {
+      setDisableError("Digite o código de 6 dígitos do seu app autenticador.");
+      return;
+    }
+
+    setDisableLoading(true);
+    setDisableError("");
+
     try {
-      const res = await fetch("/api/mfa/disable", { method: "POST" });
+      const body: Record<string, string> = {};
+      if (totpConfigured) {
+        body.totpCode = disableTotpCode;
+      }
+
+      const res = await fetch("/api/mfa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
       if (res.ok) {
         setMfaEnabled(false);
         setTotpConfigured(false);
         setPasskeys([]);
+        setShowDisableDialog(false);
+        setDisableTotpCode("");
+      } else {
+        const d = await res.json().catch(() => ({ error: "Erro ao desativar MFA." }));
+        setDisableError(d.error || "Erro ao desativar MFA. Tente novamente.");
       }
-    } catch { /* ignore */ }
+    } catch {
+      setDisableError("Erro de conexão. Verifique sua internet e tente novamente.");
+    } finally {
+      setDisableLoading(false);
+    }
   };
 
   const deletePasskey = async (id: string) => {
@@ -158,8 +204,15 @@ export default function MfaSetupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passkeyId: id }),
       });
-      if (res.ok) await loadStatus();
-    } catch { /* ignore */ }
+      if (res.ok) {
+        await loadStatus();
+      } else {
+        const d = await res.json().catch(() => ({ error: "" }));
+        alert(d.error || "Erro ao remover dispositivo. Tente novamente.");
+      }
+    } catch {
+      alert("Erro de conexão. Verifique sua internet.");
+    }
   };
 
   if (loading) {
@@ -211,9 +264,83 @@ export default function MfaSetupPage() {
               </div>
             </div>
             {mfaEnabled && (
-              <button onClick={disableMfa} className="mt-4 text-sm text-red-500 hover:text-red-700 transition-colors">
+              <button onClick={openDisableDialog} className="mt-4 text-sm text-red-500 hover:text-red-700 transition-colors">
                 Desativar autenticação de dois fatores
               </button>
+            )}
+
+            {/* Disable MFA Dialog */}
+            {showDisableDialog && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md p-6 space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                      <Shield className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Desativar 2FA</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Isso removerá toda proteção de autenticação em duas etapas da sua conta.
+                      </p>
+                    </div>
+                  </div>
+
+                  {totpConfigured && (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-700 font-medium">
+                        Digite o código do seu app autenticador para confirmar:
+                      </p>
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={disableTotpCode}
+                          onChange={(v) => { setDisableTotpCode(v); setDisableError(""); }}
+                          onComplete={confirmDisableMfa}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                          </InputOTPGroup>
+                          <InputOTPGroup>
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+                    </div>
+                  )}
+
+                  {disableError && (
+                    <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {disableError}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={cancelDisable}
+                      disabled={disableLoading}
+                      className="flex-1 h-10 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmDisableMfa}
+                      disabled={disableLoading || (totpConfigured && disableTotpCode.length !== 6)}
+                      className="flex-1 h-10 rounded-xl bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {disableLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Desativando...</>
+                      ) : (
+                        "Desativar 2FA"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

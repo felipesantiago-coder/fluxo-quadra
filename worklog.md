@@ -122,3 +122,29 @@ Stage Summary:
 - Admin_sistema e subscribers não são afetados (isCoordinator=false para eles)
 - Legados (Quattre, Villa Bianco, Moment, Vitta) não são afetados (não têm acesso de coordenador)
 - Arquivos modificados: src/components/dynamic-dashboard.tsx, src/app/empreendimento/[id]/page.tsx
+
+---
+Task ID: 5
+Agent: main
+Task: Investigar e corrigir bug de desativação de MFA/2FA
+
+Work Log:
+- Explorou toda a base de código relacionada a MFA (15+ arquivos: lib, API routes, UI pages, migrations)
+- Identificou causa raiz: `disableMfa()` no frontend enviava POST sem body para `/api/mfa/disable`
+- O servidor exige código TOTP válido quando TOTP está ativo (retorna 400 se ausente)
+- Frontend engolia o erro silenciosamente: `catch { /* ignore */ }` e `if (res.ok)` sem else
+- RLS verificado: `mfa_enabled` NÃO está na lista de colunas protegidas pelo trigger de auditoria
+
+Correções aplicadas em `src/app/mfa-setup/page.tsx`:
+1. Substituído `disableMfa()` por fluxo com modal de confirmação:
+   - Se TOTP configurado: exibe input de 6 dígitos (mesmo InputOTP do setup)
+   - Se só passkeys: permite desativar diretamente
+   - Envia `totpCode` no body JSON para o servidor
+   - Exibe erros do servidor no modal (código inválido, erro de conexão)
+2. `deletePasskey()` agora exibe erros em vez de silenciá-los
+
+Stage Summary:
+- Usuários com TOTP agora conseguem desativar 2FA informando o código do app autenticador
+- Usuários com apenas passkeys conseguem desativar diretamente
+- Erros são exibidos ao usuário em vez de serem silenciados
+- Arquivo: src/app/mfa-setup/page.tsx
