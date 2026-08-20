@@ -300,7 +300,7 @@ const ExpandedCard = memo(function ExpandedCard({ unit, onClose }: { unit: Vitta
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.15 }}
       className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-8"
       onClick={onClose}
     >
@@ -308,13 +308,15 @@ const ExpandedCard = memo(function ExpandedCard({ unit, onClose }: { unit: Vitta
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
         className="absolute inset-0 bg-black/50"
       />
       <motion.div
-        initial={{ opacity: 0, scale: 0.85, y: 40 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.85, y: 40 }}
-        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 16 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        style={{ willChange: "transform, opacity" }}
         onClick={(e) => e.stopPropagation()}
         className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
