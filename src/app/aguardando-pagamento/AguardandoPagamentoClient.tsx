@@ -134,19 +134,19 @@ export default function AguardandoPagamentoClient({
       <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Image
                 src="/imobsync-icon-escuro-36.png"
                 alt="Logo ImobSync"
                 width={36}
                 height={36}
-                className="rounded-lg"
+                className="h-6 w-auto sm:h-9 rounded-lg"
               />
               <div>
-                <h1 className="text-lg font-bold tracking-tight">
+                <h1 className="text-sm sm:text-lg font-bold tracking-tight">
                   ImobSync
                 </h1>
-                <p className="text-[11px] text-gray-400 font-medium">Confirmando pagamento</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium">Confirmando pagamento</p>
               </div>
             </div>
             <button
