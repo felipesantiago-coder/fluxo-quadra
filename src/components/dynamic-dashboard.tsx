@@ -278,7 +278,7 @@ function UnitCard({
         </div>
       )}
       {/* Flip container */}
-      <div style={{ perspective: "800px" }}>
+      <div style={{ perspective: "800px", overflow: "hidden" }}>
         <div
           style={{
             transformStyle: "preserve-3d",
@@ -412,10 +412,10 @@ function UnitCard({
               right: 0,
               bottom: 0,
             }}
-            className="bg-white"
+            className="bg-white flex flex-col"
           >
             <div className={`h-1.5 bg-gradient-to-r ${colors.gradient}`} />
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1 min-h-0">
               <div className="text-center space-y-1">
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Alterar Status</p>
                 <p className="text-sm font-bold text-gray-900">{unit.bloco ? unit.bloco + " — " : ""}Unidade {unit.unidade}</p>
