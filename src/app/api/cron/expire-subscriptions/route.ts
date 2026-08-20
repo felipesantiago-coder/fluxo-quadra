@@ -5,15 +5,15 @@ import { timingSafeEqual } from 'crypto';
 /**
  * GET /api/cron/expire-subscriptions
  *
- * Vercel Cron Job — executado uma vez por dia (Hobby plan).
+ * Cron Job externo (cron-job.org) — executado uma vez por dia às 05:00 UTC.
  * Encontra assinaturas ativas cujo data_fim ja passou e as expira.
  * Tambem corrige perfis com subscription_status inconsistente.
  *
- * Segurança: apenas acessível via Vercel Cron (header Authorization)
- * ou ?secret= para testes manuais.
+ * Segurança: acessível via ?secret= (cron-job.org) ou header Authorization.
  */
 export async function GET(request: NextRequest) {
   // Verificação de autorização do cron (timing-safe)
+  // Aceita header Authorization (Vercel Cron legado) ou ?secret= (cron-job.org)
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   const querySecret = request.nextUrl.searchParams.get('secret');

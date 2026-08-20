@@ -6,14 +6,14 @@ import { timingSafeEqual } from 'crypto';
 /**
  * GET /api/cron/reconcile-mp
  *
- * Vercel Cron Job — executado uma vez por dia (Hobby plan).
+ * Cron Job externo (cron-job.org) — executado uma vez por dia às 06:00 UTC.
  * Compara o status das assinaturas locais com o status no Mercado Pago.
  * Detecta:
  *  - Assinaturas locais 'active' mas canceladas/pausadas no MP
  *  - Assinaturas locais 'active' com preapproval que não existe mais no MP
  *  - Assinaturas locais 'active' mas com data_fim ja passou
  *
- * Segurança: apenas acessível via Vercel Cron ou ?secret=.
+ * Segurança: acessível via ?secret= (cron-job.org) ou header Authorization.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
