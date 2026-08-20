@@ -8,6 +8,7 @@ import {
   Clock, CheckCircle2, Loader2, CreditCard,
   RefreshCw, Building2, LogOut, Shield,
 } from 'lucide-react';
+import MobileMenu from '@/components/MobileMenu';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 
@@ -140,21 +141,31 @@ export default function AguardandoPagamentoClient({
                 alt="Logo ImobSync"
                 width={36}
                 height={36}
-                className="h-6 w-auto sm:h-9 rounded-lg"
+                className="h-7 w-auto sm:h-9 rounded-lg"
               />
-              <div>
-                <h1 className="text-sm sm:text-lg font-bold tracking-tight">
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-lg font-bold tracking-tight truncate">
                   ImobSync
                 </h1>
-                <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium">Confirmando pagamento</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium truncate">Confirmando pagamento</p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
-            >
-              Sair
-            </button>
+            {/* Desktop */}
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold transition-colors border border-red-500/20"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sair
+              </button>
+            </div>
+            {/* Mobile menu */}
+            <MobileMenu
+              items={[
+                { label: 'Sair', icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: 'danger' as const },
+              ]}
+            />
           </div>
         </div>
       </header>

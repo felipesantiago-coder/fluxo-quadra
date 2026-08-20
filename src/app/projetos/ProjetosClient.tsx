@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Building2, ArrowRight, LogOut, MapPin, Shield, ShieldAlert, X, ChevronDown, Fingerprint, QrCode, Crown, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import MobileMenu from "@/components/MobileMenu";
 
 type Region = string;
 
@@ -164,15 +165,16 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                 alt="Logo ImobSync"
                 width={36}
                 height={36}
-                className="h-6 w-auto sm:h-9 rounded-lg"
+                className="h-7 w-auto sm:h-9 rounded-lg"
               />
-              <div>
-                <h1 className="text-sm sm:text-lg font-bold tracking-tight">
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-lg font-bold tracking-tight truncate">
                   ImobSync <span className="text-gray-500 font-normal text-xs sm:text-sm">| Empreendimentos</span>
                 </h1>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Desktop actions */}
+            <div className="hidden sm:flex items-center gap-2">
               {isAdminSistema && (
                 <a
                   href="/admin-sistema"
@@ -204,7 +206,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Segurança</span>
+                Segurança
               </a>
               <button
                 onClick={handleLogout}
@@ -214,6 +216,15 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                 Sair
               </button>
             </div>
+            {/* Mobile menu */}
+            <MobileMenu
+              items={[
+                ...(isAdminSistema ? [{ label: "Administração", icon: <Shield className="w-5 h-5" />, href: "/admin-sistema" }] : []),
+                ...(hasActivePlan ? [{ label: "Gerenciar plano", icon: <Crown className="w-5 h-5" />, href: "/assinatura" }] : [{ label: "Planos", icon: <Crown className="w-5 h-5" />, href: "/planos" }]),
+                { label: "Segurança", icon: <Shield className="w-5 h-5" />, href: "/mfa-setup" },
+                { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
+              ]}
+            />
           </div>
         </div>
       </header>

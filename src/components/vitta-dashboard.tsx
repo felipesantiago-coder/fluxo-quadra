@@ -12,8 +12,9 @@ import {
   type VittaUnit,
   vittaUnits as staticUnits,
 } from "@/lib/vitta-data";
-import { Building2, Maximize2, DollarSign, ChevronUp, Filter, X, Check, LogOut, Calculator, BedDouble, Sun, Pencil } from "lucide-react";
+import { Building2, Maximize2, DollarSign, ChevronUp, Filter, X, Check, LogOut, Calculator, BedDouble, Sun, Pencil, ArrowLeft, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import MobileMenu from "@/components/MobileMenu";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
@@ -787,25 +788,26 @@ export default function VittaDashboard({ isAdmin = false, isCoordinator = false,
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-2 sm:gap-3">
-                <img src="/imobsync-icon-escuro-36.png" alt="ImobSync" className="h-6 sm:h-9 w-auto rounded-lg" />
-                <div>
-                  <h1 className="text-sm sm:text-lg font-bold tracking-tight">
+                <img src="/imobsync-icon-escuro-36.png" alt="ImobSync" className="h-7 sm:h-9 w-auto rounded-lg" />
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-lg font-bold tracking-tight truncate">
                     ImobSync
                   </h1>
-                  <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium">Residencial Vitta — Ceilândia</p>
+                  <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium truncate">Residencial Vitta — Ceilândia</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <a href="/projetos" className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
+              {/* Desktop actions */}
+              <div className="hidden sm:flex items-center gap-2">
+                <a href="/projetos" className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                   Projetos
                 </a>
                 {isCoordinator && isAdmin && (
                   <button onClick={() => setUpdateMode(!updateMode)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${updateMode ? "bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"}`} title={updateMode ? "Desativar modo de atualização" : "Ativar modo de atualização"}>
                     <Pencil className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{updateMode ? "Atualização ON" : "Modo Atualização"}</span>
+                    <span>{updateMode ? "Atualização ON" : "Modo Atualização"}</span>
                   </button>)}
-                <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Atualização em tempo real
                 </div>
@@ -814,6 +816,21 @@ export default function VittaDashboard({ isAdmin = false, isCoordinator = false,
                   Sair
                 </button>
               </div>
+              {/* Mobile menu */}
+              <MobileMenu
+                items={[
+                  { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
+                  ...(isCoordinator && isAdmin ? [{
+                    label: updateMode ? "Desativar Atualização" : "Modo Atualização",
+                    icon: <Pencil className="w-5 h-5" />,
+                    onClick: () => setUpdateMode(!updateMode),
+                    variant: "warning" as const,
+                    active: updateMode,
+                  }] : []),
+                  { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
+                  { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
+                ]}
+              />
             </div>
           </div>
         </header>
