@@ -136,7 +136,7 @@ export default function AguardandoPagamentoClient({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Image
-                src="/imobsync-icon-claro-36.png"
+                src="/imobsync-icon-escuro-36.png"
                 alt="Logo ImobSync"
                 width={36}
                 height={36}
