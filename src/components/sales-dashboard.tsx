@@ -495,7 +495,7 @@ function ExpandedCard({ unit, onClose }: { unit: Unit; onClose: () => void }) {
             onClick={(e) => {
               if (!unit.valorVenda) { e.preventDefault(); return; }
             }}
-            className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valorVenda ? "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+            className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${unit.valorVenda ? "bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
           >
             <Calculator className="w-4 h-4" />
             Simular Financiamento
@@ -537,7 +537,7 @@ function FloorSection({
       {/* Floor header */}
       <motion.button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg hover:shadow-xl transition-shadow group"
+        className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r bg-[#0D1B2A] text-white shadow-lg hover:shadow-xl transition-shadow group"
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.995 }}
       >
@@ -842,14 +842,14 @@ export default function SalesDashboard({ isAdmin = false, isCoordinator = false,
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header — oculto quando renderizado dentro do admin (usa o banner admin no lugar) */}
       {!hideHeader && (
-        <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+        <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <img src="/qd-logo.png" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
+                <img src="/imobsync-icon-claro-36.png" alt="ImobSync" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Quadra Desk
+                    ImobSync
                   </h1>
                   <p className="text-[11px] text-gray-400 font-medium">Quattre Istambul</p>
                 </div>
@@ -1091,7 +1091,7 @@ export default function SalesDashboard({ isAdmin = false, isCoordinator = false,
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Quadra Desk</span>
+            <span className="font-semibold text-gray-600">ImobSync</span>
           </div>
         </div>
       </footer>

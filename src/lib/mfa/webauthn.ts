@@ -23,7 +23,7 @@ export function getRPConfigFromRequest(request: Request) {
       const url = new URL(originHeader);
       return {
         rpID: url.hostname === "localhost" ? "localhost" : url.hostname,
-        rpName: process.env.WEBAUTHN_RP_NAME || "Quadra Desk",
+        rpName: process.env.WEBAUTHN_RP_NAME || "ImobSync",
         origin: originHeader,
       };
     } catch {
@@ -52,7 +52,7 @@ export function getRPConfigFromRequest(request: Request) {
 
   return {
     rpID: hostname === "localhost" ? "localhost" : hostname,
-    rpName: process.env.WEBAUTHN_RP_NAME || "Quadra Desk",
+    rpName: process.env.WEBAUTHN_RP_NAME || "ImobSync",
     origin,
   };
 }
@@ -65,7 +65,7 @@ export function getRPConfig() {
       const url = new URL(origin);
       return {
         rpID: process.env.WEBAUTHN_RP_ID || url.hostname,
-        rpName: process.env.WEBAUTHN_RP_NAME || "Quadra Desk",
+        rpName: process.env.WEBAUTHN_RP_NAME || "ImobSync",
         origin: process.env.WEBAUTHN_ORIGIN || origin,
       };
     } catch {
@@ -74,7 +74,7 @@ export function getRPConfig() {
   }
   return {
     rpID: "localhost",
-    rpName: "Quadra Desk",
+    rpName: "ImobSync",
     origin: "http://localhost:3000",
   };
 }

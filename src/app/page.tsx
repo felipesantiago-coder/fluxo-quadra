@@ -228,8 +228,8 @@ function LoginForm() {
             {/* Logo */}
             <div className="mb-5">
               <img
-                src="/quadra-desk-logo.png"
-                alt="Quadra Desk"
+                src="/imobsync-logo-claro.png"
+                alt="ImobSync"
                 className="w-full max-w-[200px] sm:max-w-[240px] h-auto"
               />
             </div>
@@ -264,7 +264,7 @@ function LoginForm() {
                     placeholder="seu@email.com"
                     required
                     autoComplete="username"
-                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                    className="w-full h-12 pl-11 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00C7F0]/30 focus:border-[#00C7F0]/50 focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -282,7 +282,7 @@ function LoginForm() {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
-                    className="w-full h-12 pl-11 pr-11 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300 focus:bg-white transition-all"
+                    className="w-full h-12 pl-11 pr-11 rounded-xl border border-slate-200 bg-slate-50/50 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00C7F0]/30 focus:border-[#00C7F0]/50 focus:bg-white transition-all"
                   />
                   <button
                     type="button"
@@ -298,7 +298,7 @@ function LoginForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-12 rounded-xl bg-[#0D1B2A] text-white font-semibold text-sm hover:bg-[#0D1B2A]/90 active:scale-[0.98] transition-all shadow-lg shadow-[#0D1B2A]/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -345,7 +345,7 @@ function LoginForm() {
 
       {/* ── Right Panel: Hero / Features ── */}
       <div className="hidden lg:flex lg:flex-1 flex-col justify-between relative overflow-hidden"
-        style={{ backgroundColor: '#1a2332' }}
+        style={{ backgroundColor: '#0D1B2A' }}
       >
         {/* Background image with overlay */}
         <div
@@ -354,8 +354,8 @@ function LoginForm() {
             backgroundImage: "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2670&auto=format&fit=crop')",
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-900/95" />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0D1B2A]/80 via-[#0D1B2A]/60 to-[#0D1B2A]/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0D1B2A]/40 to-transparent" />
 
         {/* Top: subtle branding */}
         <div className="relative z-10 p-8 flex items-center gap-2">

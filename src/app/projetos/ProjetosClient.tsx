@@ -155,20 +155,20 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
               <Image
-                src="/qd-logo.png"
-                alt="Logo Quadra Desk"
+                src="/imobsync-icon-claro-36.png"
+                alt="Logo ImobSync"
                 width={36}
                 height={36}
                 className="rounded-lg"
               />
               <div>
                 <h1 className="text-lg font-bold tracking-tight">
-                  Quadra Desk <span className="text-gray-500 font-normal text-sm">| Empreendimentos</span>
+                  ImobSync <span className="text-gray-500 font-normal text-sm">| Empreendimentos</span>
                 </h1>
               </div>
             </div>
@@ -427,7 +427,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
                           <div className="absolute bottom-3 left-3">
                             <span className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm bg-white/15 text-white border border-white/20">
-                              Quadra Desk
+                              ImobSync
                             </span>
                           </div>
                           <div className="absolute top-3 right-3">
@@ -495,7 +495,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Quadra Desk</span>
+            <span className="font-semibold text-gray-600">ImobSync</span>
             <span>|</span>
             <span>Empreendimentos</span>
           </div>

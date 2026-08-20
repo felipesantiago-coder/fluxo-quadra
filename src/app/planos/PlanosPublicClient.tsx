@@ -208,7 +208,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
   return (
     <div className="h-screen lg:h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg shrink-0">
+      <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg shrink-0">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-12 lg:h-14">
             <div className="flex items-center gap-3">
@@ -217,7 +217,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
               </div>
               <div>
                 <h1 className="text-base lg:text-lg font-bold tracking-tight">
-                  Quadra Desk
+                  ImobSync
                 </h1>
                 <p className="text-[10px] lg:text-[11px] text-gray-400 font-medium">Planos de Assinatura</p>
               </div>
@@ -380,7 +380,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
                           className={`w-full h-9 lg:h-10 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                             isSelectedVisual
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
-                              : 'bg-gray-900 hover:bg-gray-800 text-white'
+                              : 'bg-[#0D1B2A] hover:bg-[#0D1B2A]/90 text-white'
                           }`}
                         >
                           <CreditCard className="w-4 h-4 mr-2" />
@@ -437,7 +437,7 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-2">
           <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
             <Crown className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Quadra Desk</span>
+            <span className="font-semibold text-gray-600">ImobSync</span>
             <span>-</span>
             <span>Planos de Assinatura</span>
           </div>

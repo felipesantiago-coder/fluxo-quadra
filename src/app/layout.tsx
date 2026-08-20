@@ -20,11 +20,11 @@ const siteUrl =
 
 export const metadata: Metadata = {
   ...(siteUrl && { metadataBase: new URL(siteUrl) }),
-  title: "Quadra Desk",
+  title: "ImobSync",
   description:
-    "Quadra Desk: gestão de empreendimentos imobiliários. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
+    "ImobSync: plataforma de gestão e sincronização de informações comerciais para empreendimentos na planta. Explore todas as unidades disponíveis por empreendimento, andar, área e valor.",
   keywords: [
-    "quadra desk",
+    "ImobSync",
     "empreendimentos imobiliários",
     "espelho de vendas",
     "imóveis",
@@ -32,29 +32,34 @@ export const metadata: Metadata = {
     "unidades",
     "Quattre",
     "Villa Bianco",
+    "sincronização comercial",
   ],
   icons: {
     icon: [
-      { url: "/qd-logo.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/imobsync-icon-claro-64.png", sizes: "64x64", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   openGraph: {
-    title: "Quadra Desk",
-    description: "Gestão inteligente de empreendimentos imobiliários.",
+    title: "ImobSync",
+    description: "Plataforma de gestão e sincronização de informações comerciais para empreendimentos na planta.",
     type: "website",
     images: [
       {
         url: "/og-preview.png",
         width: 1200,
         height: 630,
-        alt: "Quadra Desk",
+        alt: "ImobSync",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Quadra Desk",
-    description: "Gestão inteligente de empreendimentos imobiliários.",
+    title: "ImobSync",
+    description: "Plataforma de gestão e sincronização de informações comerciais para empreendimentos na planta.",
     images: ["/og-preview.png"],
   },
 };

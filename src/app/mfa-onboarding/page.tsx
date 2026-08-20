@@ -169,7 +169,7 @@ export default function MfaOnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -198,7 +198,7 @@ export default function MfaOnboardingPage() {
         <div className="max-w-lg mx-auto">
           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-gray-900 to-gray-600 rounded-full transition-all duration-700 ease-out"
+              className="h-full bg-[#0D1B2A] to-gray-600 rounded-full transition-all duration-700 ease-out"
               style={{ width: `${getProgress()}%` }}
             />
           </div>
@@ -256,7 +256,7 @@ export default function MfaOnboardingPage() {
                 <button
                   onClick={startTotpSetup}
                   disabled={totpLoading}
-                  className="mt-6 w-full h-12 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="mt-6 w-full h-12 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {totpLoading ? (
                     <>
@@ -309,7 +309,7 @@ export default function MfaOnboardingPage() {
 
                 <button
                   onClick={() => setStep("totp-verify")}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   Escanei o QR Code, continuar
                   <ArrowRight className="w-4 h-4" />
@@ -363,7 +363,7 @@ export default function MfaOnboardingPage() {
                 <button
                   onClick={verifyTotp}
                   disabled={totpCode.length !== 6 || totpLoading}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {totpLoading ? (
                     <>
@@ -405,7 +405,7 @@ export default function MfaOnboardingPage() {
                 </p>
                 <button
                   onClick={() => setStep("biometry-offer")}
-                  className="mt-6 w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="mt-6 w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   Continuar
                   <ArrowRight className="w-4 h-4" />
@@ -452,7 +452,7 @@ export default function MfaOnboardingPage() {
                 <button
                   onClick={registerPasskey}
                   disabled={webauthnLoading}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   {webauthnLoading ? (
                     <>
@@ -506,7 +506,7 @@ export default function MfaOnboardingPage() {
                 </div>
                 <button
                   onClick={completeOnboarding}
-                  className="mt-6 w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg"
+                  className="mt-6 w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg"
                 >
                   Acessar o sistema
                 </button>

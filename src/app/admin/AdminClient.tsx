@@ -267,7 +267,7 @@ export default function AdminClient() {
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm ${
                 changedUnits.size === 0 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : saveSuccess ? "bg-emerald-600 text-white"
-                : "bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600"
+                : "bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600"
               }`}
             >
               {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saveSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
@@ -280,7 +280,7 @@ export default function AdminClient() {
         <div className="space-y-6">
           {groupedByFloor.map(({ floor, units: floorUnits }) => (
             <div key={floor} className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-md">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r bg-[#0D1B2A] text-white shadow-md">
                 <Building2 className="w-5 h-5" />
                 <span className="font-bold">{floor}º Andar</span>
                 <span className="text-white/60 text-sm">— {floorUnits.length} unidades</span>

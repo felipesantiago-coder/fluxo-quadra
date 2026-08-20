@@ -181,7 +181,7 @@ function CuponsTab({ addToast, planosAdmin }: CuponsTabProps) {
             {loading ? "Carregando..." : `${cupons.length} cupom${cupons.length !== 1 ? "s" : ""} cadastrado${cupons.length !== 1 ? "s" : ""}`}
           </p>
         </div>
-        <Button onClick={handleOpenNew} className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold">
+        <Button onClick={handleOpenNew} className="flex items-center gap-2 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold">
           <Plus className="w-4 h-4" /> Novo cupom
         </Button>
       </div>
@@ -342,7 +342,7 @@ function CuponsTab({ addToast, planosAdmin }: CuponsTabProps) {
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowDialog(false)} className="flex-1 rounded-xl" disabled={saving}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving || !form.codigo.trim() || !form.valor_desconto} className="flex-1 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600">
+            <Button onClick={handleSave} disabled={saving || !form.codigo.trim() || !form.valor_desconto} className="flex-1 rounded-xl bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : editingCupom ? "Salvar alterações" : "Criar cupom"}
             </Button>
           </DialogFooter>

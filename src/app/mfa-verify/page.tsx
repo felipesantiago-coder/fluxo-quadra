@@ -140,7 +140,7 @@ function MfaVerifyContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center h-16 gap-3">
             <div className="w-9 h-9 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
@@ -158,7 +158,7 @@ function MfaVerifyContent() {
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-center">
+            <div className="bg-gradient-to-r bg-[#0D1B2A] p-6 text-center">
               <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                 {method === "webauthn" ? (
                   <Fingerprint className="w-8 h-8 text-white/80" />
@@ -211,7 +211,7 @@ function MfaVerifyContent() {
                   <button
                     onClick={verifyTotp}
                     disabled={totpCode.length !== 6 || verifying}
-                    className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {verifying ? "Verificando..." : "Verificar"}
                   </button>

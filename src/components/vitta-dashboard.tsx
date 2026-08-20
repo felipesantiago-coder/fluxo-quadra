@@ -429,7 +429,7 @@ function ExpandedCard({ unit, onClose }: { unit: VittaUnit; onClose: () => void 
             href={`/simulador-vitta?valor=${unit.valorVenda}&unidade=${unit.bloco}-${unit.unidade}&area=${unit.areaStr}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-lg hover:shadow-xl"
           >
             <Calculator className="w-4 h-4" />
             Simular Financiamento
@@ -474,7 +474,7 @@ function FloorSection({
     <motion.div layout className="space-y-4">
       <motion.button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-900 to-gray-800 text-white shadow-lg hover:shadow-xl transition-shadow group"
+        className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r bg-[#0D1B2A] text-white shadow-lg hover:shadow-xl transition-shadow group"
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.995 }}
       >
@@ -783,14 +783,14 @@ export default function VittaDashboard({ isAdmin = false, isCoordinator = false,
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {!hideHeader && (
-        <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+        <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
           <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
-                <img src="/qd-logo.png" alt="Quadra Desk" className="h-9 w-auto rounded-lg" />
+                <img src="/imobsync-icon-claro-36.png" alt="ImobSync" className="h-9 w-auto rounded-lg" />
                 <div>
                   <h1 className="text-lg font-bold tracking-tight">
-                    Quadra Desk
+                    ImobSync
                   </h1>
                   <p className="text-[11px] text-gray-400 font-medium">Residencial Vitta — Ceilândia</p>
                 </div>
@@ -944,7 +944,7 @@ export default function VittaDashboard({ isAdmin = false, isCoordinator = false,
 
       <footer className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-4 mt-auto">
         <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Quadra Desk • Residencial Vitta</span>
+          <span>ImobSync • Residencial Vitta</span>
           <span>{units.length} unidades • {units.filter((u) => u.status === "disponivel").length} disponíve{units.filter((u) => u.status === "disponivel").length !== 1 ? "is" : "l"}</span>
         </div>
       </footer>

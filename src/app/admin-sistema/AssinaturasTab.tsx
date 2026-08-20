@@ -367,7 +367,7 @@ function AssinaturasTab({
               <button onClick={onFetchPlanos} className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
                 <RefreshCw className="w-4 h-4" />
               </button>
-              <Button onClick={openCreatePlano} className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-9 px-4 text-xs font-semibold">
+              <Button onClick={openCreatePlano} className="flex items-center gap-2 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-9 px-4 text-xs font-semibold">
                 <Plus className="w-4 h-4" /> Novo Plano
               </Button>
             </div>

@@ -528,7 +528,7 @@ export default function AdminSistemaClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
         <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -649,7 +649,7 @@ export default function AdminSistemaClient() {
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}>
             <Button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
+              className="flex items-center gap-2 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
             >
               <Plus className="w-4 h-4" />
               Novo Empreendimento
@@ -826,7 +826,7 @@ export default function AdminSistemaClient() {
               </div>
               <Button
                 onClick={() => { setShowCreateUserModal(true); setCreatedUserPassword(""); setCreateUserForm({ email: "", displayName: "", role: "coordenador" }); }}
-                className="flex items-center gap-2 bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
+                className="flex items-center gap-2 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
               >
                 <UserPlus className="w-4 h-4" />
                 Novo Usuário
@@ -1001,7 +1001,7 @@ export default function AdminSistemaClient() {
       <footer className="mt-auto border-t border-gray-200 bg-white/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-xs text-gray-400">
-            Administração do Sistema • Quadra Desk
+            Administração do Sistema • ImobSync
           </p>
         </div>
       </footer>
@@ -1055,7 +1055,7 @@ export default function AdminSistemaClient() {
               </div>
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
                 <button onClick={() => setShowCreateModal(false)} disabled={creating} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50">Cancelar</button>
-                <button onClick={handleCreate} disabled={creating || !createForm.nome.trim() || !createForm.regiao.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                <button onClick={handleCreate} disabled={creating || !createForm.nome.trim() || !createForm.regiao.trim()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                   {creating ? (<><Loader2 className="w-4 h-4 animate-spin" /> Criando...</>) : (<><Check className="w-4 h-4" /> Criar Empreendimento</>)}
                 </button>
               </div>
@@ -1246,7 +1246,7 @@ export default function AdminSistemaClient() {
                 {createdUserPassword ? (
                   <button
                     onClick={() => { setShowCreateUserModal(false); fetchUsers(); }}
-                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md"
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md"
                   >
                     Concluir
                   </button>
@@ -1290,7 +1290,7 @@ export default function AdminSistemaClient() {
                         }
                       }}
                       disabled={creatingUser || !createUserForm.email.includes("@")}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-gray-900 to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {creatingUser ? <><Loader2 className="w-4 h-4 animate-spin" /> Criando...</> : <><Check className="w-4 h-4" /> Criar Usuário</>}
                     </button>

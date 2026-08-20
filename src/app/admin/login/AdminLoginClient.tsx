@@ -58,7 +58,7 @@ export default function AdminLoginClient() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900 tracking-tight">
-                Quadra Desk
+                ImobSync
               </h1>
               <p className="text-[11px] text-gray-400 font-medium">Login Administrativo</p>
             </div>
@@ -70,7 +70,7 @@ export default function AdminLoginClient() {
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-gray-900 to-gray-800 p-6 text-center">
+            <div className="bg-gradient-to-r bg-[#0D1B2A] p-6 text-center">
               <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                 <Lock className="w-8 h-8 text-white/80" />
               </div>
@@ -129,7 +129,7 @@ export default function AdminLoginClient() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Entrando..." : "Entrar"}
               </button>
@@ -138,7 +138,7 @@ export default function AdminLoginClient() {
 
           <div className="text-center mt-4">
             <a href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-              ← Voltar ao Quadra Desk
+              ← Voltar ao ImobSync
             </a>
           </div>
         </div>

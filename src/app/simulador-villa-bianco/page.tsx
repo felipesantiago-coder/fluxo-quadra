@@ -621,9 +621,9 @@ function SimulatorContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <img src="/qd-logo.png" alt="Quadra Desk" className="h-10 w-auto rounded-xl" />
+              <img src="/imobsync-icon-claro-36.png" alt="ImobSync" className="h-10 w-auto rounded-xl" />
               <div>
-                <h1 className="text-lg font-bold text-slate-900 tracking-tight">Quadra Desk</h1>
+                <h1 className="text-lg font-bold text-slate-900 tracking-tight">ImobSync</h1>
                 <p className="text-xs text-slate-500 font-medium hidden sm:block">Simulador Villa Bianco</p>
               </div>
             </div>
@@ -803,7 +803,7 @@ function SimulatorContent() {
           {/* ── Right Column ── */}
           <div className="space-y-6 lg:col-span-2 lg:sticky lg:top-24 self-start">
             {/* Summary Card */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl shadow-lg p-6 text-white">
+            <div className="bg-gradient-to-br from-[#0D1B2A] to-[#0D1B2A] rounded-2xl shadow-lg p-6 text-white">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-bold text-white/90 text-sm uppercase tracking-wider">Resumo do Financiamento</h4>
                 <span className="text-xs bg-white/10 px-2 py-1 rounded-full">Entrega: Out/{DELIVERY_YEAR}</span>
@@ -1002,7 +1002,7 @@ function SimulatorContent() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-slate-400">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4" />
-              <span className="font-semibold text-slate-600">Quadra Desk</span>
+              <span className="font-semibold text-slate-600">ImobSync</span>
             </div>
             <span className="hidden sm:inline">•</span>
             <span>Simulador Villa Bianco</span>

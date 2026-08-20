@@ -24,7 +24,7 @@ export default function AdminVillaBiancoClient() {
   return (
     <div className="relative min-h-screen">
       {/* Banner fixo admin no topo */}
-      <div className="fixed top-0 left-0 right-0 z-[200] flex items-center justify-between px-6 py-3 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-2xl">
+      <div className="fixed top-0 left-0 right-0 z-[200] flex items-center justify-between px-6 py-3 bg-[#0D1B2A] text-white shadow-2xl">
         {/* Logo + identificação */}
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 shadow-md">
@@ -32,7 +32,7 @@ export default function AdminVillaBiancoClient() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Quadra Desk</span>
+              <span className="text-sm font-bold tracking-tight">ImobSync</span>
               <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 Admin
               </span>

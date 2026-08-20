@@ -113,7 +113,7 @@ export default function PlanosClient({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="sticky top-0 z-50 bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -337,7 +337,7 @@ export default function PlanosClient({
                           className={`w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
                             isSelectedVisual
                               ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg'
-                              : 'bg-gray-900 hover:bg-gray-800 text-white'
+                              : 'bg-[#0D1B2A] hover:bg-[#0D1B2A]/90 text-white'
                           }`}
                         >
                           {isLoading ? (
@@ -397,7 +397,7 @@ export default function PlanosClient({
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Crown className="w-4 h-4" />
-            <span className="font-semibold text-gray-600">Quadra Desk</span>
+            <span className="font-semibold text-gray-600">ImobSync</span>
             <span>•</span>
             <span>Planos de Assinatura</span>
           </div>

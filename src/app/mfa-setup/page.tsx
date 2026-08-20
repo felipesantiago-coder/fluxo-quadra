@@ -226,7 +226,7 @@ export default function MfaSetupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white shadow-lg">
+      <header className="bg-[#0D1B2A] text-white shadow-lg">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10">
           <div className="flex items-center h-16 gap-3">
             <button onClick={() => router.back()} className="hover:bg-white/10 rounded-lg p-2 -ml-2 transition-colors">
@@ -385,7 +385,7 @@ export default function MfaSetupPage() {
                         <button
                           onClick={startTotpSetup}
                           disabled={totpLoading}
-                          className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50"
+                          className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50"
                         >
                           {totpLoading ? "Gerando..." : "Configurar App Autenticador"}
                         </button>
@@ -435,7 +435,7 @@ export default function MfaSetupPage() {
                       <button
                         onClick={verifyTotpSetup}
                         disabled={totpCode.length !== 6 || totpLoading}
-                        className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50"
+                        className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg disabled:opacity-50"
                       >
                         {totpLoading ? "Verificando..." : "Confirmar e Ativar"}
                       </button>
@@ -479,7 +479,7 @@ export default function MfaSetupPage() {
                   <button
                     onClick={registerPasskey}
                     disabled={webauthnLoading}
-                    className="w-full h-11 rounded-xl bg-gradient-to-r from-gray-900 to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full h-11 rounded-xl bg-[#0D1B2A] to-gray-700 text-white font-semibold text-sm hover:from-gray-800 hover:to-gray-600 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {webauthnLoading ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Registrando...</>
