@@ -117,9 +117,11 @@
   --sidebar-ring: oklch(0.775 0.155 200.0);
 }
 
+/* Border/outline reset — scoped to form elements only to avoid perf cost on large DOM trees */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  button, [role="button"], input, select, textarea, [role="textbox"] {
+    border-color: var(--border);
+    outline-color: oklch(0.775 0.155 200.0 / 50%);
   }
   body {
     @apply bg-background text-foreground;

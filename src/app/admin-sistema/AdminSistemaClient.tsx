@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   Building2,
   Plus,
@@ -26,9 +26,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import AssinaturasTab from "./AssinaturasTab";
-import CuponsTab from "./CuponsTab";
-import CoordenadorEmpreendimentosModal from "@/components/CoordenadorEmpreendimentosModal";
+
+// Code-split heavy tab components — only loaded when the tab is active
+const AssinaturasTab = dynamic(() => import("./AssinaturasTab"), { ssr: false });
+const CuponsTab = dynamic(() => import("./CuponsTab"), { ssr: false });
+const CoordenadorEmpreendimentosModal = dynamic(() => import("@/components/CoordenadorEmpreendimentosModal"), { ssr: false });
 
 type AdminTab = "empreendimentos" | "usuarios" | "assinaturas" | "cupons";
 
@@ -65,7 +67,8 @@ interface Toast {
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function AdminSistemaClient() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabaseRef = React.useRef(createClient());
+  const supabase = supabaseRef.current;
 
   // Data
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);

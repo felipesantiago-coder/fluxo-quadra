@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { memo, useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -73,7 +73,7 @@ function getNextStatus(current: MomentUnit["status"]): MomentUnit["status"] {
 const statusTypes = ["disponivel", "reservado", "vendido"] as const;
 
 // ─── Unit Card ───
-function UnitCard({
+const UnitCard = memo(function UnitCard({
   unit,
   onSelect,
   isBackground,
@@ -156,7 +156,6 @@ function UnitCard({
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{
         opacity: isBackground ? 0.25 : 1,
@@ -164,7 +163,6 @@ function UnitCard({
       }}
       exit={{ opacity: 0, y: -20 }}
       transition={{
-        layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
       whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
@@ -173,13 +171,11 @@ function UnitCard({
       className={`
         relative cursor-pointer rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
-        transition-all duration-300 ease-out
         border-gray-100
         ${isSelected ? "ring-2 ring-blue-500 border-blue-400 shadow-blue-100" : ""}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
-        filter: isBackground ? "blur(2px)" : "none",
         borderColor: isSelected ? undefined : "rgb(243 244 246)",
       }}
     >
@@ -351,10 +347,10 @@ function UnitCard({
       </div>
     </motion.div>
   );
-}
+});
 
 // ─── Expanded Centered Card ───
-function ExpandedCard({ unit, onClose }: { unit: MomentUnit; onClose: () => void }) {
+const ExpandedCard = memo(function ExpandedCard({ unit, onClose }: { unit: MomentUnit; onClose: () => void }) {
   const colors = typeColors[unit.tipologia];
   const status = statusLabels[unit.status];
 
@@ -373,7 +369,7 @@ function ExpandedCard({ unit, onClose }: { unit: MomentUnit; onClose: () => void
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="absolute inset-0 bg-black/50 backdrop-blur-md"
+        className="absolute inset-0 bg-black/50"
       />
 
       {/* Card */}
@@ -511,10 +507,10 @@ function ExpandedCard({ unit, onClose }: { unit: MomentUnit; onClose: () => void
       </motion.div>
     </motion.div>
   );
-}
+});
 
 // ─── Floor Section ───
-function FloorSection({
+const FloorSection = memo(function FloorSection({
   floor,
   floorUnits,
   selectedUnit,
@@ -554,7 +550,7 @@ function FloorSection({
         whileTap={{ scale: 0.995 }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm">
+          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
             <Building2 className="w-5 h-5" />
           </div>
           <div className="text-left">
@@ -611,10 +607,10 @@ function FloorSection({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
 
 // ─── Legend ───
-function Legend() {
+const Legend = memo(function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-white/80 shadow-sm border border-gray-100">
       <span className="text-xs font-semibold text-gray-500 mr-1">Tipologias:</span>
@@ -630,10 +626,10 @@ function Legend() {
       })}
     </div>
   );
-}
+});
 
 // ─── Batch Action Bar ───
-function BatchActionBar({
+const BatchActionBar = memo(function BatchActionBar({
   count,
   onApplyStatus,
   onClear,
@@ -664,7 +660,7 @@ function BatchActionBar({
       <button onClick={onClear} className="ml-1 px-2 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-colors"><X className="w-4 h-4" /></button>
     </motion.div>
   );
-}
+});
 
 // ─── Main Dashboard ───
 export default function MomentDashboard({ isAdmin = false, isCoordinator = false, hideHeader = false }: { isAdmin?: boolean; isCoordinator?: boolean; hideHeader?: boolean }) {
@@ -808,6 +804,8 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
     });
   }, []);
 
+  const getFloorToggle = useCallback((floor: number) => () => toggleFloor(floor), [toggleFloor]);
+
   const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push("/");
@@ -815,6 +813,19 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
   }, [router]);
 
   const hasActiveFilters = filterAndar !== "all" || filterTipologia !== "all" || filterVagas !== "all" || filterSol !== "all" || filterStatus !== "all" || sortBy !== "andar";
+
+  const mobileMenuItems = useMemo(() => [
+    { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
+    ...(isCoordinator && isAdmin ? [{
+      label: updateMode ? "Desativar Atualização" : "Modo Atualização",
+      icon: <Pencil className="w-5 h-5" />,
+      onClick: () => setUpdateMode(!updateMode),
+      variant: "warning" as const,
+      active: updateMode,
+    }] : []),
+    { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
+    { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
+  ], [isCoordinator, isAdmin, updateMode, handleLogout]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -860,18 +871,7 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
               </div>
               {/* Mobile menu */}
               <MobileMenu
-                items={[
-                  { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
-                  ...(isCoordinator && isAdmin ? [{
-                    label: updateMode ? "Desativar Atualização" : "Modo Atualização",
-                    icon: <Pencil className="w-5 h-5" />,
-                    onClick: () => setUpdateMode(!updateMode),
-                    variant: "warning" as const,
-                    active: updateMode,
-                  }] : []),
-                  { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
-                  { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
-                ]}
+                items={mobileMenuItems}
               />
             </div>
           </div>
@@ -1020,7 +1020,7 @@ export default function MomentDashboard({ isAdmin = false, isCoordinator = false
                   selectedUnit={selectedUnit}
                   onSelectUnit={handleSelectUnit}
                   isCollapsed={collapsedFloors.has(floor)}
-                  onToggle={() => toggleFloor(floor)}
+                  onToggle={getFloorToggle(floor)}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
                   updateMode={updateMode}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -116,15 +116,15 @@ export default function AdminClient() {
     return () => { supabase.removeChannel(channel); };
   }, [router, fetchUnits]);
 
-  const handleStatusChange = (unidade: number, newStatus: string) => {
+  const handleStatusChange = useCallback((unidade: number, newStatus: string) => {
     setUnits((prev) =>
       prev.map((u) => u.unidade === unidade ? { ...u, status: newStatus as DBUnit["status"] } : u)
     );
     setChangedUnits((prev) => { const n = new Map(prev); n.set(unidade, newStatus); return n; });
     setSaveSuccess(false);
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (changedUnits.size === 0) return;
     setSaving(true);
     try {
@@ -147,30 +147,32 @@ export default function AdminClient() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [changedUnits]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push("/admin/login");
     router.refresh();
-  };
+  }, [router]);
 
   const floors = [1, 2, 3, 4, 5, 6];
-  const filteredUnits = units.filter((u) => {
+
+  const filteredUnits = useMemo(() => units.filter((u) => {
     if (filterFloor !== "all" && u.andar !== filterFloor) return false;
     if (filterStatus !== "all" && u.status !== filterStatus) return false;
     return true;
-  });
-  const groupedByFloor = floors
-    .map((f) => ({ floor: f, units: filteredUnits.filter((u) => u.andar === f).sort((a, b) => a.unidade - b.unidade) }))
-    .filter((g) => g.units.length > 0);
+  }), [units, filterFloor, filterStatus]);
 
-  const stats = {
+  const groupedByFloor = useMemo(() => floors
+    .map((f) => ({ floor: f, units: filteredUnits.filter((u) => u.andar === f).sort((a, b) => a.unidade - b.unidade) }))
+    .filter((g) => g.units.length > 0), [filteredUnits]);
+
+  const stats = useMemo(() => ({
     total: units.length,
     disponivel: units.filter((u) => u.status === "disponivel").length,
     reservado: units.filter((u) => u.status === "reservado").length,
     vendido: units.filter((u) => u.status === "vendido").length,
-  };
+  }), [units]);
 
   if (loading) {
     return (
@@ -186,7 +188,7 @@ export default function AdminClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/95 border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -338,7 +340,7 @@ export default function AdminClient() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+      <footer className="border-t border-gray-200 bg-white/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <p className="text-center text-xs text-gray-400">Quattre Istambul — Painel Administrativo {lastSync && `• Sincronizado às ${lastSync}`}</p>
         </div>

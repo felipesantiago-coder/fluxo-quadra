@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -139,8 +139,8 @@ function pricePerSqm(valor: number | null, area: number | null): string | null {
   );
 }
 
-// ─── Unit Card ───
-function UnitCard({
+// ─── Unit Card (memoized — biggest perf win on mobile) ───
+const UnitCard = memo(function UnitCard({
   unit,
   onSelect,
   isBackground,
@@ -247,7 +247,6 @@ function UnitCard({
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{
         opacity: isBackground ? 0.25 : 1,
@@ -255,7 +254,6 @@ function UnitCard({
       }}
       exit={{ opacity: 0, y: -20 }}
       transition={{
-        layout: { type: "spring", stiffness: 300, damping: 30 },
         opacity: { duration: 0.3 },
       }}
       whileHover={!isBackground && !updateMode ? { y: -6, scale: 1.03 } : {}}
@@ -264,13 +262,11 @@ function UnitCard({
       className={`
         relative rounded-xl border-2 overflow-visible
         bg-white shadow-md hover:shadow-xl
-        transition-all duration-300 ease-out
         border-gray-100
         ${isSelected ? "ring-2 ring-blue-500 border-blue-400 shadow-blue-100" : ""}
         ${isBackground ? "pointer-events-none" : ""}
       `}
       style={{
-        filter: isBackground ? "blur(2px)" : "none",
         borderColor: isSelected ? undefined : "rgb(243 244 246)",
       }}
     >
@@ -467,10 +463,10 @@ function UnitCard({
       </div>
     </motion.div>
   );
-}
+});
 
-// ─── Expanded Centered Card Modal ───
-function ExpandedCard({
+// ─── Expanded Centered Card Modal (memoized) ───
+const ExpandedCard = memo(function ExpandedCard({
   unit,
   onClose,
   empreendimentoNome,
@@ -509,7 +505,7 @@ function ExpandedCard({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="absolute inset-0 bg-black/50 backdrop-blur-md"
+        className="absolute inset-0 bg-black/50"
       />
 
       {/* Card */}
@@ -728,10 +724,10 @@ function ExpandedCard({
       </motion.div>
     </motion.div>
   );
-}
+});
 
-// ─── Floor Section (collapsible) ───
-function FloorSection({
+// ─── Floor Section (collapsible, memoized) ───
+const FloorSection = memo(function FloorSection({
   floor,
   floorLabel,
   floorUnits,
@@ -842,10 +838,10 @@ function FloorSection({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
 
-// ─── Tipologia Legend ───
-function TipologiaLegend({
+// ─── Tipologia Legend (memoized) ───
+const TipologiaLegend = memo(function TipologiaLegend({
   tipologias,
 }: {
   tipologias: string[];
@@ -871,7 +867,7 @@ function TipologiaLegend({
       })}
     </div>
   );
-}
+});
 
 // ─── Loading Skeleton ───
 function LoadingSkeleton() {
@@ -928,8 +924,8 @@ function LoadingSkeleton() {
   );
 }
 
-// ─── Batch Action Bar ───
-function BatchActionBar({
+// ─── Batch Action Bar (memoized) ───
+const BatchActionBar = memo(function BatchActionBar({
   count,
   onApplyStatus,
   onClear,
@@ -986,7 +982,7 @@ function BatchActionBar({
       </button>
     </motion.div>
   );
-}
+});
 
 // ─── Main Dynamic Dashboard ───
 export default function DynamicDashboard({
@@ -1285,6 +1281,10 @@ export default function DynamicDashboard({
     });
   }, []);
 
+  // Stable onToggle factory — returns same reference pattern via useCallback with floor closure
+  // Used in render; FloorSection is memoized so only the floor that changes re-renders
+  const getFloorToggle = useCallback((floor: number) => () => toggleFloor(floor), [toggleFloor]);
+
   const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     window.location.href = "/";
@@ -1306,6 +1306,20 @@ export default function DynamicDashboard({
     setFilterAndar("all");
     setSortBy("andar");
   }, []);
+
+  // Memoized mobile menu items — avoids re-creating JSX on every render
+  const mobileMenuItems = useMemo(() => [
+    { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
+    ...(isCoordinator && isAdmin ? [{
+      label: updateMode ? "Desativar Atualização" : "Modo Atualização",
+      icon: <Pencil className="w-5 h-5" />,
+      onClick: () => setUpdateMode(prev => !prev),
+      variant: "warning" as const,
+      active: updateMode,
+    }] : []),
+    { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
+    { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
+  ], [isCoordinator, isAdmin, updateMode, handleLogout]);
 
   // ─── Loading state with skeleton ───
   if (loading) {
@@ -1393,20 +1407,7 @@ export default function DynamicDashboard({
                 </button>
               </div>
               {/* Mobile menu */}
-              <MobileMenu
-                items={[
-                  { label: "Voltar aos Projetos", icon: <ArrowLeft className="w-5 h-5" />, href: "/projetos" },
-                  ...(isCoordinator && isAdmin ? [{
-                    label: updateMode ? "Desativar Atualização" : "Modo Atualização",
-                    icon: <Pencil className="w-5 h-5" />,
-                    onClick: () => setUpdateMode(!updateMode),
-                    variant: "warning" as const,
-                    active: updateMode,
-                  }] : []),
-                  { label: "Tempo Real", icon: <Radio className="w-5 h-5" />, badge: "ON" },
-                  { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
-                ]}
-              />
+              <MobileMenu items={mobileMenuItems} />
             </div>
           </div>
         </header>
@@ -1607,7 +1608,7 @@ export default function DynamicDashboard({
                   selectedUnit={selectedUnit}
                   onSelectUnit={handleSelectUnit}
                   isCollapsed={collapsedFloors.has(floor)}
-                  onToggle={() => toggleFloor(floor)}
+                  onToggle={getFloorToggle(floor)}
                   isAdmin={isAdmin}
                   onStatusChange={handleLocalStatusChange}
                   empreendimentoId={empreendimentoId}
@@ -1680,7 +1681,7 @@ export default function DynamicDashboard({
       </main>
 
       {/* Footer with unit count summary */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm mt-auto">
+      <footer className="border-t border-gray-200 bg-white/90 mt-auto">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
             <div className="flex items-center gap-2 text-sm text-gray-400">

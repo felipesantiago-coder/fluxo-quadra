@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -134,15 +134,24 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push('/');
     router.refresh();
-  };
+  }, [router]);
 
   const statusCfg = assinatura ? statusConfig[assinatura.status] : null;
   const StatusIcon = statusCfg?.icon || Clock;
   const isActive = assinatura?.status === 'active';
+
+  const daysRemainingLabel = useMemo(() => {
+    if (!isActive || !assinatura?.data_fim) return null;
+    const diffMs = new Date(assinatura.data_fim).getTime() - Date.now();
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return 'Hoje';
+    if (diffDays === 1) return '1 dia';
+    return `${diffDays} dias`;
+  }, [isActive, assinatura?.data_fim]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -297,13 +306,7 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
                           <p className="text-xs font-semibold text-emerald-700">Seu plano vence em</p>
                         </div>
                         <p className="text-sm font-bold text-emerald-800">
-                          {(() => {
-                            const diffMs = new Date(assinatura.data_fim!).getTime() - Date.now();
-                            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                            if (diffDays <= 0) return 'Hoje';
-                            if (diffDays === 1) return '1 dia';
-                            return `${diffDays} dias`;
-                          })()}
+                          {daysRemainingLabel}
                         </p>
                       </div>
                       <p className="text-[11px] text-emerald-600 mt-1 ml-6">
@@ -432,7 +435,7 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm mt-auto">
+      <footer className="border-t border-gray-200 bg-white/90 mt-auto">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Crown className="w-4 h-4" />

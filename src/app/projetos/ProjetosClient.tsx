@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -138,20 +138,27 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
     return projects.filter((p) => p.regiao === filterRegion);
   }, [projects, filterRegion]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await createClient().auth.signOut();
     router.push("/");
     router.refresh();
-  };
+  }, [router]);
 
-  const dismissMfaBanner = () => {
+  const dismissMfaBanner = useCallback(() => {
     setShowMfaBanner(false);
     localStorage.setItem("mfa_banner_dismissed", new Date().toISOString());
-  };
+  }, []);
 
   const isAdminSistema = userRole === "admin_sistema";
   const canSeeLastUpdated = isAdminSistema || userRole === "coordenador";
   const isLoading = projects.length === 0 && initialEmpreendimentos.length === 0;
+
+  const mobileMenuItems = useMemo(() => [
+    ...(isAdminSistema ? [{ label: "Administração", icon: <Shield className="w-5 h-5" />, href: "/admin-sistema" }] : []),
+    ...(hasActivePlan ? [{ label: "Gerenciar plano", icon: <Crown className="w-5 h-5" />, href: "/assinatura" }] : [{ label: "Planos", icon: <Crown className="w-5 h-5" />, href: "/planos" }]),
+    { label: "Segurança", icon: <Shield className="w-5 h-5" />, href: "/mfa-setup" },
+    { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
+  ], [handleLogout, isAdminSistema, hasActivePlan]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
@@ -217,14 +224,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
               </button>
             </div>
             {/* Mobile menu */}
-            <MobileMenu
-              items={[
-                ...(isAdminSistema ? [{ label: "Administração", icon: <Shield className="w-5 h-5" />, href: "/admin-sistema" }] : []),
-                ...(hasActivePlan ? [{ label: "Gerenciar plano", icon: <Crown className="w-5 h-5" />, href: "/assinatura" }] : [{ label: "Planos", icon: <Crown className="w-5 h-5" />, href: "/planos" }]),
-                { label: "Segurança", icon: <Shield className="w-5 h-5" />, href: "/mfa-setup" },
-                { label: "Sair", icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: "danger" as const },
-              ]}
-            />
+            <MobileMenu items={mobileMenuItems} />
           </div>
         </div>
       </header>
@@ -502,7 +502,7 @@ export default function ProjetosClient({ userRole, initialEmpreendimentos, initi
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm">
+      <footer className="border-t border-gray-200 bg-white/90">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />

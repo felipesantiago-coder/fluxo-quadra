@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -92,13 +92,17 @@ export default function AguardandoPagamentoClient({
     setTimeout(() => setChecking(false), 1000);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     await createClient().auth.signOut();
     router.push('/');
     router.refresh();
-  };
+  }, [router]);
+
+  const mobileMenuItems = useMemo(() => [
+    { label: 'Sair', icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: 'danger' as const },
+  ], [handleLogout]);
 
   const formatElapsed = (s: number) => {
     const min = Math.floor(s / 60);
@@ -161,11 +165,7 @@ export default function AguardandoPagamentoClient({
               </button>
             </div>
             {/* Mobile menu */}
-            <MobileMenu
-              items={[
-                { label: 'Sair', icon: <LogOut className="w-5 h-5" />, onClick: handleLogout, variant: 'danger' as const },
-              ]}
-            />
+            <MobileMenu items={mobileMenuItems} />
           </div>
         </div>
       </header>
@@ -289,7 +289,7 @@ export default function AguardandoPagamentoClient({
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/80 backdrop-blur-sm mt-auto">
+      <footer className="border-t border-gray-200 bg-white/90 mt-auto">
         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 py-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Building2 className="w-4 h-4" />
