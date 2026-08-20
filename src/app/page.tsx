@@ -18,7 +18,7 @@ import {
 const slides = [
   {
     type: "desktop" as const,
-    image: "/mock-desktop-01.png",
+    image: "/mock-desktop-01.webp",
     title: "Espelho de vendas atualizado em tempo real",
     desc: "Disponibilidade, status e preços de todas as unidades ao seu alcance, direto do computador.",
   },
@@ -30,9 +30,15 @@ const slides = [
   },
   {
     type: "desktop" as const,
-    image: "/mock-desktop-02.png",
+    image: "/mock-desktop-02.webp",
     title: "Simule e gere propostas em PDF",
     desc: "Crie simulações de pagamento personalizadas e exporte a proposta pronta para envio ao cliente.",
+  },
+  {
+    type: "mobile" as const,
+    image: "/mock-mobile-02.webp",
+    title: "Gerencie vendas em tempo real",
+    desc: "Atualize status de unidades, acompanhe reservas e feche vendas direto pelo celular.",
   },
 ];
 
