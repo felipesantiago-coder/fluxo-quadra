@@ -34,7 +34,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.mercadopago.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in https://*.mercadopago.com https://images.unsplash.com",
       "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://*.mercadopago.com https://api.mercadopago.com",
       "frame-src https://*.mercadopago.com",
       "object-src 'none'",
