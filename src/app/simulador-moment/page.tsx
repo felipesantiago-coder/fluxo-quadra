@@ -64,13 +64,12 @@ function getTodayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-type InccMode = "none" | "180m" | "12m" | "projection";
+type InccMode = "none" | "180m" | "12m" | "6m";
 
 interface InccData {
   avg180: number;
   avg12: number;
-  projection: number;
-  projectionSource: string;
+  avg6: number;
   lastUpdate: string | null;
   totalMonths: number;
   loading: boolean;
@@ -127,7 +126,7 @@ function SimulatorContent() {
   // INCC state
   const [inccMode, setInccMode] = useState<InccMode>("none");
   const [inccData, setInccData] = useState<InccData>({
-    avg180: 0, avg12: 0, projection: 0, projectionSource: "",
+    avg180: 0, avg12: 0, avg6: 0,
     lastUpdate: null, totalMonths: 0,
     loading: true, error: null, isFallback: false,
   });
@@ -145,7 +144,7 @@ function SimulatorContent() {
   const getInccMonthlyRate = (): number => {
     if (inccMode === "180m") return inccData.avg180;
     if (inccMode === "12m") return inccData.avg12;
-    if (inccMode === "projection") return inccData.projection;
+    if (inccMode === "6m") return inccData.avg6;
     return 0;
   };
   const inccMonthlyRate = inccData.loading ? 0 : getInccMonthlyRate();
@@ -238,7 +237,7 @@ function SimulatorContent() {
         const data = await res.json();
         setInccData({
           avg180: data.avg180 || 0, avg12: data.avg12 || 0,
-          projection: data.projection || 0, projectionSource: data.projectionSource || "",
+          avg6: data.avg6 || 0,
           lastUpdate: data.lastUpdate || null, totalMonths: data.totalMonths || 0,
           loading: false, error: null, isFallback: data.fallback || false,
         });
@@ -330,7 +329,7 @@ function SimulatorContent() {
         ["Semestrais (Obra)", formatBRL(result.semesterPaid), `${result.semesterPaidPercent.toFixed(2)}%`],
         ["Financiamento", formatBRL(result.habiteseAmount), `${result.habitesePercent.toFixed(2)}%`],
         ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [
-          ["Financiamento (projeção INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
+          ["Financiamento (estimativa INCC)", formatBRL(result.habiteseCorrected), `${((result.habiteseCorrected / result.finalPropertyValue) * 100).toFixed(2)}%`],
         ] : []),
         ["Total", formatBRL(result.finalPropertyValue), "100%"],
       ],
@@ -395,14 +394,14 @@ function SimulatorContent() {
       if (yPos > 200) { doc.addPage(); yPos = 20; }
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Projecao de Correcao INCC (Estimativa)", margin, yPos);
+      doc.text("Estimativa de Correcao INCC", margin, yPos);
       yPos += 10;
       const inccMetricLabel = inccMode === "180m"
         ? "Média dos últimos 180 meses do INCC"
         : inccMode === "12m"
           ? "Média dos últimos 12 meses do INCC"
-          : inccMode === "projection"
-            ? "Projeção de mercado"
+          : inccMode === "6m"
+            ? "Média dos últimos 6 meses do INCC"
             : "N/A";
       const inccSourceLabel = inccData.isFallback
         ? "Dados de referência (valores estimados)"
@@ -429,7 +428,7 @@ function SimulatorContent() {
       doc.setFont("helvetica", "italic");
       doc.setTextColor(120, 80, 0);
       const disclaimerLines = doc.splitTextToSize(
-        "AVISO: Os valores de correção INCC apresentados acima são meras projeções estimativas e não garantem o resultado final. O INCC é um índice variável cujos valores futuros não podem ser previstos com certeza. A taxa utilizada é baseada em dados históricos/projetados e poderá divergir significativamente do índice efetivamente apurado durante o período de obras. Consulte o contrato para as condições definitivas de reajuste.",
+        "AVISO: Os valores de correção INCC apresentados acima são estimativas baseadas em médias históricas e não garantem o resultado final. O INCC é um índice variável cujos valores futuros não podem ser previstos com certeza. A taxa utilizada é baseada em dados históricos e poderá divergir significativamente do índice efetivamente apurado durante o período de obras. Consulte o contrato para as condições definitivas de reajuste.",
         pageWidth - margin * 2
       );
       doc.text(disclaimerLines, margin, yPos);
@@ -496,7 +495,7 @@ function SimulatorContent() {
     { description: "Taxa de Decoração", value: formatBRL(DECORATION_FEE), percent: null as number | null, note: `${result.decorationInstallments}x de abr/2027 a jan/2028`, bold: false, isHighlight: false, isIncc: false },
     { description: "Financiamento", value: formatBRL(result.habiteseAmount), percent: result.habitesePercent, note: "Saldo devedor restante", bold: false, isHighlight: false, isIncc: false },
     ...(inccMode !== "none" && result.inccAccumulatedPercent > 0 ? [{
-      description: "Financiamento (projeção INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false, isIncc: true,
+      description: "Financiamento (estimativa INCC)*", value: formatBRL(result.habiteseCorrected), percent: result.habitesePercent > 0 ? (result.habiteseCorrected / result.finalPropertyValue) * 100 : 0, note: `INCC +${result.inccAccumulatedPercent.toFixed(2)}% (${inccMonthlyRate.toFixed(3)}% a.m.)`, bold: false, isHighlight: false, isIncc: true,
     }] : []),
     { description: "Valor Total", value: formatBRL(result.finalPropertyValue), percent: 100, note: "", bold: true, isHighlight: true, isIncc: false },
   ], [result, inccMode, inccMonthlyRate]);
@@ -651,18 +650,15 @@ function SimulatorContent() {
                       </label>
                       <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
                         <input type="radio" name="incc" value="180m" checked={inccMode === "180m"} onChange={() => setInccMode("180m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
-                        <span className="text-sm text-slate-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        <span className="text-sm text-slate-600">Média últimos 180 meses{!inccData.loading ? ` (${inccData.avg180.toFixed(4)}% a.m.)` : " (carregando...)"}</span>
                       </label>
                       <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
                         <input type="radio" name="incc" value="12m" checked={inccMode === "12m"} onChange={() => setInccMode("12m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
-                        <span className="text-sm text-slate-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
+                        <span className="text-sm text-slate-600">Média últimos 12 meses{!inccData.loading ? ` (${inccData.avg12.toFixed(4)}% a.m.)` : " (carregando...)"}</span>
                       </label>
                       <label className="flex items-center gap-3 p-2 cursor-pointer hover:bg-slate-50 rounded-lg">
-                        <input type="radio" name="incc" value="projection" checked={inccMode === "projection"} onChange={() => setInccMode("projection")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
-                        <span className="text-sm text-slate-600">Projeção de mercado{!inccData.loading ? ` (${inccData.projection.toFixed(3)}% a.m.)` : " (carregando...)"}</span>
-                        {inccData.projectionSource && !inccData.loading && inccMode === "projection" && (
-                          <p className="text-xs text-slate-400 ml-6 mt-0.5">{inccData.projectionSource}</p>
-                        )}
+                        <input type="radio" name="incc" value="6m" checked={inccMode === "6m"} onChange={() => setInccMode("6m")} className="w-4 h-4 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-sm text-slate-600">Média últimos 6 meses{!inccData.loading ? ` (${inccData.avg6.toFixed(4)}% a.m.)` : " (carregando...)"}</span>
                       </label>
                       {inccData.lastUpdate && (
                         <p className="text-xs text-slate-400 pl-8">Atualizado em {inccData.lastUpdate} — {inccData.isFallback ? "Referência" : "FGV IBRE"}</p>
@@ -838,7 +834,7 @@ function SimulatorContent() {
                         {inccMode !== "none" && result.inccAccumulatedPercent > 0 && (
                           <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
                             <p className="font-bold text-amber-900 text-xl">{formatBRL(result.habiteseCorrected)}</p>
-                            <p className="text-sm text-amber-700 mt-1">Projeção com INCC (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
+                            <p className="text-sm text-amber-700 mt-1">Estimativa INCC (+{result.inccAccumulatedPercent.toFixed(2)}%)</p>
                           </div>
                         )}
                       </div>
