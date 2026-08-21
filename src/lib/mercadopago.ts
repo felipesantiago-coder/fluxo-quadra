@@ -292,27 +292,30 @@ export async function createMpPlan(params: {
  * Cria uma assinatura (preapproval) no Mercado Pago.
  * Retorna a URL de init_point para redirecionar o usuário ao checkout.
  *
- * ESTRATÉGIA: Cria assinatura STANDALONE (sem preapproval_plan_id) com
- * auto_recurring + status:'pending'. Isso força o fluxo de redirect/checkout
- * do MP, evitando o erro 'card_token_id is required' que ocorre quando o
- * plano no MP exige token de cartão.
+ * ESTRATÉGIA HÍBRIDA:
+ * - SEM cupom → redireciona para o init_point do plano MP diretamente.
+ *   O plano agora tem payment_methods_allowed com PIX, cartão, etc.
+ *   Nenhuma chamada à API é necessária — a URL é construída a partir do ID do plano.
+ * - COM cupom → cria assinatura standalone (auto_recurring + status:pending).
+ *   Aceita apenas cartão, mas aplica o desconto do cupom.
  *
  * A associação plano ↔ assinatura é rastreada no nosso DB via plano_id,
  * e o external_reference guarda o planoId para reconciliação via webhook.
  */
 export async function createMpSubscription(params: {
+  /** ID do plano no banco (UUID) — usado como external_reference */
   planoId: string;
   userEmail: string;
   planoNome: string;
-  /** Preço do plano (obrigatório para assinatura standalone) */
+  /** Preço original do plano */
   planoPreco: number;
-  /** Frequência do plano em meses (obrigatório para auto_recurring) */
+  /** Frequência do plano em meses */
   planoPeriodoMeses: number;
-  /** Se informado, sobrescreve o valor da assinatura (usado para cupons) */
+  /** Se informado, sobrescreve o valor (cupom) → força standalone (só cartão) */
   customAmount?: number;
+  /** ID do plano no Mercado Pago — obrigatório para redirect via init_point do plano */
+  mercadopagoPlanId: string;
 }): Promise<{ init_point: string; subscription_id: string }> {
-  const client = getPreApprovalClient();
-
   const backUrl = getBackUrl('/assinatura');
   if (!backUrl.startsWith('http')) {
     throw new Error(
@@ -321,11 +324,26 @@ export async function createMpSubscription(params: {
     );
   }
 
-  const valorFinal = (params.customAmount && params.customAmount > 0)
-    ? params.customAmount
-    : params.planoPreco;
+  // ── Caminho A: Sem cupom → redirect direto ao checkout do plano (PIX + cartão) ──
+  if (!params.customAmount || params.customAmount <= 0) {
+    const checkoutUrl = new URL('https://www.mercadopago.com.br/subscriptions/checkout');
+    checkoutUrl.searchParams.set('preapproval_plan_id', params.mercadopagoPlanId);
+    checkoutUrl.searchParams.set('external_reference', params.planoId);
+    if (params.userEmail) {
+      checkoutUrl.searchParams.set('payer_email', params.userEmail);
+    }
 
-  // Assinatura standalone: auto_recurring + status pending = redirect checkout
+    console.log('[createMpSubscription] Usando init_point do plano (sem cupom):', checkoutUrl.toString().substring(0, 100));
+
+    return {
+      init_point: checkoutUrl.toString(),
+      subscription_id: '', // será preenchido pelo webhook
+    };
+  }
+
+  // ── Caminho B: Com cupom → assinatura standalone (só cartão, com desconto) ──
+  const client = getPreApprovalClient();
+
   const body: Record<string, unknown> = {
     payer_email: params.userEmail,
     reason: `Assinatura - ${params.planoNome}`,
@@ -334,7 +352,7 @@ export async function createMpSubscription(params: {
     auto_recurring: {
       frequency: params.planoPeriodoMeses,
       frequency_type: 'months',
-      transaction_amount: valorFinal,
+      transaction_amount: params.customAmount,
       currency_id: 'BRL',
     },
     external_reference: params.planoId,
@@ -344,8 +362,6 @@ export async function createMpSubscription(params: {
   try {
     response = await client.create({ body });
   } catch (mpErr: unknown) {
-    // O SDK v3+ lanca subclasses de MercadoPagoError com status, message,
-    // error e causes DIRETO no objeto (nao aninhado em response.data).
     const err = mpErr as {
       name?: string;
       status?: number;
@@ -363,7 +379,7 @@ export async function createMpSubscription(params: {
       err?.message ||
       'Erro desconhecido';
 
-    console.error('[createMpSubscription] Falha na API do Mercado Pago:', {
+    console.error('[createMpSubscription] Falha na API do Mercado Pago (cupom):', {
       error_type: err?.name,
       status: mpStatus,
       message: mpMessage,

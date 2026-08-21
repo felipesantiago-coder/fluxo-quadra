@@ -227,6 +227,7 @@ export async function POST(request: NextRequest) {
           planoPreco: Number(plano.preco),
           planoPeriodoMeses: plano.periodo_meses,
           customAmount: cupomValidado ? valorFinal : undefined,
+          mercadopagoPlanId: plano.mercadopago_plan_id,
         });
         console.log('[signup-subscribe] MP criou assinatura:', mpResult.subscription_id, 'init_point:', mpResult.init_point?.substring(0, 80));
       } catch (mpErr: unknown) {

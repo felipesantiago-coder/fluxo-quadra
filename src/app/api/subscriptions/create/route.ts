@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
       planoPreco: Number(plano.preco),
       planoPeriodoMeses: plano.periodo_meses,
       customAmount: cupomValidado ? valorFinal : undefined,
+      mercadopagoPlanId: plano.mercadopago_plan_id,
     });
 
     // 6. Registrar/atualizar assinatura no banco
