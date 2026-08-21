@@ -32,3 +32,24 @@ Stage Summary:
 - Zero functional changes - all 20+ pages, 5 dashboards, 5 simuladores preserved
 - Zero regressions introduced
 - Commit: 0262872 pushed to main
+---
+Task ID: 7
+Agent: Main Agent
+Task: Investigar e corrigir erro 500 no POST /api/signup-subscribe
+
+Work Log:
+- Mapeei as 6 chamadas externas do log Vercel: GET(plano) → POST(createUser) → POST(upsert profile) → GET(check sub) → POST(MP create) → DELETE(cleanup)
+- Identifiquei que a chamada POST #5 (Mercado Pago) falha, triggerando o catch interno que faz DELETE #6 (deleteUser)
+- Li o SDK mercadopago v3.4.0 tipos (PreApprovalResponse, ApiResponse) para confirmar formato de resposta
+- Identifiquei 3 bugs: (1) erro do MP engolido sem log detalhado, (2) subscription_id vazio causa UNIQUE constraint, (3) auto_recurring hardcodiza frequencia mensal com cupom
+- Corrigi createMpSubscription com try/catch detalhado que extrai status/message/cause do SDK
+- Corrigi signup-subscribe para nao inserir subscription_id vazio e retornar erros descritivos
+- Corrigi auto_recurring para usar planoPeriodoMeses ao inves de hardcoded 1
+- Apliquei mesma correcao de planoPeriodoMeses em subscriptions/create
+- Push para GitHub (b74ea85)
+
+Stage Summary:
+- Deploy automatico via Vercel
+- Apos deploy, o log do Vercel mostrara a causa exata do erro do MP nos server logs
+- O usuario vera mensagem descritiva (ex: "Erro ao conectar com o Mercado Pago") em vez de 500 generico
+- Causas provaveis do erro original: token MP invalido/expirado OU plano MP inexistente/inativo
