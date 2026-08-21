@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifyWebhookSignature, getMpPayment, getMpSubscription } from '@/lib/mercadopago';
+import { verifyWebhookSignature, getMpPayment, getMpSubscription, deleteMpPlan } from '@/lib/mercadopago';
 
 /**
  * POST /api/webhooks/mercadopago
@@ -173,17 +173,35 @@ async function handlePaymentEvent(
       }
     }
 
-    // Se nao achou por preapproval, buscar por mercadopago_payment_id
+    // Se nao achou por preapproval_id, tentar pelo payer_email
+    // (fallback para init_point flow onde o subscription pode nao estar vinculado ainda)
     if (!userId) {
-      const { data: existingPayment } = await supabase
-        .from('pagamentos')
-        .select('user_id, assinatura_id')
-        .eq('mercadopago_payment_id', paymentId)
-        .maybeSingle();
-
-      if (existingPayment) {
-        userId = existingPayment.user_id;
-        assinaturaId = existingPayment.assinatura_id;
+      const payerEmail = (paymentData.payer as Record<string, unknown> | undefined)?.email as string | undefined;
+      if (payerEmail) {
+        // Buscar usuario pelo email no auth.users
+        try {
+          const adminAuth = createAdminClient();
+          const { data: { users } } = await adminAuth.auth.admin.listUsers({
+            page: 1,
+            perPage: 1,
+            filter: `email.eq.${payerEmail}`,
+          });
+          if (users && users.length > 0) {
+            userId = users[0].id;
+            // Buscar assinatura pendente/ativa mais recente
+            const { data: pendingAss } = await supabase
+              .from('assinaturas')
+              .select('id')
+              .eq('user_id', userId)
+              .in('status', ['pending', 'active'])
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (pendingAss) assinaturaId = pendingAss.id;
+          }
+        } catch {
+          // Ignorar falha de busca
+        }
       }
     }
 
@@ -387,6 +405,9 @@ async function handlePreapprovalEvent(
 
     const mpStatus = subData.status as string;
     const payerId = (subData.payer_id as string) || null;
+    const payerEmail = (subData.payer_email as string) || '';
+    const externalReference = (subData.external_reference as string) || '';
+    const preapprovalPlanId = (subData.preapproval_plan_id as string) || '';
 
     // Mapear status MP -> nosso status
     const statusMap: Record<string, string> = {
@@ -404,15 +425,24 @@ async function handlePreapprovalEvent(
     }
 
     // Buscar assinatura local com status atual
-    const { data: assinatura, error: assErr } = await supabase
-      .from('assinaturas')
-      .select('id, user_id, plano_id, status')
-      .eq('mercadopago_subscription_id', subscriptionId)
-      .maybeSingle();
+    let assinatura = await findLocalSubscription(supabase, subscriptionId, payerEmail, externalReference);
 
-    if (assErr || !assinatura) {
-      console.warn(`[Webhook MP] Assinatura ${subscriptionId} nao encontrada localmente.`);
+    if (!assinatura) {
+      console.warn(`[Webhook MP] Assinatura ${subscriptionId} nao encontrada localmente. External ref: ${externalReference}, email: ${payerEmail}`);
       return true;
+    }
+
+    // Se a assinatura local ainda nao tem o ID do MP, preencher agora
+    if (!assinatura.mercadopago_subscription_id) {
+      const { error: linkErr } = await supabase
+        .from('assinaturas')
+        .update({ mercadopago_subscription_id: subscriptionId })
+        .eq('id', assinatura.id);
+      if (linkErr) {
+        console.error(`[Webhook MP] Erro ao vincular assinatura ${assinatura.id} ao MP ${subscriptionId}:`, linkErr);
+      } else {
+        console.log(`[Webhook MP] Assinatura local ${assinatura.id} vinculada ao MP ${subscriptionId}`);
+      }
     }
 
     // Validar transicao de estado
@@ -429,7 +459,7 @@ async function handlePreapprovalEvent(
     };
 
     if (payerId) {
-      updateData.mercadopago_payer_id = payerId;
+      updateData.mercadopago_payer_id = String(payerId);
     }
 
     if (mpStatus === 'cancelled') {
@@ -452,7 +482,23 @@ async function handlePreapprovalEvent(
       return false;
     }
 
-    // ── Abordagem B: Sincronizar subscription_status do perfil ──
+    // ── Cleanup: inativar plano temporário (criado para cupom) ──
+    if (preapprovalPlanId && ourStatus === 'authorized') {
+      try {
+        const planClient = (await import('@/lib/mercadopago')).getPreApprovalPlanClient();
+        const plan = await planClient.get({ preApprovalPlanId: preapprovalPlanId });
+        const planReason = (plan.reason as string) || '';
+        // Planos temporários têm "(Promo" no nome
+        if (planReason.includes('(Promo')) {
+          await deleteMpPlan(preapprovalPlanId);
+          console.log(`[Webhook MP] Plano temporário inativado: ${preapprovalPlanId}`);
+        }
+      } catch (err) {
+        console.warn(`[Webhook MP] Falha ao verificar/inativar plano temporário:`, err);
+      }
+    }
+
+    // ── Sincronizar subscription_status do perfil ──
     if (ourStatus === 'active' || ourStatus === 'cancelled') {
       try {
         const { error: profileErr } = await supabase
@@ -472,4 +518,58 @@ async function handlePreapprovalEvent(
     console.error(`[Webhook MP] Erro ao processar assinatura ${subscriptionId}:`, err);
     return false;
   }
+}
+
+/**
+ * Busca assinatura local por (1) mercadopago_subscription_id, ou
+ * (2) user_id + plano_id + status pending (fallback para init_point flow).
+ */
+async function findLocalSubscription(
+  supabase: ReturnType<typeof createAdminClient>,
+  mpSubscriptionId: string,
+  payerEmail: string,
+  externalReference: string
+): Promise<{ id: string; user_id: string; plano_id: string; status: string; mercadopago_subscription_id: string | null } | null> {
+  // 1. Buscar por mercadopago_subscription_id
+  const { data: byMpId } = await supabase
+    .from('assinaturas')
+    .select('id, user_id, plano_id, status, mercadopago_subscription_id')
+    .eq('mercadopago_subscription_id', mpSubscriptionId)
+    .maybeSingle();
+
+  if (byMpId) return byMpId;
+
+  // 2. Fallback: buscar por external_reference (planoId) + payer_email + status pending
+  if (!externalReference || !payerEmail) return null;
+
+  // Buscar user_id pelo email no auth.users
+  const admin = createAdminClient();
+  let foundUserId: string | null = null;
+
+  try {
+    const { data: { users } } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+      filter: `email.eq.${payerEmail}`,
+    });
+    if (users && users.length > 0) {
+      foundUserId = users[0].id;
+    }
+  } catch {
+    return null;
+  }
+
+  if (!foundUserId) return null;
+
+  const { data: byUser } = await supabase
+    .from('assinaturas')
+    .select('id, user_id, plano_id, status, mercadopago_subscription_id')
+    .eq('user_id', foundUserId)
+    .eq('plano_id', externalReference)
+    .in('status', ['pending', 'paused'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return byUser || null;
 }
