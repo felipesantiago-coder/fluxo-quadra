@@ -225,6 +225,7 @@ export async function POST(request: NextRequest) {
           userEmail: emailTrimmed,
           planoNome: plano.nome,
           customAmount: cupomValidado ? valorFinal : undefined,
+          planoPeriodoMeses: plano.periodo_meses,
         });
         console.log('[signup-subscribe] MP criou assinatura:', mpResult.subscription_id, 'init_point:', mpResult.init_point?.substring(0, 80));
       } catch (mpErr: unknown) {
@@ -233,15 +234,21 @@ export async function POST(request: NextRequest) {
       }
 
       // 8. Registrar assinatura local como pending (capturar ID para cupom_usos)
+      //    Se o MP não retornou subscription_id, omitir da inserção para evitar
+      //    violação da constraint UNIQUE em chamadas subsequentes.
       let assinaturaId: string | null = null;
-      const { data: insertedSub, error: insertSubErr } = await adminClient.from('assinaturas').insert({
+      const subInsert: Record<string, unknown> = {
         user_id: userId,
         plano_id: planoId,
-        mercadopago_subscription_id: mpResult.subscription_id,
         status: 'pending',
         data_inicio: null,
         data_fim: null,
-      }).select('id').single();
+      };
+      if (mpResult.subscription_id) {
+        subInsert.mercadopago_subscription_id = mpResult.subscription_id;
+      }
+
+      const { data: insertedSub, error: insertSubErr } = await adminClient.from('assinaturas').insert(subInsert).select('id').single();
 
       if (insertedSub) {
         assinaturaId = insertedSub.id;
@@ -249,20 +256,8 @@ export async function POST(request: NextRequest) {
 
       if (insertSubErr) {
         console.error('[signup-subscribe] Erro ao registrar assinatura:', insertSubErr);
-        // A assinatura foi criada no MP mas não no banco local
-        // Tentar criar novamente
-        const { data: retrySub, error: retryErr } = await adminClient.from('assinaturas').insert({
-          user_id: userId,
-          plano_id: planoId,
-          mercadopago_subscription_id: mpResult.subscription_id,
-          status: 'pending',
-        }).select('id').single();
-        if (retrySub) {
-          assinaturaId = retrySub.id;
-        }
-        if (retryErr) {
-          console.error('[signup-subscribe] Retry de assinatura também falhou:', retryErr);
-        }
+        // Não fazer retry — se falhou, logar e continuar.
+        // O webhook do MP pode reconciliar depois.
       }
 
       // 9. Registrar uso do cupom e incrementar (ATÔMICO via RPC)
@@ -312,9 +307,30 @@ export async function POST(request: NextRequest) {
         // Ignore cleanup errors
       }
 
+      // Retornar erro mais descritivo baseado no tipo de falha
+      let userMessage = 'Erro ao processar assinatura. Tente novamente.';
+      let statusCode = 500;
+
+      if (errMsg.includes('Mercado Pago API')) {
+        // Erro da API do MP — extrair informação útil sem expor detalhes sensíveis
+        if (errMsg.includes('401') || errMsg.includes('unauthorized') || errMsg.includes('invalid_token')) {
+          userMessage = 'Erro na integração com o pagamento. Contate o administrador.';
+          statusCode = 503;
+        } else if (errMsg.includes('404') || errMsg.includes('not_found')) {
+          userMessage = 'Plano de assinatura não encontrado no Mercado Pago. Contate o administrador.';
+          statusCode = 503;
+        } else if (errMsg.includes('400') || errMsg.includes('bad_request') || errMsg.includes('invalid')) {
+          userMessage = 'Dados do plano incompatíveis com o Mercado Pago. Contate o administrador.';
+          statusCode = 503;
+        } else {
+          userMessage = 'Erro ao conectar com o Mercado Pago. Tente novamente em alguns minutos.';
+          statusCode = 502;
+        }
+      }
+
       return NextResponse.json(
-        { error: 'Erro ao processar assinatura. Tente novamente.' },
-        { status: 500 }
+        { error: userMessage },
+        { status: statusCode }
       );
     }
   } catch (err) {

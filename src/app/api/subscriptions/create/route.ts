@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
       userEmail: user.email || '',
       planoNome: plano.nome,
       customAmount: cupomValidado ? valorFinal : undefined,
+      planoPeriodoMeses: plano.periodo_meses,
     });
 
     // 6. Registrar/atualizar assinatura no banco

@@ -290,6 +290,8 @@ export async function createMpSubscription(params: {
   planoNome: string;
   /** Se informado, sobrescreve o valor da assinatura (usado para cupons) */
   customAmount?: number;
+  /** Frequência do plano em meses (usada quando customAmount é informado para cupons) */
+  planoPeriodoMeses?: number;
 }): Promise<{ init_point: string; subscription_id: string }> {
   const client = getPreApprovalClient();
 
@@ -309,19 +311,59 @@ export async function createMpSubscription(params: {
     back_url: backUrl,
   };
 
-  // Se há valor customizado (cupom), enviar auto_recurring com o desconto
+  // Se há valor customizado (cupom), enviar auto_recurring com o desconto.
+  // Usa a frequência do plano (não hardcodiza mensal) para evitar rejeição do MP.
   if (params.customAmount && params.customAmount > 0) {
     body.auto_recurring = {
-      frequency: 1,
+      frequency: params.planoPeriodoMeses || 1,
       frequency_type: 'months',
       transaction_amount: params.customAmount,
       currency_id: 'BRL',
     };
   }
 
-  const response = await client.create({ body });
+  let response: Awaited<ReturnType<typeof client.create>>;
+  try {
+    response = await client.create({ body });
+  } catch (mpErr: unknown) {
+    // Extrair detalhes do erro do SDK do Mercado Pago
+    const err = mpErr as {
+      message?: string;
+      status?: number;
+      response?: {
+        data?: {
+          message?: string;
+          error?: string;
+          cause?: Array<{ description?: string; code?: string }>;
+        };
+        status?: number;
+      };
+    };
+
+    const mpStatus = err?.response?.status || err?.status;
+    const mpMessage =
+      err?.response?.data?.cause?.map(c => c.description).filter(Boolean).join('; ') ||
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      'Erro desconhecido';
+
+    console.error('[createMpSubscription] Falha na API do Mercado Pago:', {
+      status: mpStatus,
+      message: mpMessage,
+      planId: params.planoId,
+      email: params.userEmail,
+    });
+
+    throw new Error(`Mercado Pago API (${mpStatus || 'sem status'}): ${mpMessage}`);
+  }
 
   if (!response.init_point) {
+    console.error('[createMpSubscription] Resposta do MP sem init_point. Resposta parcial:', JSON.stringify({
+      id: response.id,
+      status: response.status,
+      payer_id: response.payer_id,
+    }));
     throw new Error('Mercado Pago não retornou init_point para o checkout.');
   }
 
