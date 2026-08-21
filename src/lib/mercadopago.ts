@@ -326,31 +326,30 @@ export async function createMpSubscription(params: {
   try {
     response = await client.create({ body });
   } catch (mpErr: unknown) {
-    // Extrair detalhes do erro do SDK do Mercado Pago
+    // O SDK v3+ lanca subclasses de MercadoPagoError com status, message,
+    // error e causes DIRETO no objeto (nao aninhado em response.data).
     const err = mpErr as {
-      message?: string;
+      name?: string;
       status?: number;
-      response?: {
-        data?: {
-          message?: string;
-          error?: string;
-          cause?: Array<{ description?: string; code?: string }>;
-        };
-        status?: number;
-      };
+      message?: string;
+      error?: string;
+      causes?: Array<{ code?: string; description?: string }>;
     };
 
-    const mpStatus = err?.response?.status || err?.status;
+    const mpStatus = err?.status;
     const mpMessage =
-      err?.response?.data?.cause?.map(c => c.description).filter(Boolean).join('; ') ||
-      err?.response?.data?.message ||
-      err?.response?.data?.error ||
+      (err?.causes && err.causes.length > 0
+        ? err.causes.map(c => c.description).filter(Boolean).join('; ')
+        : '') ||
+      err?.error ||
       err?.message ||
       'Erro desconhecido';
 
     console.error('[createMpSubscription] Falha na API do Mercado Pago:', {
+      error_type: err?.name,
       status: mpStatus,
       message: mpMessage,
+      causes: err?.causes,
       planId: params.planoId,
       email: params.userEmail,
     });
