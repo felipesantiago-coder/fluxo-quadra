@@ -217,15 +217,16 @@ export async function POST(request: NextRequest) {
       }
 
       // 7. Criar assinatura no Mercado Pago (com desconto se houver)
-      console.log('[signup-subscribe] Chamando MP para plano:', plano.mercadopago_plan_id, 'email:', emailTrimmed, 'customAmount:', cupomValidado ? valorFinal : 'undefined');
+      console.log('[signup-subscribe] Chamando MP - plano:', planoId, 'email:', emailTrimmed, 'customAmount:', cupomValidado ? valorFinal : 'undefined');
       let mpResult: { init_point: string; subscription_id: string };
       try {
         mpResult = await createMpSubscription({
-          planoId: plano.mercadopago_plan_id,
+          planoId: planoId,
           userEmail: emailTrimmed,
           planoNome: plano.nome,
-          customAmount: cupomValidado ? valorFinal : undefined,
+          planoPreco: Number(plano.preco),
           planoPeriodoMeses: plano.periodo_meses,
+          customAmount: cupomValidado ? valorFinal : undefined,
         });
         console.log('[signup-subscribe] MP criou assinatura:', mpResult.subscription_id, 'init_point:', mpResult.init_point?.substring(0, 80));
       } catch (mpErr: unknown) {

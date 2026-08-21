@@ -291,15 +291,25 @@ export async function createMpPlan(params: {
 /**
  * Cria uma assinatura (preapproval) no Mercado Pago.
  * Retorna a URL de init_point para redirecionar o usuário ao checkout.
+ *
+ * ESTRATÉGIA: Cria assinatura STANDALONE (sem preapproval_plan_id) com
+ * auto_recurring + status:'pending'. Isso força o fluxo de redirect/checkout
+ * do MP, evitando o erro 'card_token_id is required' que ocorre quando o
+ * plano no MP exige token de cartão.
+ *
+ * A associação plano ↔ assinatura é rastreada no nosso DB via plano_id,
+ * e o external_reference guarda o planoId para reconciliação via webhook.
  */
 export async function createMpSubscription(params: {
   planoId: string;
   userEmail: string;
   planoNome: string;
+  /** Preço do plano (obrigatório para assinatura standalone) */
+  planoPreco: number;
+  /** Frequência do plano em meses (obrigatório para auto_recurring) */
+  planoPeriodoMeses: number;
   /** Se informado, sobrescreve o valor da assinatura (usado para cupons) */
   customAmount?: number;
-  /** Frequência do plano em meses (usada quando customAmount é informado para cupons) */
-  planoPeriodoMeses?: number;
 }): Promise<{ init_point: string; subscription_id: string }> {
   const client = getPreApprovalClient();
 
@@ -311,23 +321,24 @@ export async function createMpSubscription(params: {
     );
   }
 
+  const valorFinal = (params.customAmount && params.customAmount > 0)
+    ? params.customAmount
+    : params.planoPreco;
+
+  // Assinatura standalone: auto_recurring + status pending = redirect checkout
   const body: Record<string, unknown> = {
-    preapproval_plan_id: params.planoId,
     payer_email: params.userEmail,
     reason: `Assinatura - ${params.planoNome}`,
     back_url: backUrl,
-  };
-
-  // Se há valor customizado (cupom), enviar auto_recurring com o desconto.
-  // Usa a frequência do plano (não hardcodiza mensal) para evitar rejeição do MP.
-  if (params.customAmount && params.customAmount > 0) {
-    body.auto_recurring = {
-      frequency: params.planoPeriodoMeses || 1,
+    status: 'pending',
+    auto_recurring: {
+      frequency: params.planoPeriodoMeses,
       frequency_type: 'months',
-      transaction_amount: params.customAmount,
+      transaction_amount: valorFinal,
       currency_id: 'BRL',
-    };
-  }
+    },
+    external_reference: params.planoId,
+  };
 
   let response: Awaited<ReturnType<typeof client.create>>;
   try {
@@ -357,7 +368,7 @@ export async function createMpSubscription(params: {
       status: mpStatus,
       message: mpMessage,
       causes: err?.causes,
-      planId: params.planoId,
+      planoId: params.planoId,
       email: params.userEmail,
     });
 

@@ -136,11 +136,12 @@ export async function POST(request: NextRequest) {
 
     // 5. Criar assinatura no Mercado Pago (com desconto se aplicável)
     const mpResult = await createMpSubscription({
-      planoId: plano.mercadopago_plan_id,
+      planoId: planoId,
       userEmail: user.email || '',
       planoNome: plano.nome,
-      customAmount: cupomValidado ? valorFinal : undefined,
+      planoPreco: Number(plano.preco),
       planoPeriodoMeses: plano.periodo_meses,
+      customAmount: cupomValidado ? valorFinal : undefined,
     });
 
     // 6. Registrar/atualizar assinatura no banco
