@@ -20,18 +20,18 @@ interface SignupSubscribeBody {
 /**
  * POST /api/signup-subscribe
  *
- * Fluxo Abordagem B: Cria conta + assinatura pendente em uma única operação.
+ * Fluxo: Cria conta + assinatura pendente em uma única operação.
  * Retorna a URL de checkout do Mercado Pago.
  *
- * Body: { nome, email, senha, planoId }
+ * Body: { nome, email, senha, planoId, cupomId? }
  *
  * SEGURANCA:
  *  - Valida todos os campos de entrada
- *  - Cria user no Supabase Auth
- *  - Cria perfil com subscription_status = 'pending'
+ *  - Cria user no Supabase Auth (service_role)
+ *  - Atualiza perfil (criado pelo trigger) com subscription_status = 'pending'
+ *  - Valida cupom e cria plano temporário no MP com preço descontado
  *  - Cria assinatura pendente no banco
- *  - Cria preapproval no Mercado Pago
- *  - Se qualquer etapa falhar, tenta limpar (best-effort)
+ *  - Se qualquer etapa pós-auth falhar, faz cleanup do usuário
  */
 export async function POST(request: NextRequest) {
   // SEC-007 FIX: Rate limiting — 5 cadastros por IP por minuto
@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
     // 1. Parse e validação do body
     const body = await request.json();
     const { nome, email, senha, planoId, cupomId } = body as SignupSubscribeBody;
+
+    // LOG: registrar o que chegou (sem a senha)
+    console.log('[signup-subscribe] Body recebido:', JSON.stringify({ nome, email, planoId, cupomId: cupomId || 'nenhum' }));
 
     // Validar nome
     const nomeTrimmed = (nome || '').trim();
@@ -101,6 +104,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (planoErr || !plano) {
+      console.error('[signup-subscribe] Plano não encontrado:', planoId, planoErr);
       return NextResponse.json({ error: 'Plano não encontrado.' }, { status: 404 });
     }
 
@@ -110,6 +114,8 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
+
+    console.log('[signup-subscribe] Plano encontrado:', plano.nome, '| preço:', plano.preco, '| MP plan:', plano.mercadopago_plan_id);
 
     // 3. Criar usuário no Supabase Auth
     //    Usamos o admin client (service_role) para criar o user diretamente
@@ -143,22 +149,48 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = authData.user.id;
+    console.log('[signup-subscribe] User criado:', userId, '| email:', emailTrimmed);
 
     try {
-      // 4. Criar/atualizar perfil do usuário
-      //    O trigger handle_new_user() pode não disparar com admin.auth.admin.createUser(),
-      //    por isso fazemos upsert com todos os campos obrigatórios.
-      const { error: profileErr } = await adminClient.from('profiles').upsert({
-        id: userId,
-        email: emailTrimmed,
-        display_name: nomeTrimmed,
-        role: 'comum',
-        subscription_status: 'pending',
-      });
+      // 4. Atualizar perfil do usuário
+      //    O trigger handle_new_user() já criou o perfil via AFTER INSERT.
+      //    Precisamos apenas garantir que email, display_name e subscription_status
+      //    estejam corretos. Usamos UPDATE (não upsert) porque a linha já existe.
+      //    Se por algum motivo o trigger não criou o perfil, fazemos INSERT como fallback.
+      const { count: updatedCount, error: updateProfileErr } = await adminClient
+        .from('profiles')
+        .update({
+          email: emailTrimmed,
+          display_name: nomeTrimmed,
+          subscription_status: 'pending',
+        })
+        .eq('id', userId);
 
-      if (profileErr) {
-        console.error('[signup-subscribe] Erro ao criar perfil:', profileErr);
-        // Continuar — o trigger do Supabase pode ter criado o perfil
+      if (updateProfileErr) {
+        console.error('[signup-subscribe] Erro ao atualizar perfil (UPDATE):', updateProfileErr);
+      }
+
+      if (!updateProfileErr && updatedCount === 0) {
+        // O trigger não criou o perfil — fazer INSERT manual
+        console.warn('[signup-subscribe] Perfil não encontrado via trigger, fazendo INSERT manual');
+        const { error: insertProfileErr } = await adminClient
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: emailTrimmed,
+            display_name: nomeTrimmed,
+            role: 'comum',
+            subscription_status: 'pending',
+          });
+
+        if (insertProfileErr) {
+          console.error('[signup-subscribe] Erro ao criar perfil (INSERT):', insertProfileErr);
+          // Não abortar — o webhook pode reconciliar depois
+        } else {
+          console.log('[signup-subscribe] Perfil criado via INSERT manual com sucesso');
+        }
+      } else if (!updateProfileErr) {
+        console.log('[signup-subscribe] Perfil atualizado com sucesso (trigger + update)');
       }
 
       // 5. Verificar se já existe assinatura ativa para este user (edge case)
@@ -170,7 +202,6 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (existingSub) {
-        // Usuário já tem assinatura — não deve acontecer em fluxo normal
         return NextResponse.json(
           { error: 'Já existe uma assinatura para este usuário.' },
           { status: 409 }
@@ -183,14 +214,20 @@ export async function POST(request: NextRequest) {
       let valorDescontado = 0;
 
       if (cupomId) {
+        console.log('[signup-subscribe] Validando cupom:', cupomId);
         const now = new Date().toISOString();
-        const { data: cupom } = await adminClient
+        const { data: cupom, error: cupomErr } = await adminClient
           .from('cupons')
           .select('*')
           .eq('id', cupomId)
           .maybeSingle();
 
+        if (cupomErr) {
+          console.error('[signup-subscribe] Erro ao buscar cupom:', cupomErr);
+        }
+
         if (!cupom) {
+          console.warn('[signup-subscribe] Cupom não encontrado no DB:', cupomId);
           return NextResponse.json({ error: 'Cupom não encontrado.' }, { status: 404 });
         }
         if (!cupom.ativo) {
@@ -217,10 +254,13 @@ export async function POST(request: NextRequest) {
         }
         valorFinal = Math.max(0, precoOriginal - valorDescontado);
         cupomValidado = cupom as Record<string, unknown>;
+        console.log('[signup-subscribe] Cupom válido:', cupom.codigo, '| tipo:', cupom.tipo_desconto, '| desconto:', valorDescontado, '| final:', valorFinal);
+      } else {
+        console.log('[signup-subscribe] Nenhum cupom informado — usando preço original:', valorFinal);
       }
 
       // 7. Criar assinatura no Mercado Pago (com desconto se houver)
-      console.error('[signup-subscribe] Cupom recebido:', cupomId || 'nenhum', '| cupomValidado:', !!cupomValidado, '| customAmount:', cupomValidado ? valorFinal : 'undefined', '| plano MP:', plano.mercadopago_plan_id);
+      console.log('[signup-subscribe] Chamando createMpSubscription | customAmount:', cupomValidado ? valorFinal : 'undefined (preço original)', '| plano MP:', plano.mercadopago_plan_id);
       let mpResult: { init_point: string; subscription_id: string };
       try {
         mpResult = await createMpSubscription({
@@ -232,15 +272,13 @@ export async function POST(request: NextRequest) {
           customAmount: cupomValidado ? valorFinal : undefined,
           mercadopagoPlanId: plano.mercadopago_plan_id,
         });
-        console.error('[signup-subscribe] MP OK - init_point:', mpResult.init_point?.substring(0, 120), '| sub_id:', mpResult.subscription_id || 'vazio (webhook preenche)');
+        console.log('[signup-subscribe] MP OK - init_point:', mpResult.init_point?.substring(0, 150), '| sub_id:', mpResult.subscription_id || 'vazio (webhook preenche)');
       } catch (mpErr: unknown) {
         console.error('[signup-subscribe] Falha ao criar assinatura no MP:', mpErr);
         throw mpErr;
       }
 
-      // 8. Registrar assinatura local como pending (capturar ID para cupom_usos)
-      //    Se o MP não retornou subscription_id, omitir da inserção para evitar
-      //    violação da constraint UNIQUE em chamadas subsequentes.
+      // 8. Registrar assinatura local como pending
       let assinaturaId: string | null = null;
       const subInsert: Record<string, unknown> = {
         user_id: userId,
@@ -260,14 +298,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (insertSubErr) {
-        console.error('[signup-subscribe] Erro ao registrar assinatura:', insertSubErr);
-        // Não fazer retry — se falhou, logar e continuar.
-        // O webhook do MP pode reconciliar depois.
+        console.error('[signup-subscribe] Erro ao registrar assinatura local:', insertSubErr);
       }
 
       // 9. Registrar uso do cupom e incrementar (ATÔMICO via RPC)
       if (cupomValidado) {
-        // FIX SEC-001: Usar RPC atômico para evitar TOCTOU race condition
         const { data: incResult, error: incErr } = await adminClient.rpc('incrementar_uso_cupom', {
           p_cupom_id: cupomValidado.id,
         });
@@ -287,11 +322,11 @@ export async function POST(request: NextRequest) {
           valor_descontado: valorDescontado,
           valor_final: valorFinal,
         });
+        console.log('[signup-subscribe] Uso do cupom registrado | assinatura_id:', assinaturaId);
       }
 
       // 10. Retornar URL de checkout + credenciais para login client-side
-      //     O frontend faz signInWithPassword ANTES de redirecionar para o MP.
-      //     Assim, quando o usuário voltar do MP, a sessão já existe.
+      console.log('[signup-subscribe] SUCESSO - redirecionando para checkout | cupom:', !!cupomValidado, '| valor:', valorFinal);
       return NextResponse.json({
         checkoutUrl: mpResult.init_point,
         email: emailTrimmed,
@@ -317,7 +352,6 @@ export async function POST(request: NextRequest) {
       let statusCode = 500;
 
       if (errMsg.includes('Mercado Pago API')) {
-        // Erro da API do MP — extrair informação útil sem expor detalhes sensíveis
         if (errMsg.includes('401') || errMsg.includes('unauthorized') || errMsg.includes('invalid_token')) {
           userMessage = 'Erro na integração com o pagamento. Contate o administrador.';
           statusCode = 503;
