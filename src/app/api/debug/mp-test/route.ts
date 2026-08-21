@@ -1,164 +1,127 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getPreApprovalPlanClient, getPreApprovalClient, getMpConfig } from '@/lib/mercadopago';
+import { getPreApprovalPlanClient, getPreApprovalClient } from '@/lib/mercadopago';
 
 /**
  * GET /api/debug/mp-test
  *
- * Endpoint temporario de diagnostico para verificar:
- *  1. Se o token do Mercado Pago e valido
- *  2. Se os planos cadastrados no banco existem no MP
- *  3. Se a criacao de assinatura funciona (teste real)
+ * Diagnostico + correcao: atualiza os planos no MP para incluir
+ * payment_methods_allowed (antes ausente, causava "card_token_id is required").
  *
- * REMOVER apos diagnosticar o problema.
+ * REMOVER apos confirmar que o signup-subscribe funciona.
  */
 export async function GET() {
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
-    token_configured: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
-    token_prefix: process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 10) || '(vazio)',
-    token_suffix: process.env.MERCADOPAGO_ACCESS_TOKEN?.slice(-4) || '(vazio)',
   };
 
-  // 1. Testar se o token e valido listando planos do MP
-  try {
-    const planClient = getPreApprovalPlanClient();
-    const listResponse = await planClient.search({ limit: 5 });
-    results.mp_connection = 'ok';
-    results.mp_plan_count = listResponse.results?.length ?? 0;
-    results.mp_plans_list = (listResponse.results || []).map((p: { id?: string; reason?: string; status?: string }) => ({
-      id: p.id,
-      reason: p.reason,
-      status: p.status,
-    }));
-  } catch (listErr: unknown) {
-    results.mp_connection = 'failed';
-    results.mp_list_error = listErr instanceof Error ? listErr.message : String(listErr);
+  // 1. Buscar planos do banco
+  const adminClient = createAdminClient();
+  const { data: planos, error } = await adminClient
+    .from('planos')
+    .select('id, nome, periodo_meses, preco, ativo, mercadopago_plan_id, ordem')
+    .eq('ativo', true)
+    .order('ordem');
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 2. Buscar planos do banco
+  const planClient = getPreApprovalPlanClient();
+  const preApprovalClient = getPreApprovalClient();
+
+  // 2. Atualizar cada plano no MP para incluir payment_methods_allowed
+  const paymentMethodsAllowed = {
+    payment_types: [
+      { id: 'credit_card' },
+      { id: 'debit_card' },
+      { id: 'ticket' },
+      { id: 'bank_transfer' },
+    ],
+  };
+
+  const updateResults: Array<Record<string, unknown>> = [];
+
+  for (const plano of planos || []) {
+    const update: Record<string, unknown> = {
+      db_nome: plano.nome,
+      mp_plan_id: plano.mercadopago_plan_id,
+    };
+
+    if (!plano.mercadopago_plan_id) {
+      update.skipped = true;
+      update.reason = 'sem mercadopago_plan_id';
+      updateResults.push(update);
+      continue;
+    }
+
+    try {
+      const updated = await planClient.update({
+        id: plano.mercadopago_plan_id,
+        updatePreApprovalPlanRequest: {
+          payment_methods_allowed: paymentMethodsAllowed,
+        },
+      });
+      update.updated = true;
+      update.mp_payment_methods = updated.payment_methods_allowed;
+    } catch (err: unknown) {
+      update.updated = false;
+      update.error = err instanceof Error ? err.message : String(err);
+    }
+
+    updateResults.push(update);
+  }
+
+  results.plan_updates = updateResults;
+
+  // 3. Testar criacao de assinatura com o primeiro plano
+  const testPlano = (planos || [])[0];
+  if (!testPlano?.mercadopago_plan_id) {
+    return NextResponse.json(results);
+  }
+
+  const backUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}/assinatura`
+    : process.env.NEXT_PUBLIC_APP_URL || 'https://quadra-imob-sync.vercel.app/assinatura';
+
+  const testBody = {
+    preapproval_plan_id: testPlano.mercadopago_plan_id,
+    payer_email: 'diagnostico@teste.com',
+    reason: `Diagnostico - ${testPlano.nome}`,
+    back_url: backUrl,
+  };
+
+  results.create_test = {
+    plano: testPlano.nome,
+    mp_plan_id: testPlano.mercadopago_plan_id,
+    body_sent: testBody,
+  };
+
   try {
-    const adminClient = createAdminClient();
-    const { data: planos, error } = await adminClient
-      .from('planos')
-      .select('id, nome, periodo_meses, preco, ativo, mercadopago_plan_id, ordem')
-      .eq('ativo', true)
-      .order('ordem');
+    const response = await preApprovalClient.create({ body: testBody });
+    results.create_test.success = true;
+    results.create_test.subscription_id = response.id;
+    results.create_test.init_point = response.init_point;
 
-    if (error) {
-      results.db_error = error.message;
-    } else {
-      results.db_planos = planos;
-
-      // 3. Verificar cada plano no MP (corrigido: usar preApprovalPlanId)
-      const planClient = getPreApprovalPlanClient();
-      const mpVerification: Array<Record<string, unknown>> = [];
-
-      for (const plano of planos || []) {
-        const verification: Record<string, unknown> = {
-          db_nome: plano.nome,
-          db_preco: plano.preco,
-          db_periodo_meses: plano.periodo_meses,
-          mp_plan_id: plano.mercadopago_plan_id || '(vazio)',
-        };
-
-        if (plano.mercadopago_plan_id) {
-          try {
-            const mpPlan = await planClient.get({ preApprovalPlanId: plano.mercadopago_plan_id });
-            verification.mp_exists = true;
-            verification.mp_status = mpPlan.status;
-            verification.mp_reason = mpPlan.reason;
-            verification.mp_recurring = mpPlan.auto_recurring
-              ? {
-                  frequency: mpPlan.auto_recurring.frequency,
-                  frequency_type: mpPlan.auto_recurring.frequency_type,
-                  transaction_amount: mpPlan.auto_recurring.transaction_amount,
-                  currency_id: mpPlan.auto_recurring.currency_id,
-                }
-              : null;
-          } catch (mpErr: unknown) {
-            verification.mp_exists = false;
-            // O SDK lanca MercadoPagoError com status, message, causes, error direto
-            const err = mpErr as { status?: number; message?: string; error?: string; causes?: Array<{ description?: string }> };
-            verification.mp_error = {
-              status: err?.status || 'unknown',
-              message: err?.message || 'unknown',
-              error: err?.error || '',
-              causes: err?.causes || [],
-            };
-          }
-        } else {
-          verification.mp_exists = false;
-          verification.mp_error = 'Campo mercadopago_plan_id esta vazio no banco';
-        }
-
-        mpVerification.push(verification);
-      }
-
-      results.mp_plan_verification = mpVerification;
-
-      // 4. TESTE REAL: tentar criar uma assinatura de teste no MP
-      //    Usa o primeiro plano ativo com email ficticio
-      const testPlano = (planos || [])[0];
-      if (testPlano?.mercadopago_plan_id) {
-        const client = getPreApprovalClient();
-        const backUrl = process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}/assinatura`
-          : process.env.NEXT_PUBLIC_APP_URL || '';
-
-        const testBody = {
-          preapproval_plan_id: testPlano.mercadopago_plan_id,
-          payer_email: 'diagnostico@teste.com',
-          reason: `Diagnostico - ${testPlano.nome}`,
-          status: 'pending',
-          back_url: backUrl || 'https://quadra-imob-sync.vercel.app/assinatura',
-        };
-
-        results.create_test = {
-          plano_nome: testPlano.nome,
-          mp_plan_id: testPlano.mercadopago_plan_id,
-          back_url: testBody.back_url,
-          body_sent: testBody,
-        };
-
-        try {
-          const response = await client.create({ body: testBody });
-          results.create_test.success = true;
-          results.create_test.subscription_id = response.id;
-          results.create_test.init_point = response.init_point;
-
-          // Limpar assinatura de teste criada
-          if (response.id) {
-            try {
-              await client.update({ id: response.id, body: { status: 'cancelled' } });
-              results.create_test.cleaned_up = true;
-            } catch {
-              results.create_test.cleanup_failed = true;
-            }
-          }
-        } catch (createErr: unknown) {
-          results.create_test.success = false;
-          // O SDK lanca subclasses de MercadoPagoError com status, message, causes
-          const err = createErr as {
-            name?: string;
-            status?: number;
-            message?: string;
-            error?: string;
-            causes?: Array<{ code?: string; description?: string }>;
-          };
-          results.create_test.error = {
-            error_type: err?.name || 'Unknown',
-            http_status: err?.status || 'unknown',
-            message: err?.message || 'unknown',
-            error_code: err?.error || '',
-            causes: err?.causes || [],
-          };
-        }
+    // Cancelar a assinatura de teste
+    if (response.id) {
+      try {
+        await preApprovalClient.update({ id: response.id, body: { status: 'cancelled' } });
+        results.create_test.cleaned_up = true;
+      } catch {
+        results.create_test.cleanup_error = true;
       }
     }
-  } catch (err: unknown) {
-    results.db_check_error = err instanceof Error ? err.message : String(err);
+  } catch (createErr: unknown) {
+    results.create_test.success = false;
+    const err = createErr as { name?: string; status?: number; message?: string; causes?: Array<{ description?: string }> };
+    results.create_test.error = {
+      type: err?.name,
+      http_status: err?.status,
+      message: err?.message,
+      causes: err?.causes || [],
+    };
   }
 
-  return NextResponse.json(results, { status: 200 });
+  return NextResponse.json(results);
 }
