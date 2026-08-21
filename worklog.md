@@ -53,3 +53,25 @@ Stage Summary:
 - Apos deploy, o log do Vercel mostrara a causa exata do erro do MP nos server logs
 - O usuario vera mensagem descritiva (ex: "Erro ao conectar com o Mercado Pago") em vez de 500 generico
 - Causas provaveis do erro original: token MP invalido/expirado OU plano MP inexistente/inativo
+---
+Task ID: 3
+Agent: main
+Task: Investigar e corrigir falha de aplicação de cupom no signup-subscribe
+
+Work Log:
+- Analisei os logs do Vercel fornecidos pelo usuário (2 deploy: antigo com erro NULL email, novo sem erro visível)
+- Li signup-subscribe/route.ts, mercadopago.ts, PlanosPublicClient.tsx, cupons/validate/route.ts
+- Identifiquei a RAIZ DO PROBLEMA: CHECK constraint na tabela profiles não incluía 'comum'
+  - schema-admin.sql: CHECK (role IN ('coordenador', 'admin_sistema'))
+  - O upsert tentava inserir/atualizar com role='comum' → falhava na constraint
+  - O erro NULL email era um sintoma: o upsert falhava e o erro era reportado com a row que tentou inserir
+- Corrigi signup-subscribe: troquei upsert por UPDATE (trigger criou a linha) + INSERT fallback
+- Criei migration-fix-role-check-and-trigger.sql para corrigir CHECK constraint + trigger no BD live
+- Adicionei logging detalhado em todo o fluxo (body, plano, user, cupom, MP, checkout URL)
+- Melhorei logging no mercadopago.ts (mudei console.error para console.log nos logs informativos)
+
+Stage Summary:
+- Commit 778a6cf push para origin/main
+- Migration criada em supabase/migration-fix-role-check-and-trigger.sql (PRECISA ser executada manualmente no Supabase)
+- O código agora é resiliente: funciona mesmo sem a migration (trigger cria perfil com 'coordenador', nosso update preenche subscription_status)
+- Com a migration aplicada, o trigger já cria com 'comum' e o update é redundante mas inofensivo
