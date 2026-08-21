@@ -257,6 +257,14 @@ export async function createMpPlan(params: {
           transaction_amount: params.preco,
           currency_id: 'BRL',
         },
+        payment_methods_allowed: {
+          payment_types: [
+            { id: 'credit_card' },
+            { id: 'debit_card' },
+            { id: 'ticket' },
+            { id: 'bank_transfer' },
+          ],
+        },
         back_url: backUrl,
         status: 'active',
       },
@@ -307,7 +315,6 @@ export async function createMpSubscription(params: {
     preapproval_plan_id: params.planoId,
     payer_email: params.userEmail,
     reason: `Assinatura - ${params.planoNome}`,
-    status: 'pending',
     back_url: backUrl,
   };
 
