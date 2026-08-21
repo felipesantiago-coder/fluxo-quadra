@@ -145,9 +145,12 @@ export async function POST(request: NextRequest) {
     const userId = authData.user.id;
 
     try {
-      // 4. Criar perfil do usuário
+      // 4. Criar/atualizar perfil do usuário
+      //    O trigger handle_new_user() pode não disparar com admin.auth.admin.createUser(),
+      //    por isso fazemos upsert com todos os campos obrigatórios.
       const { error: profileErr } = await adminClient.from('profiles').upsert({
         id: userId,
+        email: emailTrimmed,
         display_name: nomeTrimmed,
         role: 'comum',
         subscription_status: 'pending',
@@ -217,7 +220,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 7. Criar assinatura no Mercado Pago (com desconto se houver)
-      console.log('[signup-subscribe] Chamando MP - plano:', planoId, 'email:', emailTrimmed, 'customAmount:', cupomValidado ? valorFinal : 'undefined');
+      console.error('[signup-subscribe] Cupom recebido:', cupomId || 'nenhum', '| cupomValidado:', !!cupomValidado, '| customAmount:', cupomValidado ? valorFinal : 'undefined', '| plano MP:', plano.mercadopago_plan_id);
       let mpResult: { init_point: string; subscription_id: string };
       try {
         mpResult = await createMpSubscription({
@@ -229,7 +232,7 @@ export async function POST(request: NextRequest) {
           customAmount: cupomValidado ? valorFinal : undefined,
           mercadopagoPlanId: plano.mercadopago_plan_id,
         });
-        console.log('[signup-subscribe] MP criou assinatura:', mpResult.subscription_id, 'init_point:', mpResult.init_point?.substring(0, 80));
+        console.error('[signup-subscribe] MP OK - init_point:', mpResult.init_point?.substring(0, 120), '| sub_id:', mpResult.subscription_id || 'vazio (webhook preenche)');
       } catch (mpErr: unknown) {
         console.error('[signup-subscribe] Falha ao criar assinatura no MP:', mpErr);
         throw mpErr;

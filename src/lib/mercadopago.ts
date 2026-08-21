@@ -340,7 +340,7 @@ export async function createTempMpPlan(params: {
       throw new Error('Mercado Pago não retornou ID do plano temporário.');
     }
 
-    console.log('[createTempMpPlan] Plano temporário criado:', response.id, 'valor:', params.preco);
+    console.error('[createTempMpPlan] Plano temporário criado:', response.id, 'valor:', params.preco, 'reason:', reason);
     return response.id;
   } catch (err: unknown) {
     const mpErr = err as {
@@ -418,7 +418,7 @@ export async function createMpSubscription(params: {
 
   // ── Com cupom → criar plano temporário com preço descontado (PIX + cartão) ──
   if (params.customAmount && params.customAmount > 0) {
-    console.log('[createMpSubscription] Cupom detectado. Criando plano temporário com valor:', params.customAmount);
+    console.error('[createMpSubscription] Cupom detectado. Criando plano temporário com valor:', params.customAmount, '(original:', params.planoPreco, ')');
     mpPlanIdToUse = await createTempMpPlan({
       nome: params.planoNome,
       periodoMeses: params.planoPeriodoMeses,
@@ -434,7 +434,7 @@ export async function createMpSubscription(params: {
     checkoutUrl.searchParams.set('payer_email', params.userEmail);
   }
 
-  console.log('[createMpSubscription] Checkout URL (plano', params.customAmount ? 'temporário' : 'original', '):', checkoutUrl.toString().substring(0, 120));
+  console.error('[createMpSubscription] Checkout URL (plano', params.customAmount ? 'temporário' : 'original', '):', checkoutUrl.toString().substring(0, 120));
 
   return {
     init_point: checkoutUrl.toString(),
