@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSistema } from "@/lib/admin-auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,18 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const { data, error: updateError } = await supabase
+    // FIX: Usar adminClient (service_role) para bypassar o trigger
+    // protect_profile_columns que reverte mudanças de role em requests com JWT.
+    const adminClient = createAdminClient();
+
+    // Buscar role atual para auditoria
+    const { data: currentProfile } = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    const { data, error: updateError } = await adminClient
       .from("profiles")
       .update({ role })
       .eq("id", userId)
@@ -118,9 +130,101 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Registrar mudança na auditoria (best-effort)
+    if (currentProfile && adminUser) {
+      try {
+        await adminClient.from("role_change_audit").insert({
+          target_user_id: userId,
+          actor_user_id: adminUser.id,
+          old_role: currentProfile.role,
+          new_role: role,
+        });
+      } catch {
+        // Auditar é best-effort, não bloqueia a operação
+      }
+    }
+
     return NextResponse.json({ user: data });
   } catch (err) {
     console.error("Erro ao atualizar role:", err);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
+
+// ─── DELETE: excluir conta de usuário ──────────────────────────────────────
+export async function DELETE(request: Request) {
+  try {
+    const isAllowed = await requireAdminSistema();
+    if (!isAllowed) return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+    // Verificar quem é o admin para impedir auto-exclusão
+    const supabase = await createClient();
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+
+    const body = await request.json();
+    const { userId } = body as { userId?: string };
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "userId é obrigatório" },
+        { status: 400 }
+      );
+    }
+
+    // Impedir que o admin exclua a própria conta
+    if (adminUser && userId === adminUser.id) {
+      return NextResponse.json(
+        { error: "Você não pode excluir sua própria conta de administrador" },
+        { status: 403 }
+      );
+    }
+
+    const adminClient = createAdminClient();
+
+    // Buscar dados do usuário para resposta e verificação
+    const { data: targetProfile, error: fetchErr } = await adminClient
+      .from("profiles")
+      .select("id, email, display_name, role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (fetchErr || !targetProfile) {
+      return NextResponse.json(
+        { error: "Usuário não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar se o alvo também é admin_sistema (proteção extra)
+    if (targetProfile.role === "admin_sistema") {
+      return NextResponse.json(
+        { error: "Não é possível excluir outro administrador do sistema" },
+        { status: 403 }
+      );
+    }
+
+    // Excluir usuário via Admin API (remove de auth.users + profiles via CASCADE)
+    const { error: deleteErr } = await adminClient.auth.admin.deleteUser(userId);
+
+    if (deleteErr) {
+      console.error("Erro ao excluir usuário:", deleteErr);
+      return NextResponse.json(
+        { error: deleteErr.message || "Erro ao excluir usuário" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Usuário ${targetProfile.email} excluído permanentemente`,
+      deletedUser: {
+        id: targetProfile.id,
+        email: targetProfile.email,
+        display_name: targetProfile.display_name,
+      },
+    });
+  } catch (err) {
+    console.error("Erro ao excluir usuário:", err);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

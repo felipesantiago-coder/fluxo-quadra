@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       const { error: profileErr } = await adminClient.from('profiles').upsert({
         id: userId,
         display_name: nomeTrimmed,
-        role: 'user',
+        role: 'comum',
         subscription_status: 'pending',
       });
 

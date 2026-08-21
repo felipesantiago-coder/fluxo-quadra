@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userRole = role || "coordenador";
+    const userRole = role || "comum";
     if (!["comum", "coordenador", "admin_sistema"].includes(userRole)) {
       return NextResponse.json(
         { error: "Role inválido" },

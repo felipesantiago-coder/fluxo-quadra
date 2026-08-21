@@ -109,7 +109,7 @@ export default function AdminSistemaClient() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [createUserForm, setCreateUserForm] = useState({ email: "", displayName: "", role: "coordenador" as "comum" | "coordenador" | "admin_sistema" });
+  const [createUserForm, setCreateUserForm] = useState({ email: "", displayName: "", role: "comum" as "comum" | "coordenador" | "admin_sistema" });
   const [creatingUser, setCreatingUser] = useState(false);
   const [createdUserPassword, setCreatedUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -118,6 +118,10 @@ export default function AdminSistemaClient() {
 
   // Coordenador empreendimentos modal
   const [empModalUser, setEmpModalUser] = useState<{ id: string; nome: string } | null>(null);
+
+  // Delete user confirmation
+  const [deleteUserTarget, setDeleteUserTarget] = useState<UserProfile | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -508,6 +512,30 @@ export default function AdminSistemaClient() {
     }
   };
 
+  // ─── Delete usuário ─────────────────────────────────────────────────
+  const handleDeleteUser = async () => {
+    if (!deleteUserTarget) return;
+    setDeletingUser(true);
+    try {
+      const res = await fetch("/api/admin-sistema/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: deleteUserTarget.id }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Erro ao excluir usuário");
+      }
+      setUsers((prev) => prev.filter((u) => u.id !== deleteUserTarget.id));
+      addToast("success", `Usuário ${deleteUserTarget.email} excluído permanentemente`);
+      setDeleteUserTarget(null);
+    } catch (err) {
+      addToast("error", (err as Error).message);
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
   // ─── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -829,7 +857,7 @@ export default function AdminSistemaClient() {
                 </p>
               </div>
               <Button
-                onClick={() => { setShowCreateUserModal(true); setCreatedUserPassword(""); setCreateUserForm({ email: "", displayName: "", role: "coordenador" }); }}
+                onClick={() => { setShowCreateUserModal(true); setCreatedUserPassword(""); setCreateUserForm({ email: "", displayName: "", role: "comum" }); }}
                 className="flex items-center gap-2 bg-[#0D1B2A] to-gray-700 text-white hover:from-gray-800 hover:to-gray-600 shadow-md rounded-xl h-11 px-5 text-sm font-semibold"
               >
                 <UserPlus className="w-4 h-4" />
@@ -867,6 +895,7 @@ export default function AdminSistemaClient() {
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Segurança</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Criado em</th>
                         <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -950,6 +979,19 @@ export default function AdminSistemaClient() {
                               <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Ativo</span>
                             )}
                           </td>
+                          <td className="px-4 py-3 text-right">
+                            {u.id !== currentUserId && u.role !== 'admin_sistema' ? (
+                              <button
+                                onClick={() => setDeleteUserTarget(u)}
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title={`Excluir ${u.email}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1009,6 +1051,78 @@ export default function AdminSistemaClient() {
           </p>
         </div>
       </footer>
+
+      {/* ── Delete User Confirmation Modal ──────────────────────────── */}
+      <AnimatePresence>
+        {deleteUserTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => !deletingUser && setDeleteUserTarget(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-sm overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+                <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">Excluir Conta de Usuário</h3>
+                  <p className="text-xs text-gray-400">Esta ação não pode ser desfeita</p>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-500 shrink-0">
+                    {(deleteUserTarget.display_name || deleteUserTarget.email)[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{deleteUserTarget.display_name || deleteUserTarget.email.split("@")[0]}</p>
+                    <p className="text-xs text-gray-400 truncate">{deleteUserTarget.email}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-red-600 font-medium">
+                  A conta será excluída permanentemente, junto com todos os dados associados (assinaturas, histórico, etc.).
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => !deletingUser && setDeleteUserTarget(null)}
+                  disabled={deletingUser}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  disabled={deletingUser}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deletingUser ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Excluindo...</>
+                  ) : (
+                    <><Trash2 className="w-4 h-4" /> Excluir Permanentemente</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Create Empreendimento Modal ─────────────────────────────────── */}
       <AnimatePresence>

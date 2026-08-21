@@ -1,14 +1,11 @@
 -- ═══════════════════════════════════════════════════════════════
--- CRITICAL FIX: Privilege Escalation via signUp()
+-- Migration: Novos usuários recebem role 'comum' por padrão
 -- ═══════════════════════════════════════════════════════════════
--- Vulnerabilidade: O trigger handle_new_user() usava
--- COALESCE(NEW.raw_user_meta_data->>'role', 'coordenador')
--- permitindo que um atacante passasse role='admin_sistema'
--- no metadata do signUp() e obtivesse acesso administrativo.
+-- Anteriormente, o trigger handle_new_user() atribuía 'coordenador'
+-- a todos os novos cadastros. Agora, o papel padrão é 'comum'.
 --
--- Correção: O role é AGORA sempre 'comum' (hardcoded).
--- O meta-data de role é completamente ignorado.
--- Apenas o seed-admin pode criar admin_sistema.
+-- A alteração de papel para 'coordenador' ou 'admin_sistema' deve
+-- ser feita explicitamente pelo administrador.
 -- ═══════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -36,7 +33,7 @@ BEGIN
     VALUES (
       NEW.id, NEW.email,
       COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
-      'comum',  -- HARDCODED: novos usuários sempre começam como 'comum'
+      'comum',
       COALESCE((NEW.raw_user_meta_data->>'must_change_password')::boolean, false),
       COALESCE((NEW.raw_user_meta_data->>'must_setup_mfa')::boolean, false)
     );
@@ -45,7 +42,7 @@ BEGIN
     VALUES (
       NEW.id, NEW.email,
       COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
-      'comum'   -- HARDCODED: novos usuários sempre começam como 'comum'
+      'comum'
     );
   END IF;
   RETURN NEW;
@@ -61,10 +58,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 -- ═══════════════════════════════════════════════════════════════
--- Corrigir também o bloco de reparação de perfis (seção 7)
--- que tinha a mesma vulnerabilidade
+-- Corrigir também o DEFAULT da coluna role na tabela profiles
+-- (para casos onde o perfil é criado manualmente sem o trigger)
 -- ═══════════════════════════════════════════════════════════════
--- Nota: perfis existentes já criados com role correto NÃO são afetados.
--- A correção acima protege NOVOS cadastros.
--- Para perfis legados que possam ter role incorreto, use o
--- endpoint fix-legacy ou atualização manual.
+ALTER TABLE public.profiles ALTER COLUMN role SET DEFAULT 'comum';
