@@ -217,12 +217,20 @@ export async function POST(request: NextRequest) {
       }
 
       // 7. Criar assinatura no Mercado Pago (com desconto se houver)
-      const mpResult = await createMpSubscription({
-        planoId: plano.mercadopago_plan_id,
-        userEmail: emailTrimmed,
-        planoNome: plano.nome,
-        customAmount: cupomValidado ? valorFinal : undefined,
-      });
+      console.log('[signup-subscribe] Chamando MP para plano:', plano.mercadopago_plan_id, 'email:', emailTrimmed, 'customAmount:', cupomValidado ? valorFinal : 'undefined');
+      let mpResult: { init_point: string; subscription_id: string };
+      try {
+        mpResult = await createMpSubscription({
+          planoId: plano.mercadopago_plan_id,
+          userEmail: emailTrimmed,
+          planoNome: plano.nome,
+          customAmount: cupomValidado ? valorFinal : undefined,
+        });
+        console.log('[signup-subscribe] MP criou assinatura:', mpResult.subscription_id, 'init_point:', mpResult.init_point?.substring(0, 80));
+      } catch (mpErr: unknown) {
+        console.error('[signup-subscribe] Falha ao criar assinatura no MP:', mpErr);
+        throw mpErr;
+      }
 
       // 8. Registrar assinatura local como pending (capturar ID para cupom_usos)
       let assinaturaId: string | null = null;
@@ -291,9 +299,11 @@ export async function POST(request: NextRequest) {
         message: 'Conta criada com sucesso! Redirecionando para o pagamento...',
       });
 
-    } catch (innerErr) {
+    } catch (innerErr: unknown) {
       // Se algo falhar após a criação do usuário, tentar limpar
-      console.error('[signup-subscribe] Erro pós-criação de usuário, tentando cleanup:', innerErr);
+      const errMsg = innerErr instanceof Error ? innerErr.message : String(innerErr);
+      const errStack = innerErr instanceof Error ? innerErr.stack : '';
+      console.error('[signup-subscribe] Erro pós-criação de usuário, tentando cleanup:', errMsg, errStack);
 
       // Best-effort cleanup: não bloqueia o retorno de erro
       try {

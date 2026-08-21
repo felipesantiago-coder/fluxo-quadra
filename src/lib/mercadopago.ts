@@ -13,18 +13,29 @@ const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
 const MP_WEBHOOK_SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
 // back_url validado na inicializacao
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || '';
+// Resolver URL base do app — tentar múltiplas fontes
+function resolveAppUrl(): string {
+  // 1. Variável de ambiente explícita (pode ser server-side)
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.APP_URL) return process.env.APP_URL;
+  // 2. Vercel fornece VERCEL_URL automaticamente
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return '';
+}
+
+const APP_URL = resolveAppUrl();
+if (!APP_URL) {
+  console.warn('[MP] Nenhuma URL base configurada (NEXT_PUBLIC_APP_URL, APP_URL ou VERCEL_URL). O back_url do Mercado Pago pode ficar invalido.');
+} else {
+  console.log('[MP] URL base configurada:', APP_URL);
+}
+
 function getBackUrl(path: string): string {
-  // Validar que APP_URL e uma URL https valida
-  try {
-    const url = new URL(APP_URL);
-    if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
-      throw new Error('APP_URL deve usar HTTPS');
-    }
-  } catch {
-    // Se APP_URL nao e uma URL valida, usar fallback seguro
-    console.warn('[MP] NEXT_PUBLIC_APP_URL invalido. Usando fallback.');
-    return `${path}`;
+  if (!APP_URL) {
+    throw new Error(
+      'Nenhuma URL base configurada para o Mercado Pago. ' +
+      'Defina NEXT_PUBLIC_APP_URL, APP_URL ou VERCEL_URL no painel da Vercel.'
+    );
   }
   return `${APP_URL.replace(/\/$/, '')}${path}`;
 }
