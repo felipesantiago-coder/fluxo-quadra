@@ -49,10 +49,11 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/og-preview.png",
-        width: 1200,
-        height: 630,
+        url: "/imobsync-preview.webp",
+        width: 1424,
+        height: 752,
         alt: "ImobSync",
+        type: "image/webp",
       },
     ],
   },
@@ -60,7 +61,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ImobSync",
     description: "Plataforma de gestão e sincronização de informações comerciais para empreendimentos na planta.",
-    images: ["/og-preview.png"],
+    images: ["/imobsync-preview.webp"],
   },
 };
 
