@@ -91,6 +91,7 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
   const [cancelling, setCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -106,6 +107,26 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
       setLoading(false);
     }
   }, []);
+
+  // Ao montar: se assinatura está pending, tentar confirmar pagamento via MP
+  useEffect(() => {
+    if (!loading && assinatura && assinatura.status === 'pending' && !confirming) {
+      setConfirming(true);
+      fetch('/api/subscriptions/confirm-payment', { method: 'POST', credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.activated) {
+            // Pagamento confirmado — recarregar dados e redirecionar
+            return fetch('/api/subscription-refresh', { credentials: 'include' }).then(() => {
+              fetchStatus();
+              setTimeout(() => router.push('/projetos'), 1000);
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setConfirming(false));
+    }
+  }, [loading, assinatura?.status, confirming]);
 
   useEffect(() => {
     fetchStatus();
