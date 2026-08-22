@@ -416,14 +416,12 @@ export async function updateMpPlanPaymentMethods(planId: string): Promise<void> 
  * Cria uma assinatura (preapproval) no Mercado Pago.
  * Retorna a URL de init_point para redirecionar o usuário ao checkout.
  *
- * ESTRATÉGIA UNIFICADA — sempre usa init_point do plano (PIX + cartão):
- * - SEM cupom → redirect direto ao init_point do plano MP original.
- * - COM cupom → cria um plano temporário no MP com o preço descontado,
- *   redirect ao init_point desse plano temporário. O webhook inativa
- *   o plano temporário após a assinatura ser confirmada.
+ * ESTRATÉGIA — cria uma pré-assinatura (PreApproval) via API para obter
+ * um init_point que respeita os payment_methods_allowed do plano (incluindo PIX).
  *
- * A associação plano ↔ assinatura é rastreada no nosso DB via plano_id,
- * e o external_reference guarda o planoId para reconciliação via webhook.
+ * - SEM cupom → usa o plano MP original.
+ * - COM cupom → cria um plano temporário no MP com o preço descontado,
+ *   o webhook inativa o plano temporário após a assinatura ser confirmada.
  */
 export async function createMpSubscription(params: {
   /** ID do plano no banco (UUID) — usado como external_reference */
@@ -436,7 +434,7 @@ export async function createMpSubscription(params: {
   planoPeriodoMeses: number;
   /** Se informado, sobrescreve o valor (cupom) */
   customAmount?: number;
-  /** ID do plano no Mercado Pago — obrigatório para redirect via init_point */
+  /** ID do plano no Mercado Pago — obrigatório */
   mercadopagoPlanId: string;
 }): Promise<{ init_point: string; subscription_id: string }> {
   const backUrl = getBackUrl('/assinatura');
@@ -450,9 +448,7 @@ export async function createMpSubscription(params: {
   // Determinar qual plano MP usar (original ou temporário com desconto)
   let mpPlanIdToUse = params.mercadopagoPlanId;
 
-  // ── Com cupom → criar plano temporário com preço descontado (PIX + cartão) ──
-  let tempPlanInitPoint: string | undefined;
-
+  // ── Com cupom → criar plano temporário com preço descontado ──
   if (params.customAmount && params.customAmount > 0) {
     console.log('[createMpSubscription] Cupom detectado. Criando plano temporário com valor:', params.customAmount, '(original:', params.planoPreco, ')');
     const tempPlan = await createTempMpPlan({
@@ -461,34 +457,58 @@ export async function createMpSubscription(params: {
       preco: params.customAmount,
     });
     mpPlanIdToUse = tempPlan.id;
-    tempPlanInitPoint = tempPlan.init_point;
   }
 
-  // ── Construir URL de checkout ──
-  let checkoutUrl: string;
+  // ── Criar pré-assinatura (PreApproval) via API ──
+  // Isso gera um init_point específico que respeita os payment_methods_allowed do plano
+  const preApprovalClient = getPreApprovalClient();
 
-  // Usar init_point do MP quando disponível (tem a config correta de pagamento)
-  if (tempPlanInitPoint) {
-    // Adicionar external_reference e email ao init_point do MP
-    const url = new URL(tempPlanInitPoint);
-    url.searchParams.set('external_reference', params.planoId);
-    if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
-    checkoutUrl = url.toString();
-    console.log('[createMpSubscription] Usando init_point do plano temporário');
-  } else {
-    // Fallback: montar URL manual (plano original)
+  const preApprovalBody: Record<string, unknown> = {
+    preapproval_plan_id: mpPlanIdToUse,
+    external_reference: params.planoId,
+    back_url: backUrl,
+    reason: params.planoNome,
+  };
+  if (params.userEmail) {
+    preApprovalBody.payer_email = params.userEmail;
+  }
+
+  console.log('[createMpSubscription] Criando PreApproval com plano:', mpPlanIdToUse);
+
+  const preApprovalResponse = await preApprovalClient.create({
+    body: preApprovalBody,
+  });
+
+  const preApproval = preApprovalResponse as Record<string, unknown>;
+  const initPoint = (preApproval.init_point as string) || '';
+  const preApprovalId = String(preApproval.id || '');
+
+  console.log('[createMpSubscription] PreApproval criada:', preApprovalId, '| init_point:', initPoint ? 'SIM' : 'NÃO');
+
+  if (!initPoint) {
+    // Fallback: montar URL manual se MP não retornar init_point
+    console.warn('[createMpSubscription] MP não retornou init_point, usando URL manual');
     const url = new URL('https://www.mercadopago.com.br/subscriptions/checkout');
     url.searchParams.set('preapproval_plan_id', mpPlanIdToUse);
     url.searchParams.set('external_reference', params.planoId);
     if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
-    checkoutUrl = url.toString();
+    return {
+      init_point: url.toString(),
+      subscription_id: preApprovalId,
+    };
   }
 
-  console.log('[createMpSubscription] Checkout URL (plano', params.customAmount ? 'temporário' : 'original', '):', checkoutUrl.substring(0, 200));
+  // Adicionar external_reference ao init_point se não estiver presente
+  const url = new URL(initPoint);
+  if (!url.searchParams.has('external_reference')) {
+    url.searchParams.set('external_reference', params.planoId);
+  }
+
+  console.log('[createMpSubscription] Checkout URL:', url.toString().substring(0, 200));
 
   return {
-    init_point: checkoutUrl,
-    subscription_id: '', // será preenchido pelo webhook
+    init_point: url.toString(),
+    subscription_id: preApprovalId,
   };
 }
 
