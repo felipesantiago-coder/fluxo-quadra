@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
 
       if (cupomId) {
         console.error('[signup-subscribe] Validando cupom:', cupomId);
-        const now = new Date().toISOString();
+        const hoje = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" — evita bug de string
         const { data: cupom, error: cupomErr } = await adminClient
           .from('cupons')
           .select('*')
@@ -223,11 +223,12 @@ export async function POST(request: NextRequest) {
           debugInfo.cupomErro = 'inativo';
           return NextResponse.json({ error: 'Cupom inativo.' }, { status: 400 });
         }
-        if (cupom.valido_a_partir && cupom.valido_a_partir > now) {
+        // Comparar apenas data (YYYY-MM-DD) para evitar bug onde "2026-08-22" < "2026-08-22T..." = true
+        if (cupom.valido_a_partir && String(cupom.valido_a_partir).slice(0, 10) > hoje) {
           debugInfo.cupomErro = 'nao_valido_ainda';
           return NextResponse.json({ error: 'Cupom ainda não é válido.' }, { status: 400 });
         }
-        if (cupom.valido_ate && cupom.valido_ate < now) {
+        if (cupom.valido_ate && String(cupom.valido_ate).slice(0, 10) < hoje) {
           debugInfo.cupomErro = 'expirado';
           return NextResponse.json({ error: 'Cupom expirou.' }, { status: 400 });
         }

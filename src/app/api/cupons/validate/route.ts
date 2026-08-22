@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createAdminClient();
-    const now = new Date().toISOString();
+    const hoje = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" para comparação correta
 
     // Buscar cupom pelo código (case-insensitive via index)
     const { data: cupom, error: cupomErr } = await supabase
@@ -60,11 +60,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: false, error: 'Este cupom não está mais ativo.' });
     }
 
-    if (cupom.valido_a_partir && cupom.valido_a_partir > now) {
+    // Comparar apenas a parte da data (YYYY-MM-DD) para evitar bug de comparação de strings
+    // onde "2026-08-22" < "2026-08-22T03:25:00Z" = true incorretamente no JS
+    if (cupom.valido_a_partir && String(cupom.valido_a_partir).slice(0, 10) > hoje) {
       return NextResponse.json({ valid: false, error: 'Este cupom ainda não é válido.' });
     }
 
-    if (cupom.valido_ate && cupom.valido_ate < now) {
+    if (cupom.valido_ate && String(cupom.valido_ate).slice(0, 10) < hoje) {
       return NextResponse.json({ valid: false, error: 'Este cupom expirou.' });
     }
 
