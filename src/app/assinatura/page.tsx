@@ -4,7 +4,14 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import AssinaturaClient from './AssinaturaClient';
 
-export default async function AssinaturaPage() {
+interface AssinaturaPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function AssinaturaPage({ searchParams }: AssinaturaPageProps) {
+  const params = await searchParams;
+  const returnedFromPayment = params?.payment === 'return';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -21,6 +28,7 @@ export default async function AssinaturaPage() {
     <AssinaturaClient
       userName={profile?.display_name || user.email || ''}
       isAdmin={profile?.role === 'admin_sistema'}
+      returnedFromPayment={returnedFromPayment}
     />
   );
 }

@@ -564,7 +564,7 @@ export async function createMpPreference(params: {
   assinaturaId: string;
 }): Promise<{ init_point: string; preference_id: string }> {
   const client = getPreferenceClient();
-  const backUrl = getBackUrl('/assinatura');
+  const backUrl = getBackUrl('/assinatura?payment=return');
 
   try {
     const response = await client.create({

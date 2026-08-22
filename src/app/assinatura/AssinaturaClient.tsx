@@ -22,6 +22,7 @@ import { createClient } from '@/lib/supabase/client';
 interface AssinaturaClientProps {
   userName: string;
   isAdmin: boolean;
+  returnedFromPayment?: boolean;
 }
 
 interface PlanoInfo {
@@ -83,7 +84,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClientProps) {
+export default function AssinaturaClient({ userName, isAdmin, returnedFromPayment }: AssinaturaClientProps) {
   const router = useRouter();
   const [assinatura, setAssinatura] = useState<AssinaturaInfo | null>(null);
   const [pagamentos, setPagamentos] = useState<PagamentoInfo[]>([]);
@@ -92,6 +93,7 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [paymentJustConfirmed, setPaymentJustConfirmed] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -108,6 +110,15 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
     }
   }, []);
 
+  // Ao montar: se retornou do MP com assinatura já ativa (webhook processou primeiro), mostrar confirmação
+  useEffect(() => {
+    if (!loading && returnedFromPayment && assinatura && (assinatura.status === 'active' || assinatura.status === 'lifetime') && !paymentJustConfirmed) {
+      // Garantir que o cookie está atualizado
+      fetch('/api/subscription-refresh', { credentials: 'include' });
+      setPaymentJustConfirmed(true);
+    }
+  }, [loading, returnedFromPayment, assinatura?.status, paymentJustConfirmed]);
+
   // Ao montar: se assinatura está pending, tentar confirmar pagamento via MP
   useEffect(() => {
     if (!loading && assinatura && assinatura.status === 'pending' && !confirming) {
@@ -116,10 +127,10 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
         .then(res => res.json())
         .then(data => {
           if (data.activated) {
-            // Pagamento confirmado — recarregar dados e redirecionar
+            // Pagamento confirmado — atualizar cookie e recarregar dados
             return fetch('/api/subscription-refresh', { credentials: 'include' }).then(() => {
               fetchStatus();
-              setTimeout(() => router.push('/projetos'), 1000);
+              setPaymentJustConfirmed(true);
             });
           }
         })
@@ -256,6 +267,35 @@ export default function AssinaturaClient({ userName, isAdmin }: AssinaturaClient
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
+              {/* Banner de confirmação de pagamento */}
+              {paymentJustConfirmed && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 sm:p-8 rounded-2xl bg-emerald-50 border-2 border-emerald-200 shadow-sm"
+                >
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <CheckCircle2 className="w-9 h-9 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-emerald-900">Pagamento confirmado!</h3>
+                      <p className="text-sm text-emerald-700 mt-2 max-w-md">
+                        Seu pagamento foi aprovado com sucesso e sua assinatura está ativa.
+                        Agora você tem acesso completo ao sistema.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => router.push('/projetos')}
+                      className="mt-2 px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors shadow-md"
+                    >
+                      Acessar o sistema
+                      <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Error */}
               {error && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
