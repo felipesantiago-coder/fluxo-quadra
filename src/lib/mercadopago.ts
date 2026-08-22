@@ -260,9 +260,7 @@ export async function createMpPlan(params: {
         payment_methods_allowed: {
           payment_types: [
             { id: 'credit_card' },
-            { id: 'debit_card' },
-            { id: 'ticket' },
-            { id: 'bank_transfer' },
+            { id: 'pix' },
           ],
         },
         back_url: backUrl,
@@ -274,6 +272,7 @@ export async function createMpPlan(params: {
       throw new Error('Mercado Pago não retornou ID do plano.');
     }
 
+    console.log('[createMpPlan] Plano criado:', response.id, '| init_point:', (response as Record<string, unknown>).init_point || 'não retornado');
     return response.id;
   } catch (err: unknown) {
     // Capturar erro detalhado da API do Mercado Pago
@@ -326,9 +325,7 @@ export async function createTempMpPlan(params: {
         payment_methods_allowed: {
           payment_types: [
             { id: 'credit_card' },
-            { id: 'debit_card' },
-            { id: 'ticket' },
-            { id: 'bank_transfer' },
+            { id: 'pix' },
           ],
         },
         back_url: backUrl,
@@ -375,6 +372,30 @@ export async function deleteMpPlan(planId: string): Promise<void> {
   } catch (err: unknown) {
     // Não falhar o fluxo principal se a limpeza falhar
     console.warn('[deleteMpPlan] Falha ao inativar plano temporário:', planId, err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
+ * Atualiza os métodos de pagamento de um plano existente no MP.
+ * Usado para habilitar PIX em planos criados antes da correção.
+ */
+export async function updateMpPlanPaymentMethods(planId: string): Promise<void> {
+  const client = getPreApprovalPlanClient();
+  try {
+    await client.update({
+      id: planId,
+      updatePreApprovalPlanRequest: {
+        payment_methods_allowed: {
+          payment_types: [
+            { id: 'credit_card' },
+            { id: 'pix' },
+          ],
+        },
+      },
+    });
+    console.log('[updateMpPlanPaymentMethods] Plano atualizado com PIX:', planId);
+  } catch (err: unknown) {
+    console.warn('[updateMpPlanPaymentMethods] Falha ao atualizar plano:', planId, err instanceof Error ? err.message : String(err));
   }
 }
 
