@@ -139,6 +139,8 @@ async function handlePaymentEvent(
     const metodo = paymentData.payment_method_id as string || '';
     const dateApproved = paymentData.date_approved as string | null;
     const preapprovalId = (paymentData.metadata as Record<string, unknown> | undefined)?.preapproval_id as string | undefined;
+    const externalReference = paymentData.external_reference as string | undefined;
+    const metadataAssinaturaId = (paymentData.metadata as Record<string, unknown> | undefined)?.assinatura_id as string | undefined;
 
     if (!status) {
       return true; // Sem status, nada a processar
@@ -173,7 +175,26 @@ async function handlePaymentEvent(
       }
     }
 
-    // Se nao achou por preapproval_id, tentar pelo payer_email
+    // Se não achou por preapproval_id, tentar pelo external_reference ou metadata.assinatura_id
+    // (usado pelo fluxo Checkout Pro / Preference)
+    const refId = metadataAssinaturaId || externalReference;
+    if (!userId && refId) {
+      // Verificar se refId é um UUID de assinatura local
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(refId)) {
+        const { data: assByRef } = await supabase
+          .from('assinaturas')
+          .select('id, user_id')
+          .eq('id', refId)
+          .maybeSingle();
+        if (assByRef) {
+          assinaturaId = assByRef.id;
+          userId = assByRef.user_id;
+          console.log(`[Webhook MP] Pagamento ${paymentId} vinculado via external_reference/metadata à assinatura ${refId}`);
+        }
+      }
+    }
+
+    // Se não achou por preapproval_id, tentar pelo payer_email
     // (fallback para init_point flow onde o subscription pode nao estar vinculado ainda)
     if (!userId) {
       const payerEmail = (paymentData.payer as Record<string, unknown> | undefined)?.email as string | undefined;

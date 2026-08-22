@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createMpSubscription } from '@/lib/mercadopago';
+import { createMpPreference } from '@/lib/mercadopago';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Forçar dinâmico — evitar cache edge que possa servir código antigo
 export const dynamic = 'force-dynamic';
 
-// Regex para validacao de UUID v4
+// Regex para validação de UUID v4
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-// Regex para validacao basica de senha (min 8 chars, 1 maiuscula, 1 numero)
+// Regex para validação básica de senha (min 8 chars, 1 maiúscula, 1 número)
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 interface SignupSubscribeBody {
@@ -24,11 +24,11 @@ interface SignupSubscribeBody {
  * POST /api/signup-subscribe
  *
  * Fluxo: Cria conta + assinatura pendente em uma única operação.
- * Retorna a URL de checkout do Mercado Pago.
+ * Usa MP Checkout Pro (Preference API) que suporta PIX, cartão e boleto.
+ * O webhook de payment confirma automaticamente a assinatura.
  */
 export async function POST(request: NextRequest) {
-  // Log imediato para confirmar que o handler está executando
-  console.error('[signup-subscribe] INICIO handler - deployment fix-cupom-v2');
+  console.error('[signup-subscribe] INICIO handler - deployment pix-preference');
 
   // SEC-007 FIX: Rate limiting
   const ip = getClientIp(request);
@@ -60,7 +60,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { nome, email, senha, planoId, cupomId } = body as SignupSubscribeBody;
 
-    // LOG: registrar o que chegou (sem a senha) — usar console.error para garantir visibilidade no Vercel
     console.error('[signup-subscribe] Body recebido:', JSON.stringify({ nome, email, planoId, cupomId: cupomId || 'nenhum' }));
 
     // Validar nome
@@ -104,14 +103,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Plano não encontrado.' }, { status: 404 });
     }
 
-    if (!plano.mercadopago_plan_id) {
-      return NextResponse.json(
-        { error: 'Plano ainda não disponível para compra. Aguarde a configuração.' },
-        { status: 503 }
-      );
-    }
-
-    console.error('[signup-subscribe] Plano:', plano.nome, '| preço:', plano.preco, '| MP:', plano.mercadopago_plan_id);
+    console.error('[signup-subscribe] Plano:', plano.nome, '| preço:', plano.preco);
 
     // 3. Criar usuário no Supabase Auth
     const supabaseAdmin = createAdminClient();
@@ -143,7 +135,6 @@ export async function POST(request: NextRequest) {
     const userId = authData.user.id;
     console.error('[signup-subscribe] User criado:', userId);
 
-    // Debug info coletado ao longo do fluxo
     const debugInfo: Record<string, unknown> = {
       cupomIdRecebido: cupomId || null,
       planoNome: plano.nome,
@@ -151,7 +142,7 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      // 4. Atualizar perfil (trigger já criou via AFTER INSERT)
+      // 4. Atualizar perfil
       const { count: updatedCount, error: updateProfileErr } = await adminClient
         .from('profiles')
         .update({
@@ -203,7 +194,7 @@ export async function POST(request: NextRequest) {
 
       if (cupomId) {
         console.error('[signup-subscribe] Validando cupom:', cupomId);
-        const hoje = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" — evita bug de string
+        const hoje = new Date().toISOString().slice(0, 10);
         const { data: cupom, error: cupomErr } = await adminClient
           .from('cupons')
           .select('*')
@@ -223,7 +214,6 @@ export async function POST(request: NextRequest) {
           debugInfo.cupomErro = 'inativo';
           return NextResponse.json({ error: 'Cupom inativo.' }, { status: 400 });
         }
-        // Comparar apenas data (YYYY-MM-DD) para evitar bug onde "2026-08-22" < "2026-08-22T..." = true
         if (cupom.valido_a_partir && String(cupom.valido_a_partir).slice(0, 10) > hoje) {
           debugInfo.cupomErro = 'nao_valido_ainda';
           return NextResponse.json({ error: 'Cupom ainda não é válido.' }, { status: 400 });
@@ -258,58 +248,58 @@ export async function POST(request: NextRequest) {
 
         console.error('[signup-subscribe] Cupom VÁLIDO:', cupom.codigo, '| desconto:', valorDescontado, '| final:', valorFinal);
       } else {
-        console.error('[signup-subscribe] NENHUM cupom no body — preço original:', valorFinal);
-        debugInfo.cupomErro = 'nao_enviado';
+        console.error('[signup-subscribe] NENHUM cupom — preço original:', valorFinal);
       }
 
-      // 7. Criar assinatura no Mercado Pago
-      console.error('[signup-subscribe] Chamando MP | customAmount:', cupomValidado ? valorFinal : 'N/A (original)', '| plano MP:', plano.mercadopago_plan_id);
-      let mpResult: { init_point: string; subscription_id: string };
+      // 7. Registrar assinatura local ANTES do MP (precisamos do ID para external_reference)
+      const { data: insertedSub, error: insertSubErr } = await adminClient
+        .from('assinaturas')
+        .insert({
+          user_id: userId,
+          plano_id: planoId,
+          status: 'pending',
+          data_inicio: null,
+          data_fim: null,
+        })
+        .select('id')
+        .single();
+
+      if (insertSubErr || !insertedSub) {
+        console.error('[signup-subscribe] Erro ao registrar assinatura local:', insertSubErr);
+        throw new Error('Erro ao registrar assinatura. Tente novamente.');
+      }
+
+      const assinaturaId = insertedSub.id;
+      console.error('[signup-subscribe] Assinatura local criada:', assinaturaId);
+
+      // 8. Criar pagamento via MP Checkout Pro (Preference) — suporta PIX, cartão, boleto
+      console.error('[signup-subscribe] Criando Preference MP | valor:', valorFinal, '| assinatura:', assinaturaId);
+
+      let checkoutUrl: string;
       try {
-        mpResult = await createMpSubscription({
+        const mpResult = await createMpPreference({
           planoId: planoId,
           userEmail: emailTrimmed,
           planoNome: plano.nome,
-          planoPreco: Number(plano.preco),
-          planoPeriodoMeses: plano.periodo_meses,
-          customAmount: cupomValidado ? valorFinal : undefined,
-          mercadopagoPlanId: plano.mercadopago_plan_id,
+          planoPreco: valorFinal,
+          assinaturaId: assinaturaId,
         });
-        console.error('[signup-subscribe] MP OK | URL:', mpResult.init_point?.substring(0, 200));
-        debugInfo.mpInitPoint = mpResult.init_point?.substring(0, 200);
+        checkoutUrl = mpResult.init_point;
+        console.error('[signup-subscribe] Preference OK | URL:', checkoutUrl.substring(0, 200));
+        debugInfo.mpInitPoint = checkoutUrl.substring(0, 200);
+        debugInfo.preferenceId = mpResult.preference_id;
       } catch (mpErr: unknown) {
         console.error('[signup-subscribe] FALHA MP:', mpErr);
         debugInfo.mpErro = mpErr instanceof Error ? mpErr.message : String(mpErr);
         throw mpErr;
       }
 
-      // 8. Registrar assinatura local
-      let assinaturaId: string | null = null;
-      const subInsert: Record<string, unknown> = {
-        user_id: userId,
-        plano_id: planoId,
-        status: 'pending',
-        data_inicio: null,
-        data_fim: null,
-      };
-      if (mpResult.subscription_id) {
-        subInsert.mercadopago_subscription_id = mpResult.subscription_id;
-      }
-
-      const { data: insertedSub, error: insertSubErr } = await adminClient.from('assinaturas').insert(subInsert).select('id').single();
-      if (insertedSub) {
-        assinaturaId = insertedSub.id;
-      }
-      if (insertSubErr) {
-        console.error('[signup-subscribe] Erro ao registrar assinatura local:', insertSubErr);
-      }
-
       // 9. Registrar uso do cupom
       if (cupomValidado) {
-        const { data: incResult, error: incErr } = await adminClient.rpc('incrementar_uso_cupom', {
+        const { error: incErr } = await adminClient.rpc('incrementar_uso_cupom', {
           p_cupom_id: cupomValidado.id,
         });
-        if (incErr || !incResult) {
+        if (incErr) {
           console.error('[signup-subscribe] Falha ao incrementar cupom:', incErr);
         }
 
@@ -327,7 +317,7 @@ export async function POST(request: NextRequest) {
       // 10. Retornar URL de checkout
       console.error('[signup-subscribe] SUCESSO | cupom:', !!cupomValidado, '| valor:', valorFinal);
       return NextResponse.json({
-        checkoutUrl: mpResult.init_point,
+        checkoutUrl,
         email: emailTrimmed,
         needsLogin: true,
         message: 'Conta criada com sucesso! Redirecionando para o pagamento...',
@@ -338,6 +328,7 @@ export async function POST(request: NextRequest) {
       const errMsg = innerErr instanceof Error ? innerErr.message : String(innerErr);
       console.error('[signup-subscribe] Erro pós-criação:', errMsg);
 
+      // Limpar usuário criado se algo falhou após
       try {
         await adminClient.auth.admin.deleteUser(userId);
       } catch {
@@ -347,7 +338,7 @@ export async function POST(request: NextRequest) {
       let userMessage = 'Erro ao processar assinatura. Tente novamente.';
       let statusCode = 500;
 
-      if (errMsg.includes('Mercado Pago API')) {
+      if (errMsg.includes('Mercado Pago Preference API') || errMsg.includes('Mercado Pago API')) {
         if (errMsg.includes('401') || errMsg.includes('unauthorized')) {
           userMessage = 'Erro na integração com o pagamento. Contate o administrador.';
           statusCode = 503;

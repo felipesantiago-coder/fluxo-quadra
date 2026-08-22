@@ -5,7 +5,7 @@
  * Toda comunicação com a API do MP acontece server-side apenas.
  */
 
-import { MercadoPagoConfig, PreApproval, Payment, PreApprovalPlan } from 'mercadopago';
+import { MercadoPagoConfig, PreApproval, Payment, PreApprovalPlan, Preference } from 'mercadopago';
 
 // ── Configuração ──────────────────────────────────────────────
 
@@ -43,6 +43,7 @@ function getBackUrl(path: string): string {
 let _client: PreApproval | null = null;
 let _paymentClient: Payment | null = null;
 let _planClient: PreApprovalPlan | null = null;
+let _preferenceClient: Preference | null = null;
 
 function getMpConfig(): MercadoPagoConfig {
   if (!MP_ACCESS_TOKEN) {
@@ -83,6 +84,16 @@ export function getPreApprovalPlanClient(): PreApprovalPlan {
     _planClient = new PreApprovalPlan(getMpConfig());
   }
   return _planClient;
+}
+
+/**
+ * Retorna o cliente de preferências (Checkout Pro) do Mercado Pago.
+ */
+export function getPreferenceClient(): Preference {
+  if (!_preferenceClient) {
+    _preferenceClient = new Preference(getMpConfig());
+  }
+  return _preferenceClient;
 }
 
 /**
@@ -534,6 +545,80 @@ export async function createMpSubscription(params: {
       init_point: url.toString(),
       subscription_id: '',
     };
+  }
+}
+
+/**
+ * Cria um Checkout Pro (Preference) no Mercado Pago.
+ * Suporta PIX, cartão de crédito, boleto e outros métodos.
+ * O webhook de payment confirma automaticamente a assinatura.
+ *
+ * Diferença de PreApproval: Preference é pagamento único (sem recorrência automática).
+ * O período da assinatura é controlado pelo nosso banco de dados.
+ */
+export async function createMpPreference(params: {
+  planoId: string;
+  userEmail: string;
+  planoNome: string;
+  planoPreco: number;
+  assinaturaId: string;
+}): Promise<{ init_point: string; preference_id: string }> {
+  const client = getPreferenceClient();
+  const backUrl = getBackUrl('/assinatura');
+
+  try {
+    const response = await client.create({
+      body: {
+        items: [
+          {
+            id: params.planoId,
+            title: `Plano ${params.planoNome}`,
+            unit_price: params.planoPreco,
+            quantity: 1,
+            currency_id: 'BRL',
+          },
+        ],
+        payer: {
+          email: params.userEmail,
+        },
+        back_urls: {
+          success: backUrl,
+          pending: backUrl,
+          failure: backUrl,
+        },
+        auto_return: 'approved',
+        external_reference: params.assinaturaId,
+        metadata: {
+ assinatura_id: params.assinaturaId,
+          plano_id: params.planoId,
+          tipo: 'assinatura_checkout',
+        },
+        payment_methods: {
+          excluded_payment_types: [],
+          installments: 12,
+        },
+      },
+    });
+
+    const pref = response as Record<string, unknown>;
+    const initPoint = (pref.init_point as string) || '';
+    const prefId = String(pref.id || '');
+
+    console.log('[createMpPreference] Preference criada:', prefId, '| init_point:', initPoint ? 'SIM' : 'NÃO');
+
+    if (!initPoint) {
+      throw new Error('Mercado Pago não retornou init_point da preferência.');
+    }
+
+    return { init_point: initPoint, preference_id: prefId };
+  } catch (err: unknown) {
+    const mpErr = err as { message?: string; status?: number; causes?: Array<{ description?: string }> };
+    const detail =
+      (mpErr.causes?.map(c => c.description).filter(Boolean).join('; ')) ||
+      mpErr.message ||
+      'Erro desconhecido';
+    console.error('[createMpPreference] Falha:', { status: mpErr.status, message: detail });
+    throw new Error(`Mercado Pago Preference API (${mpErr.status || 'sem status'}): ${detail}`);
   }
 }
 
