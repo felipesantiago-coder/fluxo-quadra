@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
         } else {
           valorDescontado = Math.min(Number(cupom.valor_desconto), precoOriginal);
         }
-        valorFinal = Math.max(0, precoOriginal - valorDescontado);
+        valorFinal = Math.round(Math.max(0, precoOriginal - valorDescontado) * 100) / 100;
         cupomValidado = cupom as Record<string, unknown>;
 
         debugInfo.cupomCodigo = cupom.codigo;

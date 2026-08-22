@@ -99,11 +99,10 @@ export async function GET(request: NextRequest) {
 
     if (cupom.tipo_desconto === 'percentual') {
       valorDescontado = Math.round(precoOriginal * Number(cupom.valor_desconto) / 100 * 100) / 100;
-      valorFinal = Math.max(0, precoOriginal - valorDescontado);
     } else {
-      valorDescontado = Math.min(Number(cupom.valor_desconto), precoOriginal);
-      valorFinal = Math.max(0, precoOriginal - valorDescontado);
+      valorDescontado = Math.round(Math.min(Number(cupom.valor_desconto), precoOriginal) * 100) / 100;
     }
+    valorFinal = Math.round(Math.max(0, precoOriginal - valorDescontado) * 100) / 100;
 
     return NextResponse.json({
       valid: true,
