@@ -445,10 +445,8 @@ export async function createMpSubscription(params: {
     );
   }
 
-  // Determinar qual plano MP usar (original ou temporário com desconto)
-  let mpPlanIdToUse = params.mercadopagoPlanId;
-
   // ── Com cupom → criar plano temporário com preço descontado ──
+  // Usar init_point do plano diretamente (evita segunda chamada API que pode falhar)
   if (params.customAmount && params.customAmount > 0) {
     console.log('[createMpSubscription] Cupom detectado. Criando plano temporário com valor:', params.customAmount, '(original:', params.planoPreco, ')');
     const tempPlan = await createTempMpPlan({
@@ -456,15 +454,29 @@ export async function createMpSubscription(params: {
       periodoMeses: params.planoPeriodoMeses,
       preco: params.customAmount,
     });
-    mpPlanIdToUse = tempPlan.id;
+
+    // O plano temporário já retorna init_point — usar diretamente
+    let checkoutUrl = tempPlan.init_point;
+    if (!checkoutUrl) {
+      // Fallback: montar URL manual
+      checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${tempPlan.id}`;
+    }
+    const url = new URL(checkoutUrl);
+    url.searchParams.set('external_reference', params.planoId);
+    if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
+
+    console.log('[createMpSubscription] Checkout URL (plano temp):', url.toString().substring(0, 200));
+    return {
+      init_point: url.toString(),
+      subscription_id: '', // será preenchido pelo webhook
+    };
   }
 
-  // ── Criar pré-assinatura (PreApproval) via API ──
-  // Isso gera um init_point específico que respeita os payment_methods_allowed do plano
+  // ── Sem cupom → criar pré-assinatura (PreApproval) via API ──
   const preApprovalClient = getPreApprovalClient();
 
   const preApprovalBody: Record<string, unknown> = {
-    preapproval_plan_id: mpPlanIdToUse,
+    preapproval_plan_id: params.mercadopagoPlanId,
     external_reference: params.planoId,
     back_url: backUrl,
     reason: params.planoNome,
@@ -473,43 +485,56 @@ export async function createMpSubscription(params: {
     preApprovalBody.payer_email = params.userEmail;
   }
 
-  console.log('[createMpSubscription] Criando PreApproval com plano:', mpPlanIdToUse);
+  console.log('[createMpSubscription] Criando PreApproval com plano:', params.mercadopagoPlanId);
 
-  const preApprovalResponse = await preApprovalClient.create({
-    body: preApprovalBody,
-  });
+  try {
+    const preApprovalResponse = await preApprovalClient.create({
+      body: preApprovalBody,
+    });
 
-  const preApproval = preApprovalResponse as Record<string, unknown>;
-  const initPoint = (preApproval.init_point as string) || '';
-  const preApprovalId = String(preApproval.id || '');
+    const preApproval = preApprovalResponse as Record<string, unknown>;
+    const initPoint = (preApproval.init_point as string) || '';
+    const preApprovalId = String(preApproval.id || '');
 
-  console.log('[createMpSubscription] PreApproval criada:', preApprovalId, '| init_point:', initPoint ? 'SIM' : 'NÃO');
+    console.log('[createMpSubscription] PreApproval criada:', preApprovalId, '| init_point:', initPoint ? 'SIM' : 'NÃO');
 
-  if (!initPoint) {
-    // Fallback: montar URL manual se MP não retornar init_point
-    console.warn('[createMpSubscription] MP não retornou init_point, usando URL manual');
-    const url = new URL('https://www.mercadopago.com.br/subscriptions/checkout');
-    url.searchParams.set('preapproval_plan_id', mpPlanIdToUse);
-    url.searchParams.set('external_reference', params.planoId);
-    if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
+    if (!initPoint) {
+      // Fallback: montar URL manual se MP não retornar init_point
+      console.warn('[createMpSubscription] MP não retornou init_point, usando URL manual');
+      const url = new URL('https://www.mercadopago.com.br/subscriptions/checkout');
+      url.searchParams.set('preapproval_plan_id', params.mercadopagoPlanId);
+      url.searchParams.set('external_reference', params.planoId);
+      if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
+      return {
+        init_point: url.toString(),
+        subscription_id: preApprovalId,
+      };
+    }
+
+    // Adicionar external_reference ao init_point se não estiver presente
+    const url = new URL(initPoint);
+    if (!url.searchParams.has('external_reference')) {
+      url.searchParams.set('external_reference', params.planoId);
+    }
+
+    console.log('[createMpSubscription] Checkout URL:', url.toString().substring(0, 200));
+
     return {
       init_point: url.toString(),
       subscription_id: preApprovalId,
     };
-  }
-
-  // Adicionar external_reference ao init_point se não estiver presente
-  const url = new URL(initPoint);
-  if (!url.searchParams.has('external_reference')) {
+  } catch (preApprovalErr: unknown) {
+    // Se PreApproval falhar, montar URL manual com o plano original
+    console.error('[createMpSubscription] Falha ao criar PreApproval, usando fallback:', preApprovalErr instanceof Error ? preApprovalErr.message : String(preApprovalErr));
+    const url = new URL('https://www.mercadopago.com.br/subscriptions/checkout');
+    url.searchParams.set('preapproval_plan_id', params.mercadopagoPlanId);
     url.searchParams.set('external_reference', params.planoId);
+    if (params.userEmail) url.searchParams.set('payer_email', params.userEmail);
+    return {
+      init_point: url.toString(),
+      subscription_id: '',
+    };
   }
-
-  console.log('[createMpSubscription] Checkout URL:', url.toString().substring(0, 200));
-
-  return {
-    init_point: url.toString(),
-    subscription_id: preApprovalId,
-  };
 }
 
 /**
