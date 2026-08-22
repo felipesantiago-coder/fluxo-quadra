@@ -260,6 +260,9 @@ export async function createMpPlan(params: {
         payment_methods_allowed: {
           payment_types: [
             { id: 'credit_card' },
+            { id: 'bank_transfer' },
+          ],
+          payment_methods: [
             { id: 'pix' },
           ],
         },
@@ -325,6 +328,9 @@ export async function createTempMpPlan(params: {
         payment_methods_allowed: {
           payment_types: [
             { id: 'credit_card' },
+            { id: 'bank_transfer' },
+          ],
+          payment_methods: [
             { id: 'pix' },
           ],
         },
@@ -338,10 +344,10 @@ export async function createTempMpPlan(params: {
     }
 
     const initPoint = (response as Record<string, unknown>).init_point as string | undefined;
-    // Log completo da resposta do MP para diagnóstico de PIX
-    const responseKeys = Object.keys(response as Record<string, unknown>).filter(k => !k.startsWith('_'));
-    console.log('[createTempMpPlan] Resposta MP keys:', responseKeys.join(', '));
-    console.log('[createTempMpPlan] Plano temporário criado:', response.id, '| valor:', params.preco, '| reason:', reason, '| init_point:', initPoint || 'não retornado');
+    const pma = (response as Record<string, unknown>).payment_methods_allowed;
+    console.log('[createTempMpPlan] Plano criado:', response.id, '| valor:', params.preco);
+    console.log('[createTempMpPlan] init_point:', initPoint || 'NÃO RETORNADO');
+    console.log('[createTempMpPlan] payment_methods_allowed (resposta MP):', JSON.stringify(pma));
     return { id: response.id, init_point: initPoint || '' };
   } catch (err: unknown) {
     const mpErr = err as {
@@ -392,6 +398,9 @@ export async function updateMpPlanPaymentMethods(planId: string): Promise<void> 
         payment_methods_allowed: {
           payment_types: [
             { id: 'credit_card' },
+            { id: 'bank_transfer' },
+          ],
+          payment_methods: [
             { id: 'pix' },
           ],
         },
