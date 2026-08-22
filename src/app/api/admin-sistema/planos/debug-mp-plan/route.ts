@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPreApprovalPlanClient, getBackUrl } from '@/lib/mercadopago';
+import { getPreApprovalPlanClient } from '@/lib/mercadopago';
 
 /**
  * GET /api/admin-sistema/planos/debug-mp-plan
@@ -11,7 +11,7 @@ import { getPreApprovalPlanClient, getBackUrl } from '@/lib/mercadopago';
 export async function GET() {
   try {
     const client = getPreApprovalPlanClient();
-    const backUrl = getBackUrl('/assinatura');
+    const backUrl = `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : process.env.NEXT_PUBLIC_APP_URL || ''}/assinatura`;
 
     // Criar plano de teste com PIX
     const createResponse = await client.create({
