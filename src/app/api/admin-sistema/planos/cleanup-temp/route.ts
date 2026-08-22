@@ -3,7 +3,7 @@ import { requireAdminSistema } from '@/lib/admin-auth';
 import { getPreApprovalPlanClient } from '@/lib/mercadopago';
 
 /**
- * POST /api/admin-sistema/planos/cleanup-temp
+ * GET /api/admin-sistema/planos/cleanup-temp
  *
  * Busca TODOS os planos no Mercado Pago, identifica os temporários
  * (criados para cupons, com "(Promo" no reason) e os inativa.
@@ -11,7 +11,7 @@ import { getPreApprovalPlanClient } from '@/lib/mercadopago';
  * O MP não permite excluir planos, apenas inativar (status: 'inactive').
  * Chame UMA VEZ para limpar os planos de teste, depois delete este endpoint.
  */
-export async function POST() {
+export async function GET() {
   try {
     const isAllowed = await requireAdminSistema();
     if (!isAllowed) {
