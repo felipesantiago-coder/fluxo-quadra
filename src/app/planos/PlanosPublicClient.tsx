@@ -148,7 +148,25 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
       return;
     }
 
+    // Se o usuario digitou um cupom mas nao validou, avisar
+    if (cupomInput.trim() && !cupomValido) {
+      setError('Clique em "Aplicar" para validar o cupom antes de continuar, ou limpe o campo.');
+      return;
+    }
+
     setLoading(true);
+
+    // Construir body de forma explicita para log
+    const reqBody: Record<string, unknown> = {
+      nome: nomeTrimmed,
+      email: email.trim().toLowerCase(),
+      senha: '***',
+      planoId: selectedPlano.id,
+    };
+    if (cupomId) {
+      reqBody.cupomId = cupomId;
+    }
+    console.log('[PlanosPublicClient] Enviando signup-subscribe:', JSON.stringify({ ...reqBody, senha: '(oculto)' }));
 
     try {
       const res = await fetch('/api/signup-subscribe', {
@@ -164,6 +182,9 @@ export default function PlanosPublicClient({ planos }: PlanosPublicClientProps) 
       });
 
       const data = await res.json();
+
+      // Log da resposta completa (incluindo _debug)
+      console.log('[PlanosPublicClient] Resposta signup-subscribe:', res.status, JSON.stringify(data));
 
       if (!res.ok) {
         setError(data.error || 'Erro ao processar. Tente novamente.');
